@@ -17,13 +17,10 @@
 
 package com.spotify.ratatool.scalacheck
 
-import java.util.Random
-
-import com.google.cloud.dataflow.sdk.coders.AvroCoder
-import com.google.cloud.dataflow.sdk.util.CoderUtils
+import com.spotify.ratatool.generators.AvroGenerator
+import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecord
-import org.apache.avro.{RandomData, Schema}
 import org.scalacheck._
 
 import scala.reflect.ClassTag
@@ -31,16 +28,9 @@ import scala.reflect.ClassTag
 object AvroGen {
 
   def avroOf(schema: Schema): Gen[GenericRecord] =
-    Gen.const(new Random).map(RandomData.generate(schema, _, 0).asInstanceOf[GenericRecord])
+    Gen.const(0).map(_ => AvroGenerator.avroOf(schema))
 
-  def avroOf[T <: SpecificRecord : ClassTag]: Gen[T] = {
-    val cls = implicitly[ClassTag[T]].runtimeClass.asInstanceOf[Class[T]]
-    val sCoder = AvroCoder.of(cls)
-    val gCoder = AvroCoder.of(sCoder.getSchema)
-    avroOf(sCoder.getSchema).map { r =>
-      val b = CoderUtils.encodeToByteArray(gCoder, r)
-      CoderUtils.decodeFromByteArray(sCoder, b)
-    }
-  }
+  def avroOf[T <: SpecificRecord : ClassTag]: Gen[T] =
+    Gen.const(0).map(_ => AvroGenerator.avroOf[T])
 
 }
