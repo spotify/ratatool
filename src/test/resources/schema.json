@@ -1,0 +1,16 @@
+{
+    "fields": [
+        {"mode": "NULLABLE", "name": "int_field", "type": "INTEGER"},
+        {"mode": "NULLABLE", "name": "float_field", "type": "FLOAT"},
+        {"mode": "NULLABLE", "name": "boolean_field", "type": "BOOLEAN"},
+        {"mode": "NULLABLE", "name": "string_field", "type": "STRING"},
+        {"mode": "NULLABLE", "name": "timestamp_field", "type": "TIMESTAMP"},
+        {"mode": "NULLABLE", "name": "record_field", "type": "RECORD", "fields": [
+            {"mode": "REQUIRED", "name": "int_field", "type": "INTEGER"},
+            {"mode": "REQUIRED", "name": "float_field", "type": "FLOAT"},
+            {"mode": "REQUIRED", "name": "boolean_field", "type": "BOOLEAN"},
+            {"mode": "REQUIRED", "name": "string_field", "type": "STRING"},
+            {"mode": "REQUIRED", "name": "timestamp_field", "type": "TIMESTAMP"}
+        ]}
+    ]
+}
