@@ -38,6 +38,7 @@ class AvroIOTest extends FlatSpec with Matchers {
 
   it should "work with file" in {
     val file = File.createTempFile("ratatool-", ".avro")
+    file.deleteOnExit()
     AvroIO.writeToFile(data, schema, file)
     val result = AvroIO.readFromFile(file).toList
     result should equal (data)

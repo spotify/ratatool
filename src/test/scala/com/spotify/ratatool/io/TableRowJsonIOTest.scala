@@ -38,6 +38,7 @@ class TableRowJsonIOTest extends FlatSpec with Matchers {
 
   it should "work with file" in {
     val file = File.createTempFile("ratatool-", ".json")
+    file.deleteOnExit()
     TableRowJsonIO.writeToFile(data, file)
     val result = TableRowJsonIO.readFromFile(file).toList.map(_.toString)
     result should equal (data.map(_.toString))

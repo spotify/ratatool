@@ -24,20 +24,25 @@ import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.generators.AvroGenerator
 import com.spotify.ratatool.io.AvroIO
 import org.apache.hadoop.fs.Path
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest._
 
-class AvroSamplerTest extends FlatSpec with Matchers {
+class AvroSamplerTest extends FlatSpec with Matchers with BeforeAndAfterAllConfigMap {
 
   val schema = Schemas.avroSchema
   val data1 = (1 to 40000).map(_ => AvroGenerator.avroOf(schema))
   val data2 = (1 to 10000).map(_ => AvroGenerator.avroOf(schema))
-
   val dir = Files.createTempDirectory("ratatool-")
   val file1 = new File(dir.toString, "part-00000.avro")
   val file2 = new File(dir.toString, "part-00001.avro")
 
-  AvroIO.writeToFile(data1, schema, file1)
-  AvroIO.writeToFile(data2, schema, file2)
+  override protected def beforeAll(configMap: ConfigMap): Unit = {
+    AvroIO.writeToFile(data1, schema, file1)
+    AvroIO.writeToFile(data2, schema, file2)
+
+    dir.toFile.deleteOnExit()
+    file1.deleteOnExit()
+    file2.deleteOnExit()
+  }
 
   "AvroSampler" should "support single file in head mode" in {
     val result = new AvroSampler(new Path(file1.getAbsolutePath)).sample(10, head = true)
