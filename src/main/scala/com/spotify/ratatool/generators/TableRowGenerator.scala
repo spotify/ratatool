@@ -22,12 +22,15 @@ import java.util.Random
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import org.apache.avro.RandomData
 import org.joda.time.Instant
+import org.joda.time.format.DateTimeFormat
 
 import scala.collection.JavaConverters._
 
 object TableRowGenerator {
 
   private val random = new Random
+
+  private val formatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS").withZoneUTC()
 
   def tableRowOf(schema: TableSchema): TableRow = randomTableRow(schema, random)
 
@@ -44,8 +47,10 @@ object TableRowGenerator {
       case "INTEGER" => random.nextLong()
       case "FLOAT" => random.nextFloat()
       case "BOOLEAN" => random.nextBoolean()
-      case "STRING" => RandomData.randomUtf8(random, 40)
-      case "TIMESTAMP" => new Instant(random.nextLong())
+      case "STRING" => RandomData.randomUtf8(random, 40).toString
+      case "TIMESTAMP" =>
+        val i = new Instant(random.nextInt(Int.MaxValue).toLong * 1000 + random.nextInt(1000))
+        formatter.print(i) + " UTC"
       case "RECORD" =>
         val r = new TableRow()
         schema.getFields.asScala.foreach { f =>
