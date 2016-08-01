@@ -2,7 +2,6 @@ organization := "com.spotify"
 name := "ratatool"
 description := "A tool for random data sampling and generation"
 
-version := "0.1.0-SNAPSHOT"
 scalaVersion := "2.11.8"
 crossScalaVersions := Seq("2.10.6", "2.11.8")
 scalacOptions ++= Seq("-target:jvm-1.7", "-deprecation", "-feature", "-unchecked")
