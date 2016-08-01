@@ -34,7 +34,8 @@ class BigQuerySampler(tableRef: TableReference, protected val seed: Option[Long]
   private val logger: Logger = LoggerFactory.getLogger(classOf[BigQuerySampler])
 
   private val bigquery: Bigquery = {
-    val credential = GoogleCredential.getApplicationDefault.createScoped(List(BigqueryScopes.BIGQUERY).asJava)
+    val scopes = List(BigqueryScopes.BIGQUERY).asJava
+    val credential = GoogleCredential.getApplicationDefault.createScoped(scopes)
     new Bigquery.Builder(Utils.getDefaultTransport, Utils.getDefaultJsonFactory, credential)
       .setApplicationName("sampler")
       .build()
