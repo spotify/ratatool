@@ -123,7 +123,7 @@ private class AvroFileSampler(path: Path, protected val seed: Option[Long] = Non
         val pos = fileReader.tell()
 
         // sync position may be sampled already
-        if (positions.contains(pos)) {
+        if (positions.contains(pos) || !fileReader.hasNext) {
           collisions += 1
           logger.debug("Sync point collision {} at position {}", collisions, pos)
         } else {
