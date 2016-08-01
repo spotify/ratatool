@@ -46,6 +46,33 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-simple" % slf4jVersion
 )
 
+// Release settings
+releaseCrossBuild             := true
+releasePublishArtifactsAction := PgpKeys.publishSigned.value
+publishMavenStyle             := true
+publishArtifact in Test       := false
+sonatypeProfileName           := "com.spotify"
+pomExtra                      := {
+  <url>https://github.com/spotify/ratatool</url>
+  <licenses>
+    <license>
+      <name>Apache 2</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+  <scm>
+    <url>git@github.com/spotify/ratatool.git</url>
+    <connection>scm:git:git@github.com:spotify/ratatool.git</connection>
+  </scm>
+  <developers>
+    <developer>
+      <id>sinisa_lyh</id>
+      <name>Neville Li</name>
+      <url>https://twitter.com/sinisa_lyh</url>
+    </developer>
+  </developers>
+}
+
 mainClass in assembly := Some("com.spotify.ratatool.Tool")
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
   case s if s.endsWith(".class") => MergeStrategy.last
