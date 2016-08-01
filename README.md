@@ -1,6 +1,9 @@
 Ratatool
 ========
 
+[![Build Status](https://travis-ci.org/spotify/ratatool.svg?branch=master)](https://travis-ci.org/spotify/ratatool)
+[![GitHub license](https://img.shields.io/github/license/spotify/ratatool.svg)]()
+
 A tool for random data sampling and generation
 
 # Usage
