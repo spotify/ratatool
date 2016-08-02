@@ -75,6 +75,7 @@ pomExtra                      := {
   </developers>
 }
 
+// Assembly settings
 mainClass in assembly := Some("com.spotify.ratatool.Tool")
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
   case s if s.endsWith(".class") => MergeStrategy.last
