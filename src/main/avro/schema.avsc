@@ -1,7 +1,7 @@
 {
     "type": "record",
     "name": "TestRecord",
-    "namespace": "com.spotify.ratatool.avro",
+    "namespace": "com.spotify.ratatool.avro.specific",
     "doc": "Record for testing",
     "fields": [
         {"name": "int_field", "type": ["null", "int"], "default": null},
@@ -15,7 +15,7 @@
             "type": {
                 "type": "record",
                 "name": "NestedRecord",
-                "namespace": "com.spotify.ratatool.avro",
+                "namespace": "com.spotify.ratatool.avro.specific",
                 "doc": "Record for testing",
                 "fields": [
                     {"name": "int_field", "type": "int"},

@@ -20,7 +20,7 @@ package com.spotify.ratatool.io
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 
 import com.spotify.ratatool.Schemas
-import com.spotify.ratatool.avro.TestRecord
+import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.scalacheck.AvroGen
 import org.apache.avro.generic.GenericRecord
 import org.scalatest.{FlatSpec, Matchers}
