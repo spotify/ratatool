@@ -20,7 +20,6 @@ package com.spotify.ratatool.io
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 
 import com.spotify.ratatool.Schemas
-import com.spotify.ratatool.generators.TableRowGenerator
 import com.spotify.ratatool.scalacheck.TableRowGen
 import org.scalatest.{FlatSpec, Matchers}
 
