@@ -30,6 +30,7 @@ val dataflowVersion = "1.6.0"
 val gcsVersion = "1.4.5-hadoop2"
 val hadoopVersion = "2.7.2"
 val jodaTimeVersion = "2.9.4"
+val parquetVersion = "1.8.1"
 val scalaCheckVersion = "1.13.2"
 val scalaTestVersion = "2.2.6"
 val scoptVersion = "3.5.0"
@@ -43,6 +44,7 @@ libraryDependencies ++= Seq(
   "joda-time" % "joda-time" % jodaTimeVersion,
   "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
   "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
+  "org.apache.parquet" % "parquet-avro" % parquetVersion,
   "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
   "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
   "org.slf4j" % "slf4j-simple" % slf4jVersion
