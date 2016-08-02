@@ -19,8 +19,8 @@ package com.spotify.ratatool
 
 import java.io.OutputStream
 
-import com.spotify.ratatool.io.{AvroIO, BigQueryIO, TableRowJsonIO}
-import com.spotify.ratatool.samplers.{AvroSampler, BigQuerySampler}
+import com.spotify.ratatool.io.{AvroIO, BigQueryIO, ParquetIO, TableRowJsonIO}
+import com.spotify.ratatool.samplers.{AvroSampler, BigQuerySampler, ParquetSampler}
 import org.apache.hadoop.fs.{FileSystem, Path}
 
 object Tool {
@@ -39,19 +39,20 @@ object Tool {
     o.inMode match {
       case "avro" =>
         val data = new AvroSampler(new Path(o.in)).sample(o.n, o.head)
-        val os = createOutputStream(o.out)
-        AvroIO.writeToOutputStream(data, data.head.getSchema, os)
+        AvroIO.writeToFile(data, data.head.getSchema, o.out)
       case "bigquery" =>
         val sampler = new BigQuerySampler(BigQueryIO.parseTableSpec(o.in))
         val data = sampler.sample(o.n, o.head)
         if (o.out.nonEmpty) {
-          val os = createOutputStream(o.out)
-          TableRowJsonIO.writeToOutputStream(data, os)
+          TableRowJsonIO.writeToFile(data, o.out)
         }
         if (o.tableOut.nonEmpty) {
           val table = BigQueryIO.parseTableSpec(o.tableOut)
           BigQueryIO.writeToTable(data, sampler.schema, table)
         }
+      case "parquet" =>
+        val data = new ParquetSampler(new Path(o.in)).sample(o.n, o.head)
+        ParquetIO.writeToFile(data, o.out)
       case _ =>
         throw new NotImplementedError(s"${o.inMode} not implemented")
     }

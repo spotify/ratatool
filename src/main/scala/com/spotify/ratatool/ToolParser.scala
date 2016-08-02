@@ -30,6 +30,21 @@ object ToolParser {
   val parser = new scopt.OptionParser[ToolConfig]("ratatool") {
     head("ratatool - a tool for random data sampling and generation")
 
+    cmd("avro")
+      .action((_, c) => c.copy(inMode = "avro"))
+      .text("Sample from Avro")
+      .children(
+        opt[String]("in")
+          .required()
+          .action((x, c) => c.copy(in = x))
+          .text("Avro input path"),
+        opt[String]("out")
+          .required()
+          .action((x, c) => c.copy(out = x))
+          .text("Avro output file"))
+
+    note("")  // empty line
+
     cmd("bigquery")
       .action((_, c) => c.copy(inMode = "bigquery"))
       .text("Sample from BigQuery")
@@ -58,18 +73,28 @@ object ToolParser {
 
     note("")  // empty line
 
-    cmd("avro")
-      .action((_, c) => c.copy(inMode = "avro"))
-      .text("Sample from Avro")
+    cmd("parquet")
+      .action((_, c) => c.copy(inMode = "parquet"))
+      .text("Sample from Parquet")
       .children(
         opt[String]("in")
           .required()
           .action((x, c) => c.copy(in = x))
-          .text("Avro input path"),
+          .text("Parquet input path"),
         opt[String]("out")
           .required()
           .action((x, c) => c.copy(out = x))
-          .text("Avro output file"))
+          .text("Parquet output file"),
+        checkConfig( c =>
+          if (c.inMode == "bigquery") {
+            if (!c.head)
+              failure("Parquet can only be used in head mode")
+            else
+              success
+          } else {
+            success
+          }
+        ))
 
     note("")  // empty line
     note("Common options")
