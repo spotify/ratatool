@@ -33,7 +33,7 @@ class AvroIOTest extends FlatSpec with Matchers {
 
   val specificSchema = TestRecord.getClassSchema
   val specificGen = AvroGen.avroOf[TestRecord]
-  val specificData = (1 to 1).flatMap(_ => specificGen.sample)
+  val specificData = (1 to 100).flatMap(_ => specificGen.sample)
 
   "AvroIO" should "work with generic record and stream" in {
     val out = new ByteArrayOutputStream()
