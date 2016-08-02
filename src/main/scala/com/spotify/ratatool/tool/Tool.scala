@@ -37,7 +37,7 @@ object Tool {
     }
 
     val o = opts.get
-    o.inMode match {
+    o.mode match {
       case "avro" =>
         val data = new AvroSampler(new Path(o.in)).sample(o.n, o.head)
         AvroIO.writeToFile(data, data.head.getSchema, o.out)
@@ -55,7 +55,7 @@ object Tool {
         val data = new ParquetSampler(new Path(o.in)).sample(o.n, o.head)
         ParquetIO.writeToFile(data, data.head.getSchema, o.out)
       case _ =>
-        throw new NotImplementedError(s"${o.inMode} not implemented")
+        throw new NotImplementedError(s"${o.mode} not implemented")
     }
   }
 

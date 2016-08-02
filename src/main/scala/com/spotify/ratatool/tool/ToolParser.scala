@@ -24,7 +24,7 @@ object ToolParser {
     head("ratatool - a tool for random data sampling and generation")
 
     cmd("avro")
-      .action((_, c) => c.copy(inMode = "avro"))
+      .action((_, c) => c.copy(mode = "avro"))
       .text("Sample from Avro")
       .children(
         opt[String]("in")
@@ -39,7 +39,7 @@ object ToolParser {
     note("")  // empty line
 
     cmd("bigquery")
-      .action((_, c) => c.copy(inMode = "bigquery"))
+      .action((_, c) => c.copy(mode = "bigquery"))
       .text("Sample from BigQuery")
       .children(
         opt[String]("in").required()
@@ -52,7 +52,7 @@ object ToolParser {
           .action((x, c) => c.copy(tableOut = x))
           .text("BigQuery output table"),
         checkConfig( c =>
-          if (c.inMode == "bigquery") {
+          if (c.mode == "bigquery") {
             if (c.out.isEmpty && c.tableOut.isEmpty)
               failure("Missing output option")
             else if (!c.head)
@@ -67,7 +67,7 @@ object ToolParser {
     note("")  // empty line
 
     cmd("parquet")
-      .action((_, c) => c.copy(inMode = "parquet"))
+      .action((_, c) => c.copy(mode = "parquet"))
       .text("Sample from Parquet")
       .children(
         opt[String]("in")
@@ -79,7 +79,7 @@ object ToolParser {
           .action((x, c) => c.copy(out = x))
           .text("Parquet output file"),
         checkConfig( c =>
-          if (c.inMode == "bigquery") {
+          if (c.mode == "parquet") {
             if (!c.head)
               failure("Parquet can only be used in head mode")
             else
@@ -102,7 +102,7 @@ object ToolParser {
 
     checkConfig( c =>
       if (c.n <= 0) failure("n must be > 0")
-      else if (c.inMode.isEmpty) failure("Missing command")
+      else if (c.mode.isEmpty) failure("Missing command")
       else success)
   }
   // scalastyle:on if.brace

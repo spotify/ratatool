@@ -17,7 +17,7 @@
 
 package com.spotify.ratatool.tool
 
-case class ToolConfig(inMode: String = "",
+case class ToolConfig(mode: String = "",
                       in: String = "",
                       out: String = "",
                       tableOut: String = "",
