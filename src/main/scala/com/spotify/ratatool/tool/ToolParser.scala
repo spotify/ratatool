@@ -15,14 +15,7 @@
  * under the License.
  */
 
-package com.spotify.ratatool
-
-case class ToolConfig(inMode: String = "",
-                      in: String = "",
-                      out: String = "",
-                      tableOut: String = "",
-                      n: Long = 1,
-                      head: Boolean = false)
+package com.spotify.ratatool.tool
 
 object ToolParser {
 
