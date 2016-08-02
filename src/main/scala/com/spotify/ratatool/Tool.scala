@@ -52,7 +52,7 @@ object Tool {
         }
       case "parquet" =>
         val data = new ParquetSampler(new Path(o.in)).sample(o.n, o.head)
-        ParquetIO.writeToFile(data, o.out)
+        ParquetIO.writeToFile(data, data.head.getSchema, o.out)
       case _ =>
         throw new NotImplementedError(s"${o.inMode} not implemented")
     }

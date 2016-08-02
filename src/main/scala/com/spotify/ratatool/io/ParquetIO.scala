@@ -21,7 +21,7 @@ import java.io.{File, InputStream, OutputStream}
 import java.nio.file.Files
 
 import com.spotify.ratatool.GcsConfiguration
-import org.apache.avro.generic.GenericRecord
+import org.apache.avro.Schema
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.parquet.avro.{AvroParquetReader, AvroParquetWriter}
@@ -31,21 +31,21 @@ import scala.collection.JavaConverters._
 
 object ParquetIO {
 
-  def readFromFile(path: Path): Iterator[GenericRecord] = {
+  def readFromFile[T](path: Path): Iterator[T] = {
     val conf = GcsConfiguration.get()
     val fs = FileSystem.get(path.toUri, conf)
     val status = fs.getFileStatus(path)
     val footers = ParquetFileReader.readFooters(conf, status, true).asScala
 
     footers.map { f =>
-      val reader = AvroParquetReader.builder(f.getFile)
+      val reader = AvroParquetReader.builder[T](f.getFile)
         .withConf(conf)
         .build()
-        .asInstanceOf[ParquetReader[GenericRecord]]
-      new Iterator[GenericRecord] {
+        .asInstanceOf[ParquetReader[T]]
+      new Iterator[T] {
         private var item = reader.read()
         override def hasNext: Boolean = item != null
-        override def next(): GenericRecord = {
+        override def next(): T = {
           val r = item
           item = reader.read()
           r
@@ -54,11 +54,11 @@ object ParquetIO {
     }.reduce(_++_)
   }
 
-  def readFromFile(name: String): Iterator[GenericRecord] = readFromFile(new Path(name))
+  def readFromFile[T](name: String): Iterator[T] = readFromFile(new Path(name))
 
-  def readFromFile(file: File): Iterator[GenericRecord] = readFromFile(file.getAbsolutePath)
+  def readFromFile[T](file: File): Iterator[T] = readFromFile(file.getAbsolutePath)
 
-  def readFromInputStream(is: InputStream): Iterator[GenericRecord] = {
+  def readFromInputStream[T](is: InputStream): Iterator[T] = {
     val dir = Files.createTempDirectory("ratatool-")
     val file = new File(dir.toString, "temp.parquet")
     Files.copy(is, file.toPath)
@@ -67,30 +67,30 @@ object ParquetIO {
     data
   }
 
-  def readFromResource(name: String): Iterator[GenericRecord] =
+  def readFromResource[T](name: String): Iterator[T] =
     readFromInputStream(this.getClass.getResourceAsStream(name))
 
-  def writeToFile(data: Iterable[GenericRecord], path: Path): Unit = {
+  def writeToFile[T](data: Iterable[T], schema: Schema, path: Path): Unit = {
     val conf = GcsConfiguration.get()
-    val writer = AvroParquetWriter.builder(path)
+    val writer = AvroParquetWriter.builder[T](path)
       .withConf(conf)
-      .withSchema(data.head.getSchema)
+      .withSchema(schema)
       .build()
-      .asInstanceOf[ParquetWriter[GenericRecord]]
+      .asInstanceOf[ParquetWriter[T]]
     data.foreach(writer.write)
     writer.close()
   }
 
-  def writeToFile(data: Iterable[GenericRecord], name: String): Unit =
-    writeToFile(data, new Path(name))
+  def writeToFile[T](data: Iterable[T], schema: Schema, name: String): Unit =
+    writeToFile(data, schema, new Path(name))
 
-  def writeToFile(data: Iterable[GenericRecord], file: File): Unit =
-    writeToFile(data, file.getAbsolutePath)
+  def writeToFile[T](data: Iterable[T], schema: Schema, file: File): Unit =
+    writeToFile(data, schema, file.getAbsolutePath)
 
-  def writeToOutputStream(data: Iterable[GenericRecord], os: OutputStream): Unit = {
+  def writeToOutputStream[T](data: Iterable[T], schema: Schema, os: OutputStream): Unit = {
     val dir = Files.createTempDirectory("ratatool-")
     val file = new File(dir.toString, "temp.parquet")
-    writeToFile(data, file)
+    writeToFile(data, schema, file)
     Files.copy(file.toPath, os)
     FileUtils.deleteDirectory(dir.toFile)
   }
