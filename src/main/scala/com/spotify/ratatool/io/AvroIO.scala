@@ -25,6 +25,7 @@ import org.apache.avro.file.{DataFileReader, DataFileWriter, SeekableByteArrayIn
 import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericRecord}
 import org.apache.avro.io.{DatumReader, DatumWriter}
 import org.apache.avro.reflect.{ReflectDatumReader, ReflectDatumWriter}
+import org.apache.avro.specific.{SpecificDatumReader, SpecificDatumWriter, SpecificRecord}
 
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
@@ -33,7 +34,9 @@ object AvroIO {
 
   private def createDatumReader[T: ClassTag]: DatumReader[T] = {
     val cls = implicitly[ClassTag[T]].runtimeClass
-    if (classOf[GenericRecord] isAssignableFrom cls) {
+    if (classOf[SpecificRecord] isAssignableFrom cls) {
+      new SpecificDatumReader[T]()
+    } else if (classOf[GenericRecord] isAssignableFrom cls) {
       new GenericDatumReader[T]()
     } else {
       new ReflectDatumReader[T]()
@@ -42,7 +45,9 @@ object AvroIO {
 
   private def createDatumWriter[T: ClassTag]: DatumWriter[T] = {
     val cls = implicitly[ClassTag[T]].runtimeClass
-    if (classOf[GenericRecord] isAssignableFrom cls) {
+    if (classOf[SpecificRecord] isAssignableFrom cls) {
+      new SpecificDatumWriter[T]()
+    } else if (classOf[GenericRecord] isAssignableFrom cls) {
       new GenericDatumWriter[T]()
     } else {
       new ReflectDatumWriter[T]()

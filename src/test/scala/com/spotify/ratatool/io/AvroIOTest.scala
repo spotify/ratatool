@@ -20,30 +20,51 @@ package com.spotify.ratatool.io
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 
 import com.spotify.ratatool.Schemas
+import com.spotify.ratatool.avro.TestRecord
 import com.spotify.ratatool.scalacheck.AvroGen
 import org.apache.avro.generic.GenericRecord
 import org.scalatest.{FlatSpec, Matchers}
 
 class AvroIOTest extends FlatSpec with Matchers {
 
-  val schema = Schemas.avroSchema
-  val gen = AvroGen.avroOf(schema)
-  val data = (1 to 100).flatMap(_ => gen.sample)
+  val genericSchema = Schemas.avroSchema
+  val genericGen = AvroGen.avroOf(genericSchema)
+  val genericData = (1 to 100).flatMap(_ => genericGen.sample)
 
-  "AvroIO" should "work with stream" in {
+  val specificSchema = TestRecord.getClassSchema
+  val specificGen = AvroGen.avroOf[TestRecord]
+  val specificData = (1 to 1).flatMap(_ => specificGen.sample)
+
+  "AvroIO" should "work with generic record and stream" in {
     val out = new ByteArrayOutputStream()
-    AvroIO.writeToOutputStream(data, schema, out)
+    AvroIO.writeToOutputStream(genericData, genericSchema, out)
     val in = new ByteArrayInputStream(out.toByteArray)
     val result = AvroIO.readFromInputStream[GenericRecord](in).toList
-    result should equal (data)
+    result should equal (genericData)
   }
 
-  it should "work with file" in {
+  it should "work with generic record and file" in {
     val file = File.createTempFile("ratatool-", ".avro")
     file.deleteOnExit()
-    AvroIO.writeToFile(data, schema, file)
+    AvroIO.writeToFile(genericData, genericSchema, file)
     val result = AvroIO.readFromFile[GenericRecord](file).toList
-    result should equal (data)
+    result should equal (genericData)
+  }
+
+  it should "work with specific record and stream" in {
+    val out = new ByteArrayOutputStream()
+    AvroIO.writeToOutputStream(specificData, specificSchema, out)
+    val in = new ByteArrayInputStream(out.toByteArray)
+    val result = AvroIO.readFromInputStream[TestRecord](in).toList
+    result should equal (specificData)
+  }
+
+  it should "work with specific record and file" in {
+    val file = File.createTempFile("ratatool-", ".avro")
+    file.deleteOnExit()
+    AvroIO.writeToFile(specificData, specificSchema, file)
+    val result = AvroIO.readFromFile[TestRecord](file).toList
+    result should equal (specificData)
   }
 
 }

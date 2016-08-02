@@ -48,6 +48,8 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-simple" % slf4jVersion
 )
 
+Seq(sbtavro.SbtAvro.avroSettings : _*)
+
 // Release settings
 releaseCrossBuild             := true
 releasePublishArtifactsAction := PgpKeys.publishSigned.value
