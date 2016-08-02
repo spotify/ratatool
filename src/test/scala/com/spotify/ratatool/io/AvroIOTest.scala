@@ -21,6 +21,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.scalacheck.AvroGen
+import org.apache.avro.generic.GenericRecord
 import org.scalatest.{FlatSpec, Matchers}
 
 class AvroIOTest extends FlatSpec with Matchers {
@@ -33,7 +34,7 @@ class AvroIOTest extends FlatSpec with Matchers {
     val out = new ByteArrayOutputStream()
     AvroIO.writeToOutputStream(data, schema, out)
     val in = new ByteArrayInputStream(out.toByteArray)
-    val result = AvroIO.readFromInputStream(in).toList
+    val result = AvroIO.readFromInputStream[GenericRecord](in).toList
     result should equal (data)
   }
 
@@ -41,7 +42,7 @@ class AvroIOTest extends FlatSpec with Matchers {
     val file = File.createTempFile("ratatool-", ".avro")
     file.deleteOnExit()
     AvroIO.writeToFile(data, schema, file)
-    val result = AvroIO.readFromFile(file).toList
+    val result = AvroIO.readFromFile[GenericRecord](file).toList
     result should equal (data)
   }
 
