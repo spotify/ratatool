@@ -44,17 +44,6 @@ object AvroGenerator {
   def avroOf[T <: SpecificRecord : ClassTag]: T =
     cache.get(implicitly[ClassTag[T]].runtimeClass).asInstanceOf[SpecificGenerator[T]]()
 
-  private class Transcoder(cls: Class[_]) {
-    private val specificCoder = AvroCoder.of(cls)
-    private val genericCoder = AvroCoder.of(specificCoder.getSchema)
-    val schema = specificCoder.getSchema
-
-    def transcode(genericRecord: GenericRecord): Any = {
-      val bytes = CoderUtils.encodeToByteArray(genericCoder, genericRecord)
-      CoderUtils.decodeFromByteArray(specificCoder, bytes)
-    }
-  }
-
   private class SpecificGenerator[T](cls: Class[_]) {
     private val specificCoder = AvroCoder.of(cls).asInstanceOf[AvroCoder[T]]
     private val genericCoder = AvroCoder.of(specificCoder.getSchema)
