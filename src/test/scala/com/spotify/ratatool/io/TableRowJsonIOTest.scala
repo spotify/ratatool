@@ -21,12 +21,14 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.generators.TableRowGenerator
+import com.spotify.ratatool.scalacheck.TableRowGen
 import org.scalatest.{FlatSpec, Matchers}
 
 class TableRowJsonIOTest extends FlatSpec with Matchers {
 
   val schema = Schemas.tableSchema
-  val data = (1 to 100).map(_ => TableRowGenerator.tableRowOf(schema))
+  val gen = TableRowGen.tableRowOf(schema)
+  val data = (1 to 100).flatMap(_ => gen.sample)
 
   "TableRowJsonIO" should "work with stream" in {
     val out = new ByteArrayOutputStream()

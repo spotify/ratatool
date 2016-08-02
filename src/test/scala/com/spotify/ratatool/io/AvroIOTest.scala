@@ -20,13 +20,14 @@ package com.spotify.ratatool.io
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 
 import com.spotify.ratatool.Schemas
-import com.spotify.ratatool.generators.AvroGenerator
+import com.spotify.ratatool.scalacheck.AvroGen
 import org.scalatest.{FlatSpec, Matchers}
 
 class AvroIOTest extends FlatSpec with Matchers {
 
   val schema = Schemas.avroSchema
-  val data = (1 to 100).map(_ => AvroGenerator.avroOf(schema))
+  val gen = AvroGen.avroOf(schema)
+  val data = (1 to 100).flatMap(_ => gen.sample)
 
   "AvroIO" should "work with stream" in {
     val out = new ByteArrayOutputStream()
