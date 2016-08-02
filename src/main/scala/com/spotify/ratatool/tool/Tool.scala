@@ -59,10 +59,4 @@ object Tool {
     }
   }
 
-  def createOutputStream(name: String): OutputStream = {
-    val path = new Path(name)
-    val fs = FileSystem.get(path.toUri, GcsConfiguration.get())
-    fs.create(path, false)
-  }
-
 }
