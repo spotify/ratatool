@@ -21,7 +21,6 @@ import java.io.{File, InputStream, OutputStream}
 import java.nio.file.Files
 
 import com.spotify.ratatool.GcsConfiguration
-import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -71,27 +70,27 @@ object ParquetIO {
   def readFromResource(name: String): Iterator[GenericRecord] =
     readFromInputStream(this.getClass.getResourceAsStream(name))
 
-  def writeToFile(data: Iterable[GenericRecord], schema: Schema, path: Path): Unit = {
+  def writeToFile(data: Iterable[GenericRecord], path: Path): Unit = {
     val conf = GcsConfiguration.get()
     val writer = AvroParquetWriter.builder(path)
-      .withSchema(schema)
       .withConf(conf)
+      .withSchema(data.head.getSchema)
       .build()
       .asInstanceOf[ParquetWriter[GenericRecord]]
     data.foreach(writer.write)
     writer.close()
   }
 
-  def writeToFile(data: Iterable[GenericRecord], schema: Schema, name: String): Unit =
-    writeToFile(data, schema, new Path(name))
+  def writeToFile(data: Iterable[GenericRecord], name: String): Unit =
+    writeToFile(data, new Path(name))
 
-  def writeToFile(data: Iterable[GenericRecord], schema: Schema, file: File): Unit =
-    writeToFile(data, schema, file.getAbsolutePath)
+  def writeToFile(data: Iterable[GenericRecord], file: File): Unit =
+    writeToFile(data, file.getAbsolutePath)
 
-  def writeToOutputStream(data: Iterable[GenericRecord], schema: Schema, os: OutputStream): Unit = {
+  def writeToOutputStream(data: Iterable[GenericRecord], os: OutputStream): Unit = {
     val dir = Files.createTempDirectory("ratatool-")
     val file = new File(dir.toString, "temp.parquet")
-    writeToFile(data, schema, file)
+    writeToFile(data, file)
     Files.copy(file.toPath, os)
     FileUtils.deleteDirectory(dir.toFile)
   }

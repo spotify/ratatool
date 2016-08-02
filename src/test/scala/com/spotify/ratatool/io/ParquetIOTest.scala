@@ -33,7 +33,7 @@ class ParquetIOTest extends FlatSpec with Matchers {
 
   "ParquetIO" should "work with stream" in {
     val out = new ByteArrayOutputStream()
-    ParquetIO.writeToOutputStream(data, schema, out)
+    ParquetIO.writeToOutputStream(data, out)
     val in = new ByteArrayInputStream(out.toByteArray)
     val result = ParquetIO.readFromInputStream(in).toList
     result should equal (data)
@@ -42,7 +42,7 @@ class ParquetIOTest extends FlatSpec with Matchers {
   it should "work with file" in {
     val dir = Files.createTempDirectory("ratatool-")
     val file = new File(dir.toString, "temp.parquet")
-    ParquetIO.writeToFile(data, schema, file)
+    ParquetIO.writeToFile(data, file)
     val result = ParquetIO.readFromFile(file).toList
     result should equal (data)
     FileUtils.deleteDirectory(dir.toFile)
