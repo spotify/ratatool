@@ -67,7 +67,7 @@ object TableRowGenerator {
       case "NULLABLE" => if (random.nextBoolean()) genV() else null
       case "REPEATED" =>
         val length = random.nextInt(5) + 2 - d
-        (1 to (if (length <= 0) 0 else length)).map(_ => genV()).asJava
+        (1 to math.max(length, 0)).map(_ => genV()).asJava
       case m => throw new RuntimeException(s"Unknown mode: $m")
     }
   }
