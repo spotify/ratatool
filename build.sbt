@@ -15,6 +15,8 @@
  * under the License.
  */
 
+import sbtprotobuf.{ProtobufPlugin => PB}
+
 organization := "com.spotify"
 name := "ratatool"
 description := "A tool for random data sampling and generation"
@@ -41,7 +43,6 @@ libraryDependencies ++= Seq(
   "com.github.scopt" %% "scopt" % scoptVersion,
   "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
   "com.google.cloud.dataflow" % "google-cloud-dataflow-java-sdk-all" % dataflowVersion,
-  "com.google.protobuf" % "protobuf-java" % protoBufVersion,
   "com.twitter" %% "bijection-avro" % bijectionVersion,
   "joda-time" % "joda-time" % jodaTimeVersion,
   "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
@@ -53,6 +54,11 @@ libraryDependencies ++= Seq(
 )
 
 Seq(sbtavro.SbtAvro.avroSettings : _*)
+PB.protobufSettings
+version in PB.protobufConfig := protoBufVersion
+PB.runProtoc in PB.protobufConfig := (args =>
+  com.github.os72.protocjar.Protoc.runProtoc("-v261" +: args.toArray)
+)
 
 // Release settings
 releaseCrossBuild             := true
