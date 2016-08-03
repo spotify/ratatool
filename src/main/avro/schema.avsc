@@ -4,17 +4,28 @@
     "namespace": "com.spotify.ratatool.avro.specific",
     "doc": "Record for testing",
     "fields": [
-        {"name": "int_field", "type": ["null", "int"], "default": null},
-        {"name": "long_field", "type": ["null", "long"], "default": null},
-        {"name": "float_field", "type": ["null", "float"], "default": null},
-        {"name": "double_field", "type": ["null", "double"], "default": null},
-        {"name": "boolean_field", "type": ["null", "boolean"], "default": null},
-        {"name": "string_field", "type": ["null", "string"], "default": null},
         {
-            "name": "record_field",
+            "name": "nullable_fields",
             "type": {
                 "type": "record",
-                "name": "NestedRecord",
+                "name": "NullableNestedRecord",
+                "namespace": "com.spotify.ratatool.avro.specific",
+                "doc": "Record for testing",
+                "fields": [
+                    {"name": "int_field", "type": ["null", "int"], "default": null},
+                    {"name": "long_field", "type": ["null", "long"], "default": null},
+                    {"name": "float_field", "type": ["null", "float"], "default": null},
+                    {"name": "double_field", "type": ["null", "double"], "default": null},
+                    {"name": "boolean_field", "type": ["null", "boolean"], "default": null},
+                    {"name": "string_field", "type": ["null", "string"], "default": null}
+                ]
+            }
+        },
+        {
+            "name": "required_fields",
+            "type": {
+                "type": "record",
+                "name": "RequiredNestedRecord",
                 "namespace": "com.spotify.ratatool.avro.specific",
                 "doc": "Record for testing",
                 "fields": [
@@ -24,6 +35,23 @@
                     {"name": "double_field", "type": "double"},
                     {"name": "boolean_field", "type": "boolean"},
                     {"name": "string_field", "type": "string"}
+                ]
+            }
+        },
+        {
+            "name": "repeated_fields",
+            "type": {
+                "type": "record",
+                "name": "RepeatedNestedRecord",
+                "namespace": "com.spotify.ratatool.avro.specific",
+                "doc": "Record for testing",
+                "fields": [
+                    {"name": "int_field", "type": {"type": "array", "items": "int"}},
+                    {"name": "long_field", "type": {"type": "array", "items": "long"}},
+                    {"name": "float_field", "type": {"type": "array", "items": "float"}},
+                    {"name": "double_field", "type": {"type": "array", "items": "double"}},
+                    {"name": "boolean_field", "type": {"type": "array", "items": "boolean"}},
+                    {"name": "string_field", "type": {"type": "array", "items": "string"}}
                 ]
             }
         }
