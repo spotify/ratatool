@@ -3,7 +3,7 @@ Ratatool
 
 [![Build Status](https://travis-ci.org/spotify/ratatool.svg?branch=master)](https://travis-ci.org/spotify/ratatool)
 [![codecov.io](https://codecov.io/github/spotify/ratatool/coverage.svg?branch=master)](https://codecov.io/github/spotify/ratatool?branch=master)
-[![GitHub license](https://img.shields.io/github/license/spotify/ratatool.svg)](./LICENSE)
+[![GitHub license](https://img.shields.io/badge/Licence-Apache%202.0-blue.svg)](./LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/com.spotify/ratatool_2.11.svg)](https://maven-badges.herokuapp.com/maven-central/com.spotify/ratatool_2.11)
 
 A tool for random data sampling and generation
