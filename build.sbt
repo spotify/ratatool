@@ -31,6 +31,7 @@ val gcsVersion = "1.4.5-hadoop2"
 val hadoopVersion = "2.7.2"
 val jodaTimeVersion = "2.9.4"
 val parquetVersion = "1.8.1"
+val protoBufVersion = "2.6.1"
 val scalaCheckVersion = "1.13.2"
 val scalaTestVersion = "3.0.0"
 val scoptVersion = "3.5.0"
@@ -40,6 +41,7 @@ libraryDependencies ++= Seq(
   "com.github.scopt" %% "scopt" % scoptVersion,
   "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
   "com.google.cloud.dataflow" % "google-cloud-dataflow-java-sdk-all" % dataflowVersion,
+  "com.google.protobuf" % "protobuf-java" % protoBufVersion,
   "com.twitter" %% "bijection-avro" % bijectionVersion,
   "joda-time" % "joda-time" % jodaTimeVersion,
   "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
