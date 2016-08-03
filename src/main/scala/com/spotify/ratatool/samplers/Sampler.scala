@@ -37,14 +37,5 @@ trait Sampler[T] {
     value
   }
 
-  protected def nextBigInt(n: BigInt): BigInt = {
-    require(n > 0, "n must be positive")
-    var r =BigInt(0)
-    do {
-      r = BigInt(n.bitLength, random)
-    } while (r < 0 || r >= n)
-    r
-  }
-
   def sample(n: Long, head: Boolean): Seq[T]
 }
