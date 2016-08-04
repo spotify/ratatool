@@ -8,11 +8,26 @@ Ratatool
 
 A tool for random data sampling and generation
 
+# Features
+
+- [Generators](./src/main/scala/com/spotify/ratatool/generators) - random data generators for [Avro](https://avro.apache.org/), [Protocol Buffers](https://developers.google.com/protocol-buffers/) and [BigQuery](https://cloud.google.com/bigquery/) [TableRow](https://developers.google.com/resources/api-libraries/documentation/bigquery/v2/java/latest/com/google/api/services/bigquery/model/TableRow.html)
+- [IO](./src/main/scala/com/spotify/ratatool/io) - utilities for reading and writing records in Avro, [Parquet](http://parquet.apache.org/) (via Avro GenericRecord), BigQuery and TableRow JSON files. Local file system, HDFS and [Google Cloud Storage](https://cloud.google.com/storage/) are supported.
+- [Samplers](./src/main/scala/com/spotify/ratatool/samplers) - random data samplers for Avro, BigQuery and Parquet. True random sampling is supported for Avro only while head mode (sampling from the start) is supported for all sources.
+- [ScalaCheck](./src/main/scala/com/spotify/ratatool/scalacheck) - [ScalaCheck](http://scalacheck.org/) generators (`Gen[T]`) for property-based testing.
+- [Command line tool](./src/main/scala/com/spotify/ratatool/tool) - command line tool for sampling from various sources.
+
 # Usage
+
+If you use [sbt] add the following dependency to your build file:
+```scala
+libraryDependencies += "com.spotify" %% "ratatool" % "0.1.2" % "test"
+```
+
+Or build the command line tool yourself
 
 ```
 sbt assembly
-java -jar target/scala-2.11/ratatool-assembly-0.1.0-SNAPSHOT.jar
+java -jar target/scala-2.11/ratatool-assembly-0.1.3-SNAPSHOT.jar
 ```
 
 # License
