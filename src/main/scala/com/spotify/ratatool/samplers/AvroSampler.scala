@@ -45,7 +45,7 @@ class AvroSampler(path: Path, protected val seed: Option[Long] = None)
       val filter = new PathFilter {
         override def accept(path: Path): Boolean = path.getName.endsWith(".avro")
       }
-      val statuses = fs.listStatus(path, filter)
+      val statuses = fs.listStatus(path, filter).sortBy(_.getPath.toString)
       val paths = statuses.map(_.getPath)
 
       if (head) {
