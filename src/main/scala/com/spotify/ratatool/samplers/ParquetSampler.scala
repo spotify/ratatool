@@ -24,6 +24,12 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
 
+/**
+ * Sampler for Parquet files.
+ *
+ * Records are represented as Avro [[GenericRecord]].
+ * Only head mode is supported.
+ */
 class ParquetSampler(path: Path, protected val seed: Option[Long] = None)
   extends Sampler[GenericRecord] {
 

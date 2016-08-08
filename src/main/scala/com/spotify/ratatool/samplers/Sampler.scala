@@ -19,6 +19,7 @@ package com.spotify.ratatool.samplers
 
 import scala.util.Random
 
+/** Trait for a data sampler. */
 trait Sampler[T] {
   protected val seed: Option[Long]
   protected val random: Random = seed match {
@@ -37,5 +38,10 @@ trait Sampler[T] {
     value
   }
 
+  /**
+   * Sample records from the data source.
+   *
+   * Data may be sampled randomly if `head == false` or otherwise from the beginning (head mode).
+   */
   def sample(n: Long, head: Boolean): Seq[T]
 }

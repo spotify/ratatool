@@ -28,6 +28,11 @@ import org.slf4j.{Logger, LoggerFactory}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
+/**
+ * Sampler for BigQuery tables.
+ *
+ * Only head mode is supported.
+ */
 class BigQuerySampler(tableRef: TableReference, protected val seed: Option[Long] = None)
   extends Sampler[TableRow]{
 

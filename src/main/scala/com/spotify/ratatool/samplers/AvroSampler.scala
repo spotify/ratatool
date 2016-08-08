@@ -29,6 +29,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.util.Random
 
+/** Sampler for Avro files. */
 class AvroSampler(path: Path, protected val seed: Option[Long] = None)
   extends Sampler[GenericRecord] {
 
