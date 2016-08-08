@@ -19,7 +19,7 @@ package com.spotify.ratatool.generators
 
 import java.util.Random
 
-object Implicits {
+private object Implicits {
 
   implicit class RichRandom(random: Random) {
 
