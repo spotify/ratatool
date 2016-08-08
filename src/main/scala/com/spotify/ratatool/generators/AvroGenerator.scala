@@ -28,6 +28,7 @@ import org.apache.avro.{RandomData, Schema}
 
 import scala.reflect.ClassTag
 
+/** Random generator of Avro records. */
 object AvroGenerator {
 
   private val random = new Random
@@ -38,9 +39,11 @@ object AvroGenerator {
       override def load(key: Class[_]): SpecificGenerator[_] = new SpecificGenerator(key)
     })
 
+  /** Generate a generic record. */
   def avroOf(schema: Schema): GenericRecord =
     RandomData.generate(schema, random, 0).asInstanceOf[GenericRecord]
 
+  /** Generate a specific record. */
   def avroOf[T <: SpecificRecord : ClassTag]: T =
     cache.get(implicitly[ClassTag[T]].runtimeClass).asInstanceOf[SpecificGenerator[T]]()
 

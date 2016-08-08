@@ -30,6 +30,7 @@ import com.google.protobuf.{CodedOutputStream, Descriptors, GeneratedMessage}
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
+/** Random generator of ProtoBuf records. */
 object ProtoBufGenerator {
 
   import Implicits._
@@ -46,6 +47,7 @@ object ProtoBufGenerator {
       }
     })
 
+  /** Generate a ProtoBuf record. */
   def protoBufOf[T <: GeneratedMessage : ClassTag]: T = {
     val (desc, parseFn) = cache.get(implicitly[ClassTag[T]].runtimeClass)
     val bytes = generate(desc)

@@ -25,6 +25,7 @@ import org.joda.time.format.DateTimeFormat
 
 import scala.collection.JavaConverters._
 
+/** Random generator of BigQuery [[TableRow]] records. */
 object TableRowGenerator {
 
   import Implicits._
@@ -33,6 +34,7 @@ object TableRowGenerator {
 
   private val formatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS").withZoneUTC()
 
+  /** Generate a BigQuery [[TableRow]] record. */
   def tableRowOf(schema: TableSchema): TableRow = randomTableRow(schema, random)
 
   private def randomTableRow(schema: TableSchema, random: Random): TableRow = {
