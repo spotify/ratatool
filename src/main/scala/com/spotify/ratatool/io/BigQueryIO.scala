@@ -39,7 +39,7 @@ object BigQueryIO {
       .getApplicationDefault
       .createScoped(List(BigqueryScopes.BIGQUERY).asJava)
     new Bigquery.Builder(Utils.getDefaultTransport, Utils.getDefaultJsonFactory, credential)
-      .setApplicationName("sampler")
+      .setApplicationName("ratatool")
       .build()
   }
 
