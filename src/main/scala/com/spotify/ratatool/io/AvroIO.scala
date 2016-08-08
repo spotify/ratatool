@@ -30,6 +30,7 @@ import org.apache.avro.specific.{SpecificDatumReader, SpecificDatumWriter, Speci
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
+/** Utilities for Avro IO. */
 object AvroIO {
 
   private def createDatumReader[T: ClassTag]: DatumReader[T] = {
@@ -54,29 +55,36 @@ object AvroIO {
     }
   }
 
+  /** Read records from a file. */
   def readFromFile[T: ClassTag](file: File): Iterator[T] =
     DataFileReader.openReader(file, createDatumReader[T]).iterator().asScala
 
+  /** Read records from a file. */
   def readFromFile[T: ClassTag](name: String): Iterator[T] = readFromFile(new File(name))
 
+  /** Read records from an [[InputStream]]. */
   def readFromInputStream[T: ClassTag](is: InputStream): Iterator[T] = {
     val bytes = ByteStreams.toByteArray(is)
     val input = new SeekableByteArrayInput(bytes)
     DataFileReader.openReader(input, createDatumReader[T]).iterator().asScala
   }
 
+  /** Read records from a resource file. */
   def readFromResource[T: ClassTag](name: String): Iterator[T] =
     readFromInputStream(this.getClass.getResourceAsStream(name))
 
+  /** Write records to a file. */
   def writeToFile[T: ClassTag](data: Iterable[T], schema: Schema, file: File): Unit = {
     val fileWriter = new DataFileWriter(createDatumWriter[T]).create(schema, file)
     data.foreach(fileWriter.append)
     fileWriter.close()
   }
 
+  /** Write records to a file. */
   def writeToFile[T: ClassTag](data: Iterable[T], schema: Schema, name: String): Unit =
     writeToFile(data, schema, new File(name))
 
+  /** Write records to an [[OutputStream]]. */
   def writeToOutputStream[T: ClassTag](data: Iterable[T],
                                        schema: Schema,
                                        os: OutputStream): Unit = {

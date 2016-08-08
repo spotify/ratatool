@@ -29,8 +29,14 @@ import org.apache.parquet.hadoop.{ParquetFileReader, ParquetReader, ParquetWrite
 
 import scala.collection.JavaConverters._
 
+/**
+ * Utilities for Parquet IO.
+ *
+ * Records are represented as Avro records.
+ */
 object ParquetIO {
 
+  /** Read records from a file. */
   def readFromFile[T](path: Path): Iterator[T] = {
     val conf = GcsConfiguration.get()
     val fs = FileSystem.get(path.toUri, conf)
@@ -54,10 +60,13 @@ object ParquetIO {
     }.reduce(_++_)
   }
 
+  /** Read records from a file. */
   def readFromFile[T](name: String): Iterator[T] = readFromFile(new Path(name))
 
+  /** Read records from a file. */
   def readFromFile[T](file: File): Iterator[T] = readFromFile(file.getAbsolutePath)
 
+  /** Read records from an [[InputStream]]. */
   def readFromInputStream[T](is: InputStream): Iterator[T] = {
     val dir = Files.createTempDirectory("ratatool-")
     val file = new File(dir.toString, "temp.parquet")
@@ -67,9 +76,11 @@ object ParquetIO {
     data
   }
 
+  /** Read records from a resource file. */
   def readFromResource[T](name: String): Iterator[T] =
     readFromInputStream(this.getClass.getResourceAsStream(name))
 
+  /** Write records to a file. */
   def writeToFile[T](data: Iterable[T], schema: Schema, path: Path): Unit = {
     val conf = GcsConfiguration.get()
     val writer = AvroParquetWriter.builder[T](path)
@@ -81,12 +92,15 @@ object ParquetIO {
     writer.close()
   }
 
+  /** Write records to a file. */
   def writeToFile[T](data: Iterable[T], schema: Schema, name: String): Unit =
     writeToFile(data, schema, new Path(name))
 
+  /** Write records to a file. */
   def writeToFile[T](data: Iterable[T], schema: Schema, file: File): Unit =
     writeToFile(data, schema, file.getAbsolutePath)
 
+  /** Write records to an [[OutputStream]]. */
   def writeToOutputStream[T](data: Iterable[T], schema: Schema, os: OutputStream): Unit = {
     val dir = Files.createTempDirectory("ratatool-")
     val file = new File(dir.toString, "temp.parquet")

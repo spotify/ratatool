@@ -28,6 +28,7 @@ import com.google.common.io.Files
 import scala.collection.JavaConverters._
 import scala.io.Source
 
+/** Utilities for BigQuery [[TableRow]] JSON IO. */
 object TableRowJsonIO {
 
   private def fromLines(iterator: Iterator[String]): Iterator[TableRow] = {
@@ -40,21 +41,28 @@ object TableRowJsonIO {
     data.map(row => new String(CoderUtils.encodeToByteArray(coder, row)))
   }
 
+  /** Read records from a file. */
   def readFromFile(file: File): Iterator[TableRow] = fromLines(Source.fromFile(file).getLines())
 
+  /** Read records from a file. */
   def readFromFile(name: String): Iterator[TableRow] = readFromFile(new File(name))
 
+  /** Read records from an [[InputStream]]. */
   def readFromInputStream(is: InputStream): Iterator[TableRow] =
     fromLines(Source.fromInputStream(is).getLines())
 
+  /** Read records from a resource file. */
   def readFromResource(name: String): Iterator[TableRow] =
     readFromInputStream(this.getClass.getResourceAsStream(name))
 
+  /** Write records to a file. */
   def writeToFile(data: Iterable[TableRow], file: File): Unit =
     Files.asCharSink(file, Charsets.UTF_8).writeLines(toLines(data).asJava)
 
+  /** Write records to a file. */
   def writeToFile(data: Iterable[TableRow], name :String): Unit = writeToFile(data, new File(name))
 
+  /** Write records to an [[OutputStream]]. */
   def writeToOutputStream(data: Iterable[TableRow], os: OutputStream): Unit =
     toLines(data).foreach { line =>
       os.write(line.getBytes)

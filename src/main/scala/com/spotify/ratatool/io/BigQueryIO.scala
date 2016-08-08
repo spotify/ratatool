@@ -26,14 +26,18 @@ import com.google.cloud.dataflow.sdk.util.{BigQueryTableInserter, BigQueryTableR
 
 import scala.collection.JavaConverters._
 
+/** Utilities for BigQuery IO. */
 object BigQueryIO {
 
+  /** Parse a table specification string. */
   def parseTableSpec(tableSpec: String): TableReference =
     com.google.cloud.dataflow.sdk.io.BigQueryIO.parseTableSpec(tableSpec)
 
+  /** Convert a table reference to string. */
   def toTableSpec(tableRef: TableReference): String =
     com.google.cloud.dataflow.sdk.io.BigQueryIO.toTableSpec(tableRef)
 
+  /** BigQuery Java client. */
   val bigquery: Bigquery = {
     val credential = GoogleCredential
       .getApplicationDefault
@@ -43,12 +47,15 @@ object BigQueryIO {
       .build()
   }
 
+  /** Read records from a BigQuery table. */
   def readFromTable(tableRef: TableReference): Iterator[TableRow] =
     new TableRowIterator(BigQueryTableRowIterator.fromTable(tableRef, bigquery))
 
+  /** Read records from a BigQuery table. */
   def readFromTable(tableSpec: String): Iterator[TableRow] =
     readFromTable(parseTableSpec(tableSpec))
 
+  /** Write records to a BigQuery table. */
   def writeToTable(data: Seq[TableRow], schema: TableSchema, tableRef: TableReference): Unit = {
     val inserter = new BigQueryTableInserter(bigquery)
     inserter.getOrCreateTable(
@@ -59,6 +66,7 @@ object BigQueryIO {
     inserter.insertAll(tableRef, data.asJava)
   }
 
+  /** Write records to a BigQuery table. */
   def writeToTable(data: Seq[TableRow], schema: TableSchema, tableSpec: String): Unit =
     writeToTable(data, schema, parseTableSpec(tableSpec))
 
