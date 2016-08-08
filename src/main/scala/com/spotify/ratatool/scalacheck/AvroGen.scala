@@ -27,9 +27,11 @@ import scala.reflect.ClassTag
 
 object AvroGen {
 
+  /** ScalaCheck generator of Avro generic records. */
   def avroOf(schema: Schema): Gen[GenericRecord] =
     Gen.const(0).map(_ => AvroGenerator.avroOf(schema))
 
+  /** ScalaCheck generator of Avro specific records. */
   def avroOf[T <: SpecificRecord : ClassTag]: Gen[T] =
     Gen.const(0).map(_ => AvroGenerator.avroOf[T])
 

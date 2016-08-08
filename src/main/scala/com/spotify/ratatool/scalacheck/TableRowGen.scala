@@ -23,6 +23,7 @@ import org.scalacheck._
 
 object TableRowGen {
 
+  /** ScalaCheck generator of BigQuery [[TableRow]] records. */
   def tableRowOf(schema: TableSchema): Gen[TableRow] =
     Gen.const(0).map(_ => TableRowGenerator.tableRowOf(schema))
 

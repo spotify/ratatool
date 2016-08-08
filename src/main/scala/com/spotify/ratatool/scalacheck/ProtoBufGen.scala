@@ -25,6 +25,7 @@ import scala.reflect.ClassTag
 
 object ProtoBufGen {
 
+  /** ScalaCheck generator of ProtoBuf records. */
   def protoBufOf[T <: GeneratedMessage : ClassTag]: Gen[T] =
     Gen.const(0).map(_ => ProtoBufGenerator.protoBufOf[T])
 
