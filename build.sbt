@@ -97,3 +97,4 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
   case s => old(s)
 }
 }
+assemblyJarName in assembly := s"ratatool-${version.value}.jar"
