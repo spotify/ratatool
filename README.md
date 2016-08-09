@@ -27,7 +27,7 @@ Or build the command line tool yourself
 
 ```
 sbt assembly
-java -jar target/scala-2.11/ratatool-assembly-0.1.3-SNAPSHOT.jar
+java -jar target/scala-2.11/ratatool-0.1.3-SNAPSHOT.jar
 ```
 
 # License
