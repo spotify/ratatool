@@ -18,16 +18,34 @@ A tool for random data sampling and generation
 
 # Usage
 
-If you use [sbt] add the following dependency to your build file:
+If you use [sbt](http://www.scala-sbt.org/) add the following dependency to your build file:
 ```scala
-libraryDependencies += "com.spotify" %% "ratatool" % "0.1.2" % "test"
+libraryDependencies += "com.spotify" %% "ratatool" % "0.1.3" % "test"
 ```
 
-Or build the command line tool yourself
+Or download the [release](https://github.com/spotify/ratatool/releases) jar and run it.
 
+```bash
+wget https://github.com/spotify/ratatool/releases/download/v0.1.3/ratatool-0.1.3.jar
+java -jar ratatool-0.1.3.jar
 ```
-sbt assembly
-java -jar target/scala-2.11/ratatool-0.1.3-SNAPSHOT.jar
+
+The command line tool can be used to sample from local file system or Google Cloud Storage directly if [Google Cloud SDK](https://cloud.google.com/sdk/) is installed and authenticated.
+
+```bash
+java -jar ratatool-0.1.3.jar avro --head -n 1000 --in gs://path/to/dataset --out out.avro
+java -jar ratatool-0.1.3.jar parquet --head -n 1000 --in gs://path/to/dataset --out out.parquet
+
+# write output to both JSON file and BigQuery table
+java -jar ratatool-0.1.3.jar bigquery --head -n 1000 --in project_id:dataset_id.table_id \
+    --out out.json--tableOut project_id:dataset_id.table_id
+```
+
+It can also be used to sample from HDFS with if `core-site.xml` and `hdfs-site.xml` are available.
+
+```bash
+java -cp ratatool-0.1.3.jar:/path/to/hadoop/conf com.spotify.ratatool.tool.Tool avro \
+    --head -n 10 --in hdfs://namenode/path/to/dataset --out file:///path/to/out.avro
 ```
 
 # License
