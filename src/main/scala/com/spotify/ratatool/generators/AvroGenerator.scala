@@ -41,7 +41,7 @@ object AvroGenerator {
 
   /** Generate a generic record. */
   def avroOf(schema: Schema): GenericRecord =
-    RandomData.generate(schema, random, 0).asInstanceOf[GenericRecord]
+    new RandomData(schema, 1).iterator().next().asInstanceOf[GenericRecord]
 
   /** Generate a specific record. */
   def avroOf[T <: SpecificRecord : ClassTag]: T =
