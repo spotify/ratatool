@@ -23,11 +23,9 @@ import java.nio.file.Files
 import com.spotify.ratatool.GcsConfiguration
 import org.apache.avro.Schema
 import org.apache.commons.io.FileUtils
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.Path
 import org.apache.parquet.avro.{AvroParquetReader, AvroParquetWriter}
-import org.apache.parquet.hadoop.{ParquetFileReader, ParquetReader, ParquetWriter}
-
-import scala.collection.JavaConverters._
+import org.apache.parquet.hadoop.{ParquetReader, ParquetWriter}
 
 /**
  * Utilities for Parquet IO.
@@ -39,25 +37,19 @@ object ParquetIO {
   /** Read records from a file. */
   def readFromFile[T](path: Path): Iterator[T] = {
     val conf = GcsConfiguration.get()
-    val fs = FileSystem.get(path.toUri, conf)
-    val status = fs.getFileStatus(path)
-    val footers = ParquetFileReader.readFooters(conf, status, true).asScala
-
-    footers.map { f =>
-      val reader = AvroParquetReader.builder[T](f.getFile)
-        .withConf(conf)
-        .build()
-        .asInstanceOf[ParquetReader[T]]
-      new Iterator[T] {
-        private var item = reader.read()
-        override def hasNext: Boolean = item != null
-        override def next(): T = {
-          val r = item
-          item = reader.read()
-          r
-        }
+    val reader = AvroParquetReader.builder[T](path)
+      .withConf(conf)
+      .build()
+      .asInstanceOf[ParquetReader[T]]
+    new Iterator[T] {
+      private var item = reader.read()
+      override def hasNext: Boolean = item != null
+      override def next(): T = {
+        val r = item
+        item = reader.read()
+        r
       }
-    }.reduce(_++_)
+    }
   }
 
   /** Read records from a file. */
