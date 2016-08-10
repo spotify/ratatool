@@ -17,12 +17,9 @@
 
 package com.spotify.ratatool.tool
 
-import java.io.OutputStream
-
-import com.spotify.ratatool.GcsConfiguration
 import com.spotify.ratatool.io.{AvroIO, BigQueryIO, ParquetIO, TableRowJsonIO}
 import com.spotify.ratatool.samplers.{AvroSampler, BigQuerySampler, ParquetSampler}
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.Path
 
 object Tool {
 
