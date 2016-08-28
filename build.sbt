@@ -28,8 +28,8 @@ javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked")
 
 val avroVersion = "1.7.7"
 val bijectionVersion = "0.9.0"
-val dataflowVersion = "1.6.0"
-val gcsVersion = "1.4.5-hadoop2"
+val dataflowVersion = "1.6.1"
+val gcsVersion = "1.5.2-hadoop2"
 val hadoopVersion = "2.7.2"
 val jodaTimeVersion = "2.9.4"
 val parquetVersion = "1.8.1"
