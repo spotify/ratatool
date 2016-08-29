@@ -27,7 +27,7 @@ Or install via our [Homebrew tap](https://github.com/spotify/homebrew-public) if
 
 ```
 brew tap spotify/public
-brew install scio
+brew install ratatool
 ```
 
 Or download the [release](https://github.com/spotify/ratatool/releases) jar and run it.
