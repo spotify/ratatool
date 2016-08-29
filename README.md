@@ -23,6 +23,13 @@ If you use [sbt](http://www.scala-sbt.org/) add the following dependency to your
 libraryDependencies += "com.spotify" %% "ratatool" % "0.1.4" % "test"
 ```
 
+Or install via our [Homebrew tap](https://github.com/spotify/homebrew-public) if you're on a Mac:
+
+```
+brew tap spotify/public
+brew install scio
+```
+
 Or download the [release](https://github.com/spotify/ratatool/releases) jar and run it.
 
 ```bash
