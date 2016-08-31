@@ -25,6 +25,7 @@ import org.scalacheck._
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
+import scala.util.Try
 
 object AvroGen {
 
@@ -37,12 +38,21 @@ object AvroGen {
     Gen.const(0).map(_ => AvroGenerator.avroOf[T])
 
   implicit class RichAvroGen[T <: SpecificRecord](gen: Gen[T]) {
+
     def amend[U](g: Gen[U])(f: T => (U => Unit)): Gen[T] = {
       for (r <- gen; v <- g) yield {
         f(r)(v)
         r
       }
     }
+
+    def tryAmend[U](g: Gen[U])(f: T => (U => Unit)): Gen[T] = {
+      for (r <- gen; v <- g) yield {
+        Try(f(r)(v))
+        r
+      }
+    }
+
   }
 
   implicit def scalaIntSetter(fn: (java.lang.Integer => Unit)): Int => Unit =
