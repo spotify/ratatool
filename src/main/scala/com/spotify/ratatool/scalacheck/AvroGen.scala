@@ -23,6 +23,7 @@ import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecord
 import org.scalacheck._
 
+import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
 object AvroGen {
@@ -34,5 +35,32 @@ object AvroGen {
   /** ScalaCheck generator of Avro specific records. */
   def avroOf[T <: SpecificRecord : ClassTag]: Gen[T] =
     Gen.const(0).map(_ => AvroGenerator.avroOf[T])
+
+  implicit class RichAvroGen[T <: SpecificRecord](gen: Gen[T]) {
+    def amend[U](g: Gen[U])(f: T => (U => Unit)): Gen[T] = {
+      for (r <- gen; v <- g) yield {
+        f(r)(v)
+        r
+      }
+    }
+  }
+
+  implicit def scalaIntSetter(fn: (java.lang.Integer => Unit)): Int => Unit =
+    fn.asInstanceOf[Int => Unit]
+
+  implicit def scalaLongSetter(fn: (java.lang.Long => Unit)): Long => Unit =
+    fn.asInstanceOf[Long => Unit]
+
+  implicit def scalaFloatSetter(fn: (java.lang.Float => Unit)): Float => Unit =
+    fn.asInstanceOf[Float => Unit]
+
+  implicit def scalaDoubleSetter(fn: (java.lang.Double => Unit)): Double => Unit =
+    fn.asInstanceOf[Double => Unit]
+
+  implicit def scalaBooleanSetter(fn: (java.lang.Boolean => Unit)): Boolean => Unit =
+    fn.asInstanceOf[Boolean => Unit]
+
+  implicit def scalaStringSetter(fn: (java.lang.CharSequence => Unit)): String => Unit =
+    fn.asInstanceOf[String => Unit]
 
 }
