@@ -21,10 +21,30 @@ import com.google.api.services.bigquery.model.{TableRow, TableSchema}
 import com.spotify.ratatool.generators.TableRowGenerator
 import org.scalacheck._
 
+import scala.util.Try
+
 object TableRowGen {
 
   /** ScalaCheck generator of BigQuery [[TableRow]] records. */
   def tableRowOf(schema: TableSchema): Gen[TableRow] =
     Gen.const(0).map(_ => TableRowGenerator.tableRowOf(schema))
+
+  implicit class RichTableRowGen[T <: TableRow](gen: Gen[T]) {
+
+    def amend[U](g: Gen[U])(f: T => (U => Unit)): Gen[T] = {
+      for (r <- gen; v <- g) yield {
+        f(r)(v)
+        r
+      }
+    }
+
+    def tryAmend[U](g: Gen[U])(f: T => (U => Unit)): Gen[T] = {
+      for (r <- gen; v <- g) yield {
+        Try(f(r)(v))
+        r
+      }
+    }
+
+  }
 
 }
