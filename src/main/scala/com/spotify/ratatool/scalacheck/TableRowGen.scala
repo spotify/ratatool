@@ -29,22 +29,27 @@ object TableRowGen {
   def tableRowOf(schema: TableSchema): Gen[TableRow] =
     Gen.const(0).map(_ => TableRowGenerator.tableRowOf(schema))
 
-  implicit class RichTableRowGen[T <: TableRow](gen: Gen[T]) {
+  implicit class RichTableRowGen(gen: Gen[TableRow]) {
 
-    def amend[U](g: Gen[U])(f: T => (U => Unit)): Gen[T] = {
+    def amend[U](g: Gen[U])(f: TableRow => (AnyRef => TableRow)): Gen[TableRow] = {
       for (r <- gen; v <- g) yield {
-        f(r)(v)
+        f(r)(v.asInstanceOf[AnyRef])
         r
       }
     }
 
-    def tryAmend[U](g: Gen[U])(f: T => (U => Unit)): Gen[T] = {
+    def tryAmend[U](g: Gen[U])(f: TableRow => (AnyRef => TableRow)): Gen[TableRow] = {
       for (r <- gen; v <- g) yield {
-        Try(f(r)(v))
+        Try(f(r)(v.asInstanceOf[AnyRef]))
         r
       }
     }
 
+  }
+
+  implicit class RichTableRow(r: TableRow) {
+    def getTableRow(name: AnyRef): TableRow = r.get(name).asInstanceOf[TableRow]
+    def set(fieldName: String): AnyRef => TableRow = r.set(fieldName, _)
   }
 
 }

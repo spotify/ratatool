@@ -38,18 +38,10 @@ object TableRowGenSpec extends Properties("TableRowGen") {
 
   val n = "nullable_fields"
   val richGen = tableRowOf(Schemas.tableSchema)
-    .amend(Gen.choose(10L, 20L)) { r =>
-      v => r.get(n).asInstanceOf[TableRow].set("int_field", v)
-    }
-    .amend(Gen.choose(10.0, 20.0)) { r =>
-      v => r.get(n).asInstanceOf[TableRow].set("float_field", v)
-    }
-    .amend(Gen.const(true)) { r =>
-      v => r.get(n).asInstanceOf[TableRow].set("boolean_field", v)
-    }
-    .amend(Gen.const("hello")) { r =>
-      v => r.get(n).asInstanceOf[TableRow].set("string_field", v)
-    }
+    .amend(Gen.choose(10L, 20L))(_.getTableRow(n).set("int_field"))
+    .amend(Gen.choose(10.0, 20.0))(_.getTableRow(n).set("float_field"))
+    .amend(Gen.const(true))(_.getTableRow(n).set("boolean_field"))
+    .amend(Gen.const("hello"))(_.getTableRow(n).set("string_field"))
 
   property("support RichTableRowGen") = forAll (richGen) { r =>
     val fields = r.get(n).asInstanceOf[TableRow]
