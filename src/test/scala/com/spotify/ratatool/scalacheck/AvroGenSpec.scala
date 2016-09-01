@@ -42,18 +42,18 @@ object AvroGenSpec extends Properties("AvroGen") {
     .amend(Gen.const(true))(_.getNullableFields.setBooleanField)
     .amend(Gen.const("hello"))(_.getNullableFields.setStringField)
 
-  property("support RichAvroGen") = forAll (richGen) { m =>
+  property("support RichAvroGen") = forAll (richGen) { r =>
     all(
       "Int" |:
-        m.getNullableFields.getIntField >= 10 && m.getNullableFields.getIntField <= 20,
+        r.getNullableFields.getIntField >= 10 && r.getNullableFields.getIntField <= 20,
       "Long" |:
-        m.getNullableFields.getLongField >= 10L && m.getNullableFields.getLongField <= 20L,
+        r.getNullableFields.getLongField >= 10L && r.getNullableFields.getLongField <= 20L,
       "Float" |:
-        m.getNullableFields.getFloatField >= 10.0f && m.getNullableFields.getFloatField <= 20.0f,
+        r.getNullableFields.getFloatField >= 10.0f && r.getNullableFields.getFloatField <= 20.0f,
       "Double" |:
-        m.getNullableFields.getDoubleField >= 10.0 && m.getNullableFields.getDoubleField <= 20.0,
-      "Boolean" |: m.getNullableFields.getBooleanField == true,
-      "String" |: m.getNullableFields.getStringField == "hello"
+        r.getNullableFields.getDoubleField >= 10.0 && r.getNullableFields.getDoubleField <= 20.0,
+      "Boolean" |: r.getNullableFields.getBooleanField == true,
+      "String" |: r.getNullableFields.getStringField == "hello"
     )
   }
 
