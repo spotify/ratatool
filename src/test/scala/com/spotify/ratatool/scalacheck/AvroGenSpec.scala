@@ -34,7 +34,7 @@ object AvroGenSpec extends Properties("AvroGen") {
     m == CoderUtils.decodeFromByteArray(coder, bytes)
   }
 
-  val richGen = AvroGen.avroOf[TestRecord]
+  val richGen = avroOf[TestRecord]
     .amend(Gen.choose(10, 20))(_.getNullableFields.setIntField)
     .amend(Gen.choose(10L, 20L))(_.getNullableFields.setLongField)
     .amend(Gen.choose(10.0f, 20.0f))(_.getNullableFields.setFloatField)
