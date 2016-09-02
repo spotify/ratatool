@@ -23,12 +23,12 @@ import scala.collection.JavaConverters._
 
 object TableRowDiffy {
 
-  def apply(x: TableRow, y: TableRow, schema: TableSchema): Seq[String] = {
+  def apply(x: TableRow, y: TableRow, schema: TableSchema): Seq[Delta] = {
     diff(x, y, schema.getFields.asScala, "")
   }
 
   private def diff(x: TableRow, y: TableRow,
-                   fields: Seq[TableFieldSchema], root: String): Seq[String] = {
+                   fields: Seq[TableFieldSchema], root: String): Seq[Delta] = {
     fields.flatMap { f =>
       val name = f.getName
       val fullName = if (root.isEmpty) name else root + "." + name
@@ -37,12 +37,14 @@ object TableRowDiffy {
           val a = x.get(name).asInstanceOf[TableRow]
           val b = y.get(name).asInstanceOf[TableRow]
           if (a != b && (a == null || b == null)) {
-            Seq(fullName)
+            Seq(Delta(fullName, a, b))
           } else {
             diff(a, b, f.getFields.asScala, fullName)
           }
         case _ =>
-          if (x.get(name) == y.get(name)) None else Seq(fullName)
+          val a = x.get(name)
+          val b = y.get(name)
+          if (a == b) Nil else Seq(Delta(fullName, a, b))
       }
     }
   }

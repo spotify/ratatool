@@ -24,12 +24,12 @@ import scala.collection.JavaConverters._
 
 object AvroDiffy {
 
-  def apply(x: GenericRecord, y: GenericRecord): Seq[String] = {
+  def apply(x: GenericRecord, y: GenericRecord): Seq[Delta] = {
     require(x.getSchema == y.getSchema)
     diff(x, y, "")
   }
 
-  private def diff(x: GenericRecord, y: GenericRecord, root: String): Seq[String] = {
+  private def diff(x: GenericRecord, y: GenericRecord, root: String): Seq[Delta] = {
     x.getSchema.getFields.asScala.flatMap { f =>
       val name = f.name()
       val fullName = if (root.isEmpty) name else root + "." + name
@@ -39,12 +39,14 @@ object AvroDiffy {
           val a = x.get(name).asInstanceOf[GenericRecord]
           val b = y.get(name).asInstanceOf[GenericRecord]
           if (a != b && (a == null || b == null)) {
-            Seq(fullName)
+            Seq(Delta(fullName, a, b))
           } else {
             diff(a, b, fullName)
           }
         case _ =>
-          if (x.get(name) == y.get(name)) None else Seq(fullName)
+          val a = x.get(name)
+          val b = y.get(name)
+          if (a == b) Nil else Seq(Delta(fullName, a, b))
       }
     }
   }

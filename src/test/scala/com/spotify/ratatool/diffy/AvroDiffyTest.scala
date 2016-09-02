@@ -35,7 +35,7 @@ class AvroDiffyTest extends FlatSpec with Matchers {
     val z = NullableNestedRecord.newBuilder().setIntField(10).setLongField(200L).build()
 
     AvroDiffy(x, y) should equal (Nil)
-    AvroDiffy(x, z) should equal (Seq("long_field"))
+    AvroDiffy(x, z) should equal (Seq(Delta("long_field", 20L, 200L)))
   }
 
   it should "support nested fields" in {
@@ -52,7 +52,9 @@ class AvroDiffyTest extends FlatSpec with Matchers {
     z.getNullableFields.setStringField("world")
 
     AvroDiffy(x, y) should equal (Nil)
-    AvroDiffy(x, z) should equal (Seq("nullable_fields.long_field", "nullable_fields.string_field"))
+    AvroDiffy(x, z) should equal (Seq(
+      Delta("nullable_fields.long_field", 20L, 200L),
+      Delta("nullable_fields.string_field", "hello", "world")))
   }
 
   it should "support repeated fields" in {
@@ -69,7 +71,9 @@ class AvroDiffyTest extends FlatSpec with Matchers {
     z.getRepeatedFields.setStringField(jl("Hello", "World"))
 
     AvroDiffy(x, y) should equal (Nil)
-    AvroDiffy(x, z) should equal (Seq("repeated_fields.long_field", "repeated_fields.string_field"))
+    AvroDiffy(x, z) should equal (Seq(
+      Delta("repeated_fields.long_field", jl(20L, 21L), jl(20L, 210L)),
+      Delta("repeated_fields.string_field", jl("hello", "world"), jl("Hello", "World"))))
   }
 
 }

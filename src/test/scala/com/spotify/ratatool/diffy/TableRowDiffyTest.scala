@@ -36,7 +36,9 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
     val z = new TableRow().set("field1", 10).set("field2", 200).set("field3", 300)
 
     TableRowDiffy(x, y, schema) should equal (Nil)
-    TableRowDiffy(x, z, schema) should equal (Seq("field2", "field3"))
+    TableRowDiffy(x, z, schema) should equal (Seq(
+      Delta("field2", 20, 200),
+      Delta("field3", 30, 300)))
   }
 
   it should "support nested fields" in {
@@ -53,7 +55,9 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
       .set("field1", new TableRow().set("field1a", 10).set("field1b", 200).set("field1c", 300))
 
     TableRowDiffy(x, y, schema) should equal (Nil)
-    TableRowDiffy(x, z, schema) should equal (Seq("field1.field1b", "field1.field1c"))
+    TableRowDiffy(x, z, schema) should equal (Seq(
+      Delta("field1.field1b", 20, 200),
+      Delta("field1.field1c", 30, 300)))
   }
 
   it should "support repeated fields" in {
@@ -69,7 +73,9 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
       .set("field1", jl(10, 11)).set("field2", jl(20, 210)).set("field3", jl(30, 310))
 
     TableRowDiffy(x, y, schema) should equal (Nil)
-    TableRowDiffy(x, z, schema) should equal (Seq("field2", "field3"))
+    TableRowDiffy(x, z, schema) should equal (Seq(
+      Delta("field2", jl(20, 21), jl(20, 210)),
+      Delta("field3", jl(30, 31), jl(30, 310))))
   }
 
 }
