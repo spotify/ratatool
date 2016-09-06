@@ -17,8 +17,6 @@
 
 package com.spotify.ratatool.generators
 
-import java.util.Random
-
 import com.google.cloud.dataflow.sdk.coders.AvroCoder
 import com.google.cloud.dataflow.sdk.util.CoderUtils
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
@@ -30,8 +28,6 @@ import scala.reflect.ClassTag
 
 /** Random generator of Avro records. */
 object AvroGenerator {
-
-  private val random = new Random
 
   private val cache: LoadingCache[Class[_], SpecificGenerator[_]] = CacheBuilder
     .newBuilder()
