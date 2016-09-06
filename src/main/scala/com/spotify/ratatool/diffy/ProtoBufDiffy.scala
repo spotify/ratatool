@@ -37,14 +37,19 @@ object ProtoBufDiffy {
 
   private def diff(x: GeneratedMessage, y: GeneratedMessage,
                    fields: Seq[FieldDescriptor], root: String): Seq[Delta] = {
+    def getField(m: GeneratedMessage, f: FieldDescriptor): Any =
+      if (m.hasField(f)) m.getField(f) else null
+
     fields.flatMap { f=>
       val name = f.getName
       val fullName = if (root.isEmpty) name else root + "." + name
       f.getJavaType match {
         case JavaType.MESSAGE =>
-          val a = x.getField(f).asInstanceOf[GeneratedMessage]
-          val b = y.getField(f).asInstanceOf[GeneratedMessage]
-          if (a != b && (a == null || b == null)) {
+          val a = getField(x, f).asInstanceOf[GeneratedMessage]
+          val b = getField(y, f).asInstanceOf[GeneratedMessage]
+          if (a == null && b == null) {
+            Nil
+          } else if (a == null || b == null) {
             Seq(Delta(fullName, a, b))
           } else {
             diff(a, b, f.getMessageType.getFields.asScala, fullName)

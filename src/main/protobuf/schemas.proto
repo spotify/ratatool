@@ -7,6 +7,7 @@ message TestRecord {
     required OptionalNestedRecord optional_fields = 1;
     required RequiredNestedRecord required_fields = 2;
     required RepeatedNestedRecord repeated_fields = 3;
+    optional OptionalNestedRecord optional_nested_field = 4;
 }
 
 message OptionalNestedRecord {

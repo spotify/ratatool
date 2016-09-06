@@ -51,13 +51,18 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
       .set("field1", new TableRow().set("field1a", 10).set("field1b", 20).set("field1c", 30))
     val y = new TableRow()
       .set("field1", new TableRow().set("field1a", 10).set("field1b", 20).set("field1c", 30))
-    val z = new TableRow()
+    val z1 = new TableRow()
       .set("field1", new TableRow().set("field1a", 10).set("field1b", 200).set("field1c", 300))
+    val z2 = new TableRow().set("field1", null)
+    val z3 = new TableRow().set("field1", null)
 
     TableRowDiffy(x, y, schema) should equal (Nil)
-    TableRowDiffy(x, z, schema) should equal (Seq(
+    TableRowDiffy(x, z1, schema) should equal (Seq(
       Delta("field1.field1b", 20, 200),
       Delta("field1.field1c", 30, 300)))
+    TableRowDiffy(x, z2, schema) should equal (Seq(
+      Delta("field1", x.get("field1"), null)))
+    TableRowDiffy(z2, z3, schema) should equal (Nil)
   }
 
   it should "support repeated fields" in {

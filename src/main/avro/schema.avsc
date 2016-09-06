@@ -54,6 +54,11 @@
                     {"name": "string_field", "type": {"type": "array", "items": "string"}}
                 ]
             }
+        },
+        {
+            "name": "nullable_nested_field",
+            "type": ["null", "NullableNestedRecord"],
+            "default": null
         }
     ]
 }

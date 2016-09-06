@@ -38,28 +38,34 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
 
   it should "support nested fields" in {
     val base = ProtoBufGenerator.protoBufOf[TestRecord]
+
+    val onr = ProtoBufGenerator.protoBufOf[OptionalNestedRecord].toBuilder
+      .setInt32Field(10)
+      .setInt64Field(20L)
+      .setStringField("hello")
+      .build()
+
     val x = TestRecord.newBuilder(base)
-      .setOptionalFields(
-        OptionalNestedRecord.newBuilder(base.getOptionalFields)
-          .setInt32Field(10)
-          .setInt64Field(20L)
-          .setStringField("hello")
-          .build()
-      ).build()
+      .setOptionalNestedField(onr)
+      .build()
     val y = TestRecord.newBuilder(x).build()
-    val z = TestRecord.newBuilder(x)
-      .setOptionalFields(
-        OptionalNestedRecord.newBuilder(x.getOptionalFields)
+    val z1 = TestRecord.newBuilder(x)
+      .setOptionalNestedField(
+        OptionalNestedRecord.newBuilder(onr)
           .setInt64Field(200L)
           .setStringField("world")
       ).build()
+    val z2 = TestRecord.newBuilder(x).clearOptionalNestedField().build()
+    val z3 = TestRecord.newBuilder(x).clearOptionalNestedField().build()
 
     ProtoBufDiffy(x, y) should equal (Nil)
-    ProtoBufDiffy(x, z) should equal (Seq(
-      Delta("optional_fields.int64_field", 20L, 200L),
-      Delta("optional_fields.string_field", "hello", "world")))
+    ProtoBufDiffy(x, z1) should equal (Seq(
+      Delta("optional_nested_field.int64_field", 20L, 200L),
+      Delta("optional_nested_field.string_field", "hello", "world")))
+    ProtoBufDiffy(x, z2) should equal (Seq(
+      Delta("optional_nested_field", onr, null)))
+    ProtoBufDiffy(z2, z3) should equal (Nil)
   }
-
 
   it should "support repeated fields" in {
     val base = ProtoBufGenerator.protoBufOf[TestRecord]

@@ -36,7 +36,9 @@ object TableRowDiffy {
         case "RECORD" =>
           val a = x.get(name).asInstanceOf[TableRow]
           val b = y.get(name).asInstanceOf[TableRow]
-          if (a != b && (a == null || b == null)) {
+          if (a == null && b == null) {
+            Nil
+          } else if (a == null || b == null) {
             Seq(Delta(fullName, a, b))
           } else {
             diff(a, b, f.getFields.asScala, fullName)
