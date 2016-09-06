@@ -24,6 +24,8 @@ import com.spotify.ratatool.Schemas
 import org.scalacheck.Prop.{BooleanOperators, all, forAll}
 import org.scalacheck._
 
+import collection.JavaConverters._
+
 object TableRowGenSpec extends Properties("TableRowGen") {
 
   import TableRowGen._
@@ -36,24 +38,41 @@ object TableRowGenSpec extends Properties("TableRowGen") {
     base64a == base64b
   }
 
-  val n = "nullable_fields"
+  val nf = "nullable_fields"
+  val rf = "repeated_fields"
   val richGen = tableRowOf(Schemas.tableSchema)
-    .amend(Gen.choose(10L, 20L))(_.getTableRow(n).set("int_field"))
-    .amend(Gen.choose(10.0, 20.0))(_.getTableRow(n).set("float_field"))
-    .amend(Gen.const(true))(_.getTableRow(n).set("boolean_field"))
-    .amend(Gen.const("hello"))(_.getTableRow(n).set("string_field"))
+    .amend(Gen.choose(10L, 20L))(_.getTableRow(nf).set("int_field"))
+    .amend(Gen.choose(10.0, 20.0))(_.getTableRow(nf).set("float_field"))
+    .amend(Gen.const(true))(_.getTableRow(nf).set("boolean_field"))
+    .amend(Gen.const("hello"))(_.getTableRow(nf).set("string_field"))
+    .amend(Gen.listOf(Gen.choose(30L, 40L)))(_.getTableRow(rf).set("int_field"))
+    .amend(Gen.listOf(Gen.choose(30.0, 40.0)))(_.getTableRow(rf).set("float_field"))
+    .amend(Gen.listOf(Gen.const(false)))(_.getTableRow(rf).set("boolean_field"))
+    .amend(Gen.listOf(Gen.const("goodbye")))(_.getTableRow(rf).set("string_field"))
 
   property("support RichTableRowGen") = forAll (richGen) { r =>
-    val fields = r.get(n).asInstanceOf[TableRow]
-    val i = fields.get("int_field").asInstanceOf[Long]
-    val f = fields.get("float_field").asInstanceOf[Double]
-    val b = fields.get("boolean_field").asInstanceOf[Boolean]
-    val s = fields.get("string_field").asInstanceOf[String]
+    val nullableFields = r.get(nf).asInstanceOf[TableRow]
+    val repeatedFields = r.get(rf).asInstanceOf[TableRow]
+
+    val ni = nullableFields.get("int_field").asInstanceOf[Long]
+    val nfl = nullableFields.get("float_field").asInstanceOf[Double]
+    val nb = nullableFields.get("boolean_field").asInstanceOf[Boolean]
+    val ns = nullableFields.get("string_field").asInstanceOf[String]
+
+    val ri = repeatedFields.get("int_field").asInstanceOf[java.util.List[Long]]
+    val rfl = repeatedFields.get("float_field").asInstanceOf[java.util.List[Double]]
+    val rb = repeatedFields.get("boolean_field").asInstanceOf[java.util.List[Boolean]]
+    val rs = repeatedFields.get("string_field").asInstanceOf[java.util.List[String]]
+    
     all(
-      "Int"     |: i >= 10L && i <= 20L,
-      "Float"   |: f >= 10.0 && f <= 20.0,
-      "Boolean" |: b == true,
-      "String"  |: s == "hello"
+      "Nullable Int"     |: ni >= 10L && ni <= 20L,
+      "Nullable Float"   |: nfl >= 10.0 && nfl <= 20.0,
+      "Nullable Boolean" |: nb == true,
+      "Nullable String"  |: ns == "hello",
+      "Repeated Int"     |: ri.asScala.forall(i => i >= 30L && i <= 40L),
+      "Repeated Float"   |: rfl.asScala.forall(i => i >= 30.0 && i <= 40.0),
+      "Repeated Boolean" |: rb.asScala.forall(!_),
+      "Repeated String"  |: rs.asScala.forall(_ == "goodbye")
     )
   }
 
