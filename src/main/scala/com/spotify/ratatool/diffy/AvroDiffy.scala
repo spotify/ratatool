@@ -23,8 +23,10 @@ import org.apache.avro.generic.GenericRecord
 
 import scala.collection.JavaConverters._
 
+/** Field level diff tool for Avro records. */
 object AvroDiffy {
 
+  /** Compare two Avro records. */
   def apply(x: GenericRecord, y: GenericRecord): Seq[Delta] = {
     require(x.getSchema == y.getSchema)
     diff(x, y, "")

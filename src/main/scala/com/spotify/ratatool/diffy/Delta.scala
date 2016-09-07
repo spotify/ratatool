@@ -17,4 +17,10 @@
 
 package com.spotify.ratatool.diffy
 
+/**
+ * Delta of a single field between two records.
+ * @param field "." separated field identifier
+ * @param left  left value
+ * @param right right value
+ */
 case class Delta(field: String, left: Any, right: Any)

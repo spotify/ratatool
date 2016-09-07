@@ -24,11 +24,14 @@ import com.google.protobuf.GeneratedMessage
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
+/** Field level diff tool for ProtoBuf records. */
 object ProtoBufDiffy {
 
+  /** Compare two ProtoBuf records. */
   def apply[T <: GeneratedMessage : ClassTag](x: T, y: T, descriptor: Descriptor): Seq[Delta] =
     diff(x, y, descriptor.getFields.asScala, "")
 
+  /** Compare two ProtoBuf records. */
   def apply[T <: GeneratedMessage : ClassTag](x: T, y: T): Seq[Delta] = {
     val cls = implicitly[ClassTag[T]].runtimeClass
     val descriptor = cls.getMethod("getDescriptor").invoke(null).asInstanceOf[Descriptor]

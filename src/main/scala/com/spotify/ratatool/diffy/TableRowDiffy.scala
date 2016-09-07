@@ -21,10 +21,12 @@ import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, Table
 
 import scala.collection.JavaConverters._
 
+/** Field level diff tool for TableRow records. */
 object TableRowDiffy {
 
   type Record = java.util.Map[String, AnyRef]
 
+  /** Compare two TableRow records. */
   def apply(x: TableRow, y: TableRow, schema: TableSchema): Seq[Delta] = {
     diff(x, y, schema.getFields.asScala, "")
   }
