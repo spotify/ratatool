@@ -25,20 +25,22 @@ import scala.util.Try
 
 object TableRowGen {
 
+  type Record = java.util.Map[String, AnyRef]
+
   /** ScalaCheck generator of BigQuery [[TableRow]] records. */
   def tableRowOf(schema: TableSchema): Gen[TableRow] =
     Gen.const(0).map(_ => TableRowGenerator.tableRowOf(schema))
 
   implicit class RichTableRowGen(gen: Gen[TableRow]) {
 
-    def amend[U](g: Gen[U])(f: TableRow => (AnyRef => TableRow)): Gen[TableRow] = {
+    def amend[U](g: Gen[U])(f: TableRow => (AnyRef => Record)): Gen[TableRow] = {
       for (r <- gen; v <- g) yield {
         f(r)(v.asInstanceOf[AnyRef])
         r
       }
     }
 
-    def tryAmend[U](g: Gen[U])(f: TableRow => (AnyRef => TableRow)): Gen[TableRow] = {
+    def tryAmend[U](g: Gen[U])(f: TableRow => (AnyRef => Record)): Gen[TableRow] = {
       for (r <- gen; v <- g) yield {
         Try(f(r)(v.asInstanceOf[AnyRef]))
         r
@@ -47,9 +49,13 @@ object TableRowGen {
 
   }
 
-  implicit class RichTableRow(r: TableRow) {
-    def getTableRow(name: AnyRef): TableRow = r.get(name).asInstanceOf[TableRow]
-    def set(fieldName: String): AnyRef => TableRow = r.set(fieldName, _)
+  implicit class RichTableRow(r: Record) {
+    def getRecord(name: AnyRef): Record =
+      r.get(name).asInstanceOf[Record]
+    def set(fieldName: String): AnyRef => Record = { v =>
+      r.put(fieldName, v)
+      r
+    }
   }
 
 }

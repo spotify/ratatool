@@ -23,30 +23,31 @@ import scala.collection.JavaConverters._
 
 object TableRowDiffy {
 
+  type Record = java.util.Map[String, AnyRef]
+
   def apply(x: TableRow, y: TableRow, schema: TableSchema): Seq[Delta] = {
     diff(x, y, schema.getFields.asScala, "")
   }
 
-  private def diff(x: TableRow, y: TableRow,
+  private def diff(x: Record, y: Record,
                    fields: Seq[TableFieldSchema], root: String): Seq[Delta] = {
     fields.flatMap { f =>
       val name = f.getName
       val fullName = if (root.isEmpty) name else root + "." + name
-      f.getType match {
-        case "RECORD" =>
-          val a = x.get(name).asInstanceOf[TableRow]
-          val b = y.get(name).asInstanceOf[TableRow]
-          if (a == null && b == null) {
-            Nil
-          } else if (a == null || b == null) {
-            Seq(Delta(fullName, a, b))
-          } else {
-            diff(a, b, f.getFields.asScala, fullName)
-          }
-        case _ =>
-          val a = x.get(name)
-          val b = y.get(name)
-          if (a == b) Nil else Seq(Delta(fullName, a, b))
+      if (f.getType == "RECORD" && f.getMode != "REPEATED") {
+        val a = x.get(name).asInstanceOf[Record]
+        val b = y.get(name).asInstanceOf[Record]
+        if (a == null && b == null) {
+          Nil
+        } else if (a == null || b == null) {
+          Seq(Delta(fullName, a, b))
+        } else {
+          diff(a, b, f.getFields.asScala, fullName)
+        }
+      } else {
+        val a = x.get(name)
+        val b = y.get(name)
+        if (a == b) Nil else Seq(Delta(fullName, a, b))
       }
     }
   }
