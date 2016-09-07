@@ -17,10 +17,19 @@
 
 package com.spotify.ratatool.diffy
 
+import scala.util.Try
+
 /**
  * Delta of a single field between two records.
+ *
  * @param field "." separated field identifier
  * @param left  left value
  * @param right right value
+ * @param delta delta of numerical values
  */
-case class Delta(field: String, left: Any, right: Any)
+case class Delta(field: String, left: Any, right: Any, delta: Option[Double])
+
+private object DeltaUtil {
+  def delta(x: Any, y: Any): Option[Double] =
+    Try(y.toString.toDouble - x.toString.toDouble).toOption
+}

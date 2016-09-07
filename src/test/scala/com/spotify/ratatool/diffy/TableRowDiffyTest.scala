@@ -37,8 +37,8 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
 
     TableRowDiffy(x, y, schema) should equal (Nil)
     TableRowDiffy(x, z, schema) should equal (Seq(
-      Delta("field2", 20, 200),
-      Delta("field3", 30, 300)))
+      Delta("field2", 20, 200, Some(180.0)),
+      Delta("field3", 30, 300, Some(270.0))))
   }
 
   it should "support nested fields" in {
@@ -58,10 +58,10 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
 
     TableRowDiffy(x, y, schema) should equal (Nil)
     TableRowDiffy(x, z1, schema) should equal (Seq(
-      Delta("field1.field1b", 20, 200),
-      Delta("field1.field1c", 30, 300)))
+      Delta("field1.field1b", 20, 200, Some(180.0)),
+      Delta("field1.field1c", 30, 300, Some(270.0))))
     TableRowDiffy(x, z2, schema) should equal (Seq(
-      Delta("field1", x.get("field1"), null)))
+      Delta("field1", x.get("field1"), null, None)))
     TableRowDiffy(z2, z3, schema) should equal (Nil)
   }
 
@@ -79,8 +79,8 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
 
     TableRowDiffy(x, y, schema) should equal (Nil)
     TableRowDiffy(x, z, schema) should equal (Seq(
-      Delta("field2", jl(20, 21), jl(20, 210)),
-      Delta("field3", jl(30, 31), jl(30, 310))))
+      Delta("field2", jl(20, 21), jl(20, 210), None),
+      Delta("field3", jl(30, 31), jl(30, 310), None)))
   }
 
 }

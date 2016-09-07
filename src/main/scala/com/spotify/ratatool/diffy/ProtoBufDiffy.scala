@@ -53,14 +53,14 @@ object ProtoBufDiffy {
           if (a == null && b == null) {
             Nil
           } else if (a == null || b == null) {
-            Seq(Delta(fullName, a, b))
+            Seq(Delta(fullName, a, b, None))
           } else {
             diff(a, b, f.getMessageType.getFields.asScala, fullName)
           }
         case _ =>
           val a = x.getField(f)
           val b = y.getField(f)
-          if (a == b) Nil else Seq(Delta(fullName, a, b))
+          if (a == b) Nil else Seq(Delta(fullName, a, b, DeltaUtil.delta(a, b)))
       }
     }
   }

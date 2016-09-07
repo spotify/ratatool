@@ -42,14 +42,14 @@ object TableRowDiffy {
         if (a == null && b == null) {
           Nil
         } else if (a == null || b == null) {
-          Seq(Delta(fullName, a, b))
+          Seq(Delta(fullName, a, b, None))
         } else {
           diff(a, b, f.getFields.asScala, fullName)
         }
       } else {
         val a = x.get(name)
         val b = y.get(name)
-        if (a == b) Nil else Seq(Delta(fullName, a, b))
+        if (a == b) Nil else Seq(Delta(fullName, a, b, DeltaUtil.delta(a, b)))
       }
     }
   }
