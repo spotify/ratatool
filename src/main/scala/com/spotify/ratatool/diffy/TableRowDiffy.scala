@@ -17,19 +17,29 @@
 
 package com.spotify.ratatool.diffy
 
+import java.io.StringReader
+
+import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
+import com.google.api.client.json.JsonObjectParser
+import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 
 import scala.collection.JavaConverters._
 
 /** Field level diff tool for TableRow records. */
-object TableRowDiffy {
+class TableRowDiffy(tableSchema: TableSchema) extends Diffy[TableRow] {
+  override def apply(x: TableRow, y: TableRow): Seq[Delta] =
+    diff(x, y, schema.getFields.asScala, "")
 
   type Record = java.util.Map[String, AnyRef]
 
-  /** Compare two TableRow records. */
-  def apply(x: TableRow, y: TableRow, schema: TableSchema): Seq[Delta] = {
-    diff(x, y, schema.getFields.asScala, "")
-  }
+  // TableSchema is not serializable
+  private val schemaString: String =
+  new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+    .writeValueAsString(tableSchema)
+  private lazy val schema: TableSchema =
+    new JsonObjectParser(new JacksonFactory)
+      .parseAndClose(new StringReader(schemaString), classOf[TableSchema])
 
   private def diff(x: Record, y: Record,
                    fields: Seq[TableFieldSchema], root: String): Seq[Delta] = {
@@ -42,14 +52,14 @@ object TableRowDiffy {
         if (a == null && b == null) {
           Nil
         } else if (a == null || b == null) {
-          Seq(Delta(fullName, a, b, None))
+          Seq(Delta(fullName, a, b, UnknownDelta))
         } else {
           diff(a, b, f.getFields.asScala, fullName)
         }
       } else {
         val a = x.get(name)
         val b = y.get(name)
-        if (a == b) Nil else Seq(Delta(fullName, a, b, DeltaUtil.delta(a, b)))
+        if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
       }
     }
   }

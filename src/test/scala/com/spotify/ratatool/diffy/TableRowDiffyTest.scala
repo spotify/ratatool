@@ -35,10 +35,11 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
     val y = new TableRow().set("field1", 10).set("field2", 20).set("field3", 30)
     val z = new TableRow().set("field1", 10).set("field2", 200).set("field3", 300)
 
-    TableRowDiffy(x, y, schema) should equal (Nil)
-    TableRowDiffy(x, z, schema) should equal (Seq(
-      Delta("field2", 20, 200, Some(180.0)),
-      Delta("field3", 30, 300, Some(270.0))))
+    val d = new TableRowDiffy(schema)
+    d(x, y) should equal (Nil)
+    d(x, z) should equal (Seq(
+      Delta("field2", 20, 200, NumericDelta(180.0)),
+      Delta("field3", 30, 300, NumericDelta(270.0))))
   }
 
   it should "support nested fields" in {
@@ -46,41 +47,43 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
       new TableFieldSchema().setName("field1").setType("RECORD").setMode("NULLABLE").setFields(jl(
         new TableFieldSchema().setName("field1a").setType("INTEGER").setMode("REQUIRED"),
         new TableFieldSchema().setName("field1b").setType("INTEGER").setMode("REQUIRED"),
-        new TableFieldSchema().setName("field1c").setType("INTEGER").setMode("REQUIRED")))))
+        new TableFieldSchema().setName("field1c").setType("STRING").setMode("REQUIRED")))))
     val x = new TableRow()
-      .set("field1", new TableRow().set("field1a", 10).set("field1b", 20).set("field1c", 30))
+      .set("field1", new TableRow().set("field1a", 10).set("field1b", 20).set("field1c", "hello"))
     val y = new TableRow()
-      .set("field1", new TableRow().set("field1a", 10).set("field1b", 20).set("field1c", 30))
+      .set("field1", new TableRow().set("field1a", 10).set("field1b", 20).set("field1c", "hello"))
     val z1 = new TableRow()
-      .set("field1", new TableRow().set("field1a", 10).set("field1b", 200).set("field1c", 300))
+      .set("field1", new TableRow().set("field1a", 10).set("field1b", 200).set("field1c", "Hello"))
     val z2 = new TableRow().set("field1", null)
     val z3 = new TableRow().set("field1", null)
 
-    TableRowDiffy(x, y, schema) should equal (Nil)
-    TableRowDiffy(x, z1, schema) should equal (Seq(
-      Delta("field1.field1b", 20, 200, Some(180.0)),
-      Delta("field1.field1c", 30, 300, Some(270.0))))
-    TableRowDiffy(x, z2, schema) should equal (Seq(
-      Delta("field1", x.get("field1"), null, None)))
-    TableRowDiffy(z2, z3, schema) should equal (Nil)
+    val d = new TableRowDiffy(schema)
+    d(x, y) should equal (Nil)
+    d(x, z1) should equal (Seq(
+      Delta("field1.field1b", 20, 200, NumericDelta(180.0)),
+      Delta("field1.field1c", "hello", "Hello", StringDelta(1.0))))
+    d(x, z2) should equal (Seq(
+      Delta("field1", x.get("field1"), null, UnknownDelta)))
+    d(z2, z3) should equal (Nil)
   }
 
   it should "support repeated fields" in {
     val schema = new TableSchema().setFields(jl(
       new TableFieldSchema().setName("field1").setType("INTEGER").setMode("REPEATED"),
       new TableFieldSchema().setName("field2").setType("INTEGER").setMode("REPEATED"),
-      new TableFieldSchema().setName("field3").setType("INTEGER").setMode("REPEATED")))
+      new TableFieldSchema().setName("field3").setType("STRING").setMode("REPEATED")))
     val x = new TableRow()
-      .set("field1", jl(10, 11)).set("field2", jl(20, 21)).set("field3", jl(30, 31))
+      .set("field1", jl(10, 11)).set("field2", jl(20, 21)).set("field3", jl("hello", "world"))
     val y = new TableRow()
-      .set("field1", jl(10, 11)).set("field2", jl(20, 21)).set("field3", jl(30, 31))
+      .set("field1", jl(10, 11)).set("field2", jl(20, 21)).set("field3", jl("hello", "world"))
     val z = new TableRow()
-      .set("field1", jl(10, 11)).set("field2", jl(20, 210)).set("field3", jl(30, 310))
+      .set("field1", jl(10, 11)).set("field2", jl(-20, -21)).set("field3", jl("Hello", "World"))
 
-    TableRowDiffy(x, y, schema) should equal (Nil)
-    TableRowDiffy(x, z, schema) should equal (Seq(
-      Delta("field2", jl(20, 21), jl(20, 210), None),
-      Delta("field3", jl(30, 31), jl(30, 310), None)))
+    val d = new TableRowDiffy(schema)
+    d(x, y) should equal (Nil)
+    d(x, z) should equal (Seq(
+      Delta("field2", jl(20, 21), jl(-20, -21), VectorDelta(2.0)),
+      Delta("field3", jl("hello", "world"), jl("Hello", "World"), UnknownDelta)))
   }
 
 }

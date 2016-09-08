@@ -25,18 +25,15 @@ import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
 /** Field level diff tool for ProtoBuf records. */
-object ProtoBufDiffy {
+class ProtoBufDiffy[T <: GeneratedMessage : ClassTag] extends Diffy[T] {
 
-  /** Compare two ProtoBuf records. */
-  def apply[T <: GeneratedMessage : ClassTag](x: T, y: T, descriptor: Descriptor): Seq[Delta] =
-    diff(x, y, descriptor.getFields.asScala, "")
+  override def apply(x: T, y: T): Seq[Delta] = diff(x, y, descriptor.getFields.asScala, "")
 
-  /** Compare two ProtoBuf records. */
-  def apply[T <: GeneratedMessage : ClassTag](x: T, y: T): Seq[Delta] = {
-    val cls = implicitly[ClassTag[T]].runtimeClass
-    val descriptor = cls.getMethod("getDescriptor").invoke(null).asInstanceOf[Descriptor]
-    apply(x, y, descriptor)
-  }
+  // Descriptor is not serializable
+  private lazy val descriptor: Descriptor =
+    implicitly[ClassTag[T]].runtimeClass
+      .getMethod("getDescriptor")
+      .invoke(null).asInstanceOf[Descriptor]
 
   private def diff(x: GeneratedMessage, y: GeneratedMessage,
                    fields: Seq[FieldDescriptor], root: String): Seq[Delta] = {
@@ -53,14 +50,14 @@ object ProtoBufDiffy {
           if (a == null && b == null) {
             Nil
           } else if (a == null || b == null) {
-            Seq(Delta(fullName, a, b, None))
+            Seq(Delta(fullName, a, b, UnknownDelta))
           } else {
             diff(a, b, f.getMessageType.getFields.asScala, fullName)
           }
         case _ =>
           val a = x.getField(f)
           val b = y.getField(f)
-          if (a == b) Nil else Seq(Delta(fullName, a, b, DeltaUtil.delta(a, b)))
+          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
       }
     }
   }

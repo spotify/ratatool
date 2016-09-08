@@ -32,8 +32,10 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
     val y = OptionalNestedRecord.newBuilder().setInt32Field(10).setInt64Field(20L).build()
     val z = OptionalNestedRecord.newBuilder().setInt32Field(10).setInt64Field(200L).build()
 
-    ProtoBufDiffy(x, y) should equal (Nil)
-    ProtoBufDiffy(x, z) should equal (Seq(Delta("int64_field", 20L, 200L, Some(180.0))))
+    val d = new ProtoBufDiffy[OptionalNestedRecord]
+    d(x, y) should equal (Nil)
+    d(x, z) should equal (Seq(
+      Delta("int64_field", 20L, 200L, NumericDelta(180.0))))
   }
 
   it should "support nested fields" in {
@@ -53,18 +55,19 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
       .setOptionalNestedField(
         OptionalNestedRecord.newBuilder(onr)
           .setInt64Field(200L)
-          .setStringField("world")
+          .setStringField("Hello")
       ).build()
     val z2 = TestRecord.newBuilder(x).clearOptionalNestedField().build()
     val z3 = TestRecord.newBuilder(x).clearOptionalNestedField().build()
 
-    ProtoBufDiffy(x, y) should equal (Nil)
-    ProtoBufDiffy(x, z1) should equal (Seq(
-      Delta("optional_nested_field.int64_field", 20L, 200L, Some(180.0)),
-      Delta("optional_nested_field.string_field", "hello", "world", None)))
-    ProtoBufDiffy(x, z2) should equal (Seq(
-      Delta("optional_nested_field", onr, null, None)))
-    ProtoBufDiffy(z2, z3) should equal (Nil)
+    val d = new ProtoBufDiffy[TestRecord]
+    d(x, y) should equal (Nil)
+    d(x, z1) should equal (Seq(
+      Delta("optional_nested_field.int64_field", 20L, 200L, NumericDelta(180.0)),
+      Delta("optional_nested_field.string_field", "hello", "Hello", StringDelta(1.0))))
+    d(x, z2) should equal (Seq(
+      Delta("optional_nested_field", onr, null, UnknownDelta)))
+    d(z2, z3) should equal (Nil)
   }
 
   it should "support repeated fields" in {
@@ -86,15 +89,18 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
         RepeatedNestedRecord.newBuilder(x.getRepeatedFields)
           .clearInt64Field()
           .clearStringField()
-          .addAllInt64Field(jl(20L, 210L))
+          .addAllInt64Field(jl(-20L, -21L))
           .addAllStringField(jl("Hello", "World"))
           .build()
       ).build()
 
-    ProtoBufDiffy(x, y) should equal (Nil)
-    ProtoBufDiffy(x, z) should equal (Seq(
-      Delta("repeated_fields.int64_field", jl(20L, 21L), jl(20L, 210L), None),
-      Delta("repeated_fields.string_field", jl("hello", "world"), jl("Hello", "World"), None)))
+    val d = new ProtoBufDiffy[TestRecord]
+    d(x, y) should equal (Nil)
+    d(x, z) should equal (Seq(
+      Delta("repeated_fields.int64_field",
+        jl(20L, 21L), jl(-20L, -21L), VectorDelta(2.0)),
+      Delta("repeated_fields.string_field",
+        jl("hello", "world"), jl("Hello", "World"), UnknownDelta)))
   }
 
 }

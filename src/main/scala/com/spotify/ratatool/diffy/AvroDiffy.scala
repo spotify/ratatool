@@ -24,10 +24,9 @@ import org.apache.avro.generic.GenericRecord
 import scala.collection.JavaConverters._
 
 /** Field level diff tool for Avro records. */
-object AvroDiffy {
+class AvroDiffy[T <: GenericRecord] extends Diffy[T] {
 
-  /** Compare two Avro records. */
-  def apply(x: GenericRecord, y: GenericRecord): Seq[Delta] = {
+  override def apply(x: T, y: T): Seq[Delta] = {
     require(x.getSchema == y.getSchema)
     diff(x, y, "")
   }
@@ -44,14 +43,14 @@ object AvroDiffy {
           if (a == null && b == null) {
             Nil
           } else if (a == null || b == null) {
-            Seq(Delta(fullName, a, b, None))
+            Seq(Delta(fullName, a, b, UnknownDelta))
           } else {
             diff(a, b, fullName)
           }
         case _ =>
           val a = x.get(name)
           val b = y.get(name)
-          if (a == b) Nil else Seq(Delta(fullName, a, b, DeltaUtil.delta(a, b)))
+          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
       }
     }
   }
