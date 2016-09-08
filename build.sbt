@@ -26,9 +26,9 @@ crossScalaVersions := Seq("2.10.6", "2.11.8")
 scalacOptions ++= Seq("-target:jvm-1.7", "-deprecation", "-feature", "-unchecked")
 javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked")
 
+val algebirdVersion = "0.12.1"
 val avroVersion = "1.7.7"
 val bijectionVersion = "0.9.0"
-val dataflowVersion = "1.6.1"
 val gcsVersion = "1.5.2-hadoop2"
 val hadoopVersion = "2.7.2"
 val jodaTimeVersion = "2.9.4"
@@ -36,13 +36,15 @@ val parquetVersion = "1.8.1"
 val protoBufVersion = "2.6.1"
 val scalaCheckVersion = "1.13.2"
 val scalaTestVersion = "3.0.0"
+val scioVersion = "0.2.2"
 val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.21"
 
 libraryDependencies ++= Seq(
   "com.github.scopt" %% "scopt" % scoptVersion,
   "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
-  "com.google.cloud.dataflow" % "google-cloud-dataflow-java-sdk-all" % dataflowVersion,
+  "com.spotify" %% "scio-core" % scioVersion,
+  "com.twitter" %% "algebird-core" % algebirdVersion,
   "com.twitter" %% "bijection-avro" % bijectionVersion,
   "joda-time" % "joda-time" % jodaTimeVersion,
   "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
