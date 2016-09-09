@@ -58,8 +58,19 @@ class AvroDiffy[T <: GenericRecord] extends Diffy[T] {
   private def getRawType(schema: Schema): Schema = {
     schema.getType match {
       case Schema.Type.UNION =>
-        assert(schema.getTypes.size == 2 && schema.getTypes.get(0).getType == Schema.Type.NULL)
-        schema.getTypes.get(1)
+        val types = schema.getTypes
+        if (types.size == 2) {
+          if (types.get(0).getType == Schema.Type.NULL) {
+            types.get(1)
+          } else if (types.get(1).getType == Schema.Type.NULL) {
+            // incorrect use of Avro "nullable" but happens
+            types.get(0)
+          } else {
+            schema
+          }
+        } else {
+          schema
+        }
       case _ => schema
     }
   }
