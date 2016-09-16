@@ -24,7 +24,7 @@ import org.apache.avro.generic.GenericRecord
 import scala.collection.JavaConverters._
 
 /** Field level diff tool for Avro records. */
-class AvroDiffy[T <: GenericRecord] extends Diffy[T] {
+class AvroDiffy[T <: GenericRecord](val ignore: Set[String] = Set.empty) extends Diffy[T] {
 
   override def apply(x: T, y: T): Seq[Delta] = {
     require(x.getSchema == y.getSchema)
@@ -53,6 +53,7 @@ class AvroDiffy[T <: GenericRecord] extends Diffy[T] {
           if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
       }
     }
+    .filter(d => !ignore.contains(d.field))
   }
 
   private def getRawType(schema: Schema): Schema = {

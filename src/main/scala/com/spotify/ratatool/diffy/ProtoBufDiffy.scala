@@ -25,7 +25,8 @@ import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
 /** Field level diff tool for ProtoBuf records. */
-class ProtoBufDiffy[T <: GeneratedMessage : ClassTag] extends Diffy[T] {
+class ProtoBufDiffy[T <: GeneratedMessage : ClassTag](val ignore: Set[String] = Set.empty)
+  extends Diffy[T] {
 
   override def apply(x: T, y: T): Seq[Delta] = diff(x, y, descriptor.getFields.asScala, "")
 
@@ -60,6 +61,7 @@ class ProtoBufDiffy[T <: GeneratedMessage : ClassTag] extends Diffy[T] {
           if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
       }
     }
+    .filter(d => !ignore.contains(d.field))
   }
 
 }

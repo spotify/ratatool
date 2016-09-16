@@ -86,4 +86,20 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
       Delta("field3", jl("hello", "world"), jl("Hello", "World"), UnknownDelta)))
   }
 
+  it should "support ignore" in {
+    val schema = new TableSchema().setFields(jl(
+      new TableFieldSchema().setName("field1").setType("INTEGER").setMode("REQUIRED"),
+      new TableFieldSchema().setName("field2").setType("INTEGER").setMode("REQUIRED"),
+      new TableFieldSchema().setName("field3").setType("INTEGER").setMode("REQUIRED")))
+    val x = new TableRow().set("field1", 10).set("field2", 20).set("field3", 30)
+    val y = new TableRow().set("field1", 10).set("field2", 20).set("field3", 30)
+    val z = new TableRow().set("field1", 20).set("field2", 200).set("field3", 300)
+
+    val di = new TableRowDiffy(schema, Set("field1"))
+    di(x, y) should equal (Nil)
+    di(x, z) should equal (Seq(
+      Delta("field2", 20, 200, NumericDelta(180.0)),
+      Delta("field3", 30, 300, NumericDelta(270.0))))
+  }
+
 }

@@ -91,4 +91,15 @@ class AvroDiffyTest extends FlatSpec with Matchers {
         jl("hello", "world"), jl("Hello", "World"), UnknownDelta)))
   }
 
+  it should "support ignore" in {
+    val x = NullableNestedRecord.newBuilder().setIntField(10).setLongField(20L).build()
+    val y = NullableNestedRecord.newBuilder().setIntField(10).setLongField(20L).build()
+    val z = NullableNestedRecord.newBuilder().setIntField(20).setLongField(200L).build()
+
+    val di = new AvroDiffy[GenericRecord](Set("int_field"))
+    di(x, y) should equal (Nil)
+    di(x, z) should equal (Seq(
+      Delta("long_field", 20L, 200L, NumericDelta(180.0))))
+  }
+
 }

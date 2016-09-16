@@ -27,7 +27,9 @@ import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, Table
 import scala.collection.JavaConverters._
 
 /** Field level diff tool for TableRow records. */
-class TableRowDiffy(tableSchema: TableSchema) extends Diffy[TableRow] {
+class TableRowDiffy(tableSchema: TableSchema, val ignore: Set[String] = Set.empty)
+  extends Diffy[TableRow] {
+
   override def apply(x: TableRow, y: TableRow): Seq[Delta] =
     diff(x, y, schema.getFields.asScala, "")
 
@@ -62,6 +64,7 @@ class TableRowDiffy(tableSchema: TableSchema) extends Diffy[TableRow] {
         if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
       }
     }
+    .filter(d => !ignore.contains(d.field))
   }
 
 }

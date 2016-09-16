@@ -103,4 +103,15 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
         jl("hello", "world"), jl("Hello", "World"), UnknownDelta)))
   }
 
+  it should "support ignore" in {
+    val x = OptionalNestedRecord.newBuilder().setInt32Field(10).setInt64Field(20L).build()
+    val y = OptionalNestedRecord.newBuilder().setInt32Field(10).setInt64Field(20L).build()
+    val z = OptionalNestedRecord.newBuilder().setInt32Field(20).setInt64Field(200L).build()
+
+    val di = new ProtoBufDiffy[OptionalNestedRecord](Set("int32_field"))
+    di(x, y) should equal (Nil)
+    di(x, z) should equal (Seq(
+      Delta("int64_field", 20L, 200L, NumericDelta(180.0))))
+  }
+
 }
