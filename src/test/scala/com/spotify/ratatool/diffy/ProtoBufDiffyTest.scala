@@ -114,4 +114,31 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
       Delta("int64_field", 20L, 200L, NumericDelta(180.0))))
   }
 
+  it should "support unordered" in {
+    val a = OptionalNestedRecord.newBuilder().setInt32Field(10).setInt64Field(100L).build()
+    val b = OptionalNestedRecord.newBuilder().setInt32Field(20).setInt64Field(200L).build()
+    val c = OptionalNestedRecord.newBuilder().setInt32Field(30).setInt64Field(300L).build()
+
+    val base = ProtoBufGenerator.protoBufOf[TestRecord]
+    val x = TestRecord.newBuilder(base)
+      .clearRepeatedNestedField()
+      .addAllRepeatedNestedField(jl(a, b, c))
+      .build()
+    val y = TestRecord.newBuilder(base)
+      .clearRepeatedNestedField()
+      .addAllRepeatedNestedField(jl(a, b, c))
+      .build()
+    val z = TestRecord.newBuilder(base)
+      .clearRepeatedNestedField()
+      .addAllRepeatedNestedField(jl(a, c, b))
+      .build()
+
+    val du = new ProtoBufDiffy[TestRecord](unordered = Set("repeated_nested_field"))
+    du(x, y) should equal (Nil)
+    du(x, z) should equal (Nil)
+    val d = new ProtoBufDiffy[TestRecord]
+    d(x, z) should equal (Seq(
+      Delta("repeated_nested_field", jl(a, b, c), jl(a, c, b), UnknownDelta)))
+  }
+
 }

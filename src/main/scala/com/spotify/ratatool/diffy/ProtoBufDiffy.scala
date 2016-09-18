@@ -25,7 +25,8 @@ import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
 /** Field level diff tool for ProtoBuf records. */
-class ProtoBufDiffy[T <: GeneratedMessage : ClassTag](val ignore: Set[String] = Set.empty)
+class ProtoBufDiffy[T <: GeneratedMessage : ClassTag](val ignore: Set[String] = Set.empty,
+                                                      val unordered: Set[String] = Set.empty)
   extends Diffy[T] {
 
   override def apply(x: T, y: T): Seq[Delta] = diff(x, y, descriptor.getFields.asScala, "")
@@ -36,32 +37,44 @@ class ProtoBufDiffy[T <: GeneratedMessage : ClassTag](val ignore: Set[String] = 
       .getMethod("getDescriptor")
       .invoke(null).asInstanceOf[Descriptor]
 
+  // scalastyle:off cyclomatic.complexity
   private def diff(x: GeneratedMessage, y: GeneratedMessage,
                    fields: Seq[FieldDescriptor], root: String): Seq[Delta] = {
-    def getField(m: GeneratedMessage, f: FieldDescriptor): Any =
-      if (m.hasField(f)) m.getField(f) else null
+    def getField(m: GeneratedMessage, f: FieldDescriptor): AnyRef =
+      if (f.isRepeated) {
+        m.getField(f)
+      } else {
+        if (m.hasField(f)) m.getField(f) else null
+      }
 
-    fields.flatMap { f=>
+    fields.flatMap { f =>
       val name = f.getName
       val fullName = if (root.isEmpty) name else root + "." + name
-      f.getJavaType match {
-        case JavaType.MESSAGE =>
-          val a = getField(x, f).asInstanceOf[GeneratedMessage]
-          val b = getField(y, f).asInstanceOf[GeneratedMessage]
-          if (a == null && b == null) {
-            Nil
-          } else if (a == null || b == null) {
-            Seq(Delta(fullName, a, b, UnknownDelta))
-          } else {
-            diff(a, b, f.getMessageType.getFields.asScala, fullName)
-          }
-        case _ =>
-          val a = x.getField(f)
-          val b = y.getField(f)
-          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+      if (f.isRepeated && unordered.contains(fullName)) {
+        val a = DiffyUtils.sortList(x.getField(f).asInstanceOf[java.util.List[AnyRef]])
+        val b = DiffyUtils.sortList(y.getField(f).asInstanceOf[java.util.List[AnyRef]])
+        if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+      } else {
+        f.getJavaType match {
+          case JavaType.MESSAGE if !f.isRepeated =>
+            val a = getField(x, f).asInstanceOf[GeneratedMessage]
+            val b = getField(y, f).asInstanceOf[GeneratedMessage]
+            if (a == null && b == null) {
+              Nil
+            } else if (a == null || b == null) {
+              Seq(Delta(fullName, a, b, UnknownDelta))
+            } else {
+              diff(a, b, f.getMessageType.getFields.asScala, fullName)
+            }
+          case _ =>
+            val a = x.getField(f)
+            val b = y.getField(f)
+            if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+        }
       }
     }
     .filter(d => !ignore.contains(d.field))
   }
+  // scalastyle:on cyclomatic.complexity
 
 }
