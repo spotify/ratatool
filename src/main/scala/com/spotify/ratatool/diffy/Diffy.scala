@@ -135,3 +135,8 @@ object CosineDistance {
     dp / math.sqrt(xss * yss)
   }
 }
+
+object DiffyUtils {
+  def sortList(l: java.util.List[AnyRef]): java.util.List[AnyRef] =
+    if (l == null) null else l.asScala.sortBy(_.toString).asJava
+}

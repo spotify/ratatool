@@ -102,4 +102,24 @@ class AvroDiffyTest extends FlatSpec with Matchers {
       Delta("long_field", 20L, 200L, NumericDelta(180.0))))
   }
 
+  it should "support unordered" in {
+    val coder = AvroCoder.of(classOf[TestRecord])
+
+    val a = NullableNestedRecord.newBuilder().setIntField(10).setLongField(100L).build()
+    val b = NullableNestedRecord.newBuilder().setIntField(20).setLongField(200L).build()
+    val c = NullableNestedRecord.newBuilder().setIntField(30).setLongField(300L).build()
+
+    val x = AvroGenerator.avroOf[TestRecord]
+    x.setRepeatedNestedField(jl(a, b, c))
+    val y = CoderUtils.clone(coder, x)
+    val z = CoderUtils.clone(coder, x)
+    z.setRepeatedNestedField(jl(a, c, b))
+
+    val du = new AvroDiffy[GenericRecord](unordered = Set("repeated_nested_field"))
+    du(x, y) should equal (Nil)
+    du(x, z) should equal (Nil)
+    d(x, z) should equal (Seq(
+      Delta("repeated_nested_field", jl(a, b, c), jl(a, c, b), UnknownDelta)))
+  }
+
 }

@@ -59,6 +59,10 @@
             "name": "nullable_nested_field",
             "type": ["null", "NullableNestedRecord"],
             "default": null
+        },
+        {
+            "name": "repeated_nested_field",
+            "type": {"type": "array", "items": "NullableNestedRecord"}
         }
     ]
 }

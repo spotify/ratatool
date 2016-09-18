@@ -18,25 +18,25 @@
 package com.spotify.ratatool.diffy
 
 import org.apache.avro.Schema
-
 import org.apache.avro.generic.GenericRecord
 
 import scala.collection.JavaConverters._
 
 /** Field level diff tool for Avro records. */
-class AvroDiffy[T <: GenericRecord](val ignore: Set[String] = Set.empty) extends Diffy[T] {
+class AvroDiffy[T <: GenericRecord](val ignore: Set[String] = Set.empty,
+                                    val unordered: Set[String] = Set.empty) extends Diffy[T] {
 
   override def apply(x: T, y: T): Seq[Delta] = {
     require(x.getSchema == y.getSchema)
     diff(x, y, "")
   }
 
+  // scalastyle:off cyclomatic.complexity
   private def diff(x: GenericRecord, y: GenericRecord, root: String): Seq[Delta] = {
     x.getSchema.getFields.asScala.flatMap { f =>
       val name = f.name()
       val fullName = if (root.isEmpty) name else root + "." + name
-      val schema = getRawType(f.schema())
-      schema.getType match {
+      getRawType(f.schema()).getType match {
         case Schema.Type.RECORD =>
           val a = x.get(name).asInstanceOf[GenericRecord]
           val b = y.get(name).asInstanceOf[GenericRecord]
@@ -47,6 +47,10 @@ class AvroDiffy[T <: GenericRecord](val ignore: Set[String] = Set.empty) extends
           } else {
             diff(a, b, fullName)
           }
+        case Schema.Type.ARRAY if unordered.contains(fullName) =>
+          val a = DiffyUtils.sortList(x.get(name).asInstanceOf[java.util.List[AnyRef]])
+          val b = DiffyUtils.sortList(y.get(name).asInstanceOf[java.util.List[AnyRef]])
+          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
         case _ =>
           val a = x.get(name)
           val b = y.get(name)
@@ -55,6 +59,7 @@ class AvroDiffy[T <: GenericRecord](val ignore: Set[String] = Set.empty) extends
     }
     .filter(d => !ignore.contains(d.field))
   }
+  // scalastyle:on cyclomatic.complexity
 
   private def getRawType(schema: Schema): Schema = {
     schema.getType match {
