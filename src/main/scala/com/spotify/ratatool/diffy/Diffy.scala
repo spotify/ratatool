@@ -29,23 +29,23 @@ import scala.util.Try
  * VECTOR - repeated numeric type, default delta is 1.0 - cosine similarity.
  */
 object DeltaType extends Enumeration {
-  val UNKNOWN, NUMERIC, STRING, VECTOR = Value
+  val NUMERIC, STRING, VECTOR = Value
 }
 
 /** Delta value of a single node between two records. */
-class DeltaValue(val deltaType: DeltaType.Value, val value: Double)
+sealed trait DeltaValue
 
-/** Delta of unknown node type. */
-case object UnknownDelta extends DeltaValue(DeltaType.UNKNOWN, Double.NaN)
-
-/** Delta of numeric node type. */
-case class NumericDelta(v: Double) extends DeltaValue(DeltaType.NUMERIC, v)
-
-/** Delta of string node type. */
-case class StringDelta(v: Double) extends DeltaValue(DeltaType.STRING, v)
-
-/** Delta of vector node type, e.g. list of numeric values */
-case class VectorDelta(v: Double) extends DeltaValue(DeltaType.VECTOR, v)
+case object UnknownDelta extends DeltaValue
+case class TypedDelta(deltaType: DeltaType.Value, value: Double) extends DeltaValue
+object NumericDelta {
+  def apply(value: Double): TypedDelta = TypedDelta(DeltaType.NUMERIC, value)
+}
+object StringDelta {
+  def apply(value: Double): TypedDelta = TypedDelta(DeltaType.STRING, value)
+}
+object VectorDelta {
+  def apply(value: Double): TypedDelta = TypedDelta(DeltaType.VECTOR, value)
+}
 
 /**
  * Delta of a single field between two records.

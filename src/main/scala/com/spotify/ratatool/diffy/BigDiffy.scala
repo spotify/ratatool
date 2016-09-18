@@ -177,9 +177,8 @@ object BigDiffy {
         ds.foreach { d =>
           val optD = d.delta match {
             case UnknownDelta => None
-            case dv: DeltaValue =>
-              val x = dv.value
-              Some((dv.deltaType, Min(x), Max(x), Moments.aggregator.prepare(x)))
+            case TypedDelta(t, v) =>
+              Some((t, Min(v), Max(v), Moments.aggregator.prepare(v)))
           }
           // Map of field -> (count, delta statistics)
           m(d.field) = (1L, optD)
