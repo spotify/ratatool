@@ -27,7 +27,9 @@ import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, Table
 import scala.collection.JavaConverters._
 
 /** Field level diff tool for TableRow records. */
-class TableRowDiffy(tableSchema: TableSchema, val ignore: Set[String] = Set.empty)
+class TableRowDiffy(tableSchema: TableSchema,
+                    val ignore: Set[String] = Set.empty,
+                    val unordered: Set[String] = Set.empty)
   extends Diffy[TableRow] {
 
   override def apply(x: TableRow, y: TableRow): Seq[Delta] =
@@ -43,6 +45,7 @@ class TableRowDiffy(tableSchema: TableSchema, val ignore: Set[String] = Set.empt
     new JsonObjectParser(new JacksonFactory)
       .parseAndClose(new StringReader(schemaString), classOf[TableSchema])
 
+  // scalastyle:off cyclomatic.complexity
   private def diff(x: Record, y: Record,
                    fields: Seq[TableFieldSchema], root: String): Seq[Delta] = {
     fields.flatMap { f =>
@@ -58,6 +61,10 @@ class TableRowDiffy(tableSchema: TableSchema, val ignore: Set[String] = Set.empt
         } else {
           diff(a, b, f.getFields.asScala, fullName)
         }
+      } else if (f.getMode == "REPEATED" && unordered.contains(fullName)) {
+        val a = DiffyUtils.sortList(x.get(name).asInstanceOf[java.util.List[AnyRef]])
+        val b = DiffyUtils.sortList(y.get(name).asInstanceOf[java.util.List[AnyRef]])
+        if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
       } else {
         val a = x.get(name)
         val b = y.get(name)
@@ -66,5 +73,6 @@ class TableRowDiffy(tableSchema: TableSchema, val ignore: Set[String] = Set.empt
     }
     .filter(d => !ignore.contains(d.field))
   }
+  // scalastyle:on cyclomatic.complexity
 
 }

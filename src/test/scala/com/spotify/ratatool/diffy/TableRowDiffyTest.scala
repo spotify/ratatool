@@ -102,4 +102,27 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
       Delta("field3", 30, 300, NumericDelta(270.0))))
   }
 
+  it should "support unordered" in {
+    val schema = new TableSchema().setFields(jl(
+      new TableFieldSchema().setName("field1").setType("RECORD").setMode("REPEATED").setFields(jl(
+        new TableFieldSchema().setName("field1a").setType("INTEGER").setMode("REQUIRED"),
+        new TableFieldSchema().setName("field1b").setType("INTEGER").setMode("REQUIRED"),
+        new TableFieldSchema().setName("field1c").setType("STRING").setMode("REQUIRED")))))
+
+    val a = new TableRow().set("field1a", 10).set("field1b", 100).set("field1c", "hello")
+    val b = new TableRow().set("field1a", 20).set("field1b", 200).set("field1c", "world")
+    val c = new TableRow().set("field1a", 30).set("field1b", 300).set("field1c", "!")
+
+    val x = new TableRow().set("field1", jl(a, b, c))
+    val y = new TableRow().set("field1", jl(a, b, c))
+    val z = new TableRow().set("field1", jl(a, c, b))
+
+    val du = new TableRowDiffy(schema, unordered = Set("field1"))
+    du(x, y) should equal (Nil)
+    du(x, z) should equal (Nil)
+    val d = new TableRowDiffy(schema)
+    d(x, z) should equal (Seq(
+      Delta("field1", jl(a, b, c), jl(a, c, b), UnknownDelta)))
+  }
+
 }
