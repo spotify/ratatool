@@ -64,7 +64,7 @@ trait Diffy[T] extends Serializable {
 
   /** Delta function for comparing a single node between two records. */
   def delta(x: Any, y: Any): DeltaValue = {
-    val tryNum = Try(numberDelta(x.toString.toDouble, y.toString.toDouble))
+    val tryNum = Try(numericDelta(x.toString.toDouble, y.toString.toDouble))
     if (tryNum.isSuccess) {
       NumericDelta(tryNum.get)
     } else if (x.isInstanceOf[CharSequence] && y.isInstanceOf[CharSequence]) {
@@ -84,7 +84,7 @@ trait Diffy[T] extends Serializable {
   }
 
   /** Distance function for numeric values, can be overridden by user. */
-  def numberDelta(x: Double, y: Double): Double = y - x
+  def numericDelta(x: Double, y: Double): Double = y - x
 
   /** Distance function for string values, can be overridden by user. */
   def stringDelta(x: String, y: String): Double = Levenshtein.distance(x, y).toDouble
