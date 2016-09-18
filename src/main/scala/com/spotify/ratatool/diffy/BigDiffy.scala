@@ -219,29 +219,23 @@ object BigDiffy {
   def diffAvro[T <: GenericRecord : ClassTag](sc: ScioContext,
                                               lhs: String, rhs: String,
                                               keyFn: T => String,
-                                              ignore: Set[String] = Set.empty,
+                                              diffy: AvroDiffy[T],
                                               schema: Schema = null): BigDiffy[T] =
-    diff(sc.avroFile[T](lhs, schema), sc.avroFile[T](rhs, schema), new AvroDiffy[T](ignore), keyFn)
+    diff(sc.avroFile[T](lhs, schema), sc.avroFile[T](rhs, schema), diffy, keyFn)
 
   /** Diff two ProtoBuf data sets. */
   def diffProtoBuf[T <: GeneratedMessage : ClassTag](sc: ScioContext,
                                                      lhs: String, rhs: String,
                                                      keyFn: T => String,
-                                                     ignore: Set[String] = Set.empty): BigDiffy[T] =
-    diff(sc.protobufFile(lhs), sc.protobufFile(rhs), new ProtoBufDiffy[T](ignore), keyFn)
+                                                     diffy: ProtoBufDiffy[T]): BigDiffy[T] =
+    diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
 
   /** Diff two TableRow data sets. */
   def diffTableRow(sc: ScioContext,
                    lhs: String, rhs: String,
                    keyFn: TableRow => String,
-                   ignore: Set[String] = Set.empty): BigDiffy[TableRow] = {
-    // TODO: handle schema evolution
-    val bq = BigQueryClient.defaultInstance()
-    val lSchema = bq.getTableSchema(lhs)
-    val rSchema = bq.getTableSchema(rhs)
-    val schema = mergeTableSchema(lSchema, rSchema)
-    diff(sc.bigQueryTable(lhs), sc.bigQueryTable(rhs), new TableRowDiffy(schema, ignore), keyFn)
-  }
+                   diffy: TableRowDiffy): BigDiffy[TableRow] =
+    diff(sc.bigQueryTable(lhs), sc.bigQueryTable(rhs), diffy, keyFn)
 
   /** Merge two BigQuery TableSchemas. */
   def mergeTableSchema(x: TableSchema, y: TableSchema): TableSchema = {
@@ -290,9 +284,16 @@ object BigDiffy {
         val fs = FileSystem.get(new URI(rhs), GcsConfiguration.get())
         val path = fs.globStatus(new Path(rhs)).head.getPath
         val schema = new AvroSampler(path).sample(1, true).head.getSchema
-        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, _.get(key).toString, schema = schema)
+        val diffy = new AvroDiffy[GenericRecord]()
+        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, _.get(key).toString, diffy)
       case "bigquery" =>
-        BigDiffy.diffTableRow(sc, lhs, rhs, _.get(key).toString)
+        // TODO: handle schema evolution
+        val bq = BigQueryClient.defaultInstance()
+        val lSchema = bq.getTableSchema(lhs)
+        val rSchema = bq.getTableSchema(rhs)
+        val schema = mergeTableSchema(lSchema, rSchema)
+        val diffy = new TableRowDiffy(schema)
+        BigDiffy.diffTableRow(sc, lhs, rhs, _.get(key).toString, diffy)
       case m =>
         throw new IllegalArgumentException(s"mode $m not supported")
     }
