@@ -285,7 +285,7 @@ object BigDiffy {
         val path = fs.globStatus(new Path(rhs)).head.getPath
         val schema = new AvroSampler(path).sample(1, true).head.getSchema
         val diffy = new AvroDiffy[GenericRecord]()
-        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, _.get(key).toString, diffy)
+        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, _.get(key).toString, diffy, schema)
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQueryClient.defaultInstance()
