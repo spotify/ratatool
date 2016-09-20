@@ -44,6 +44,7 @@ libraryDependencies ++= Seq(
   "com.github.scopt" %% "scopt" % scoptVersion,
   "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
   "com.spotify" %% "scio-core" % scioVersion,
+  "com.spotify" %% "scio-test" % scioVersion,
   "com.twitter" %% "algebird-core" % algebirdVersion,
   "com.twitter" %% "bijection-avro" % bijectionVersion,
   "joda-time" % "joda-time" % jodaTimeVersion,
