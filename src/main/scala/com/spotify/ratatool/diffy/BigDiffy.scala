@@ -100,17 +100,27 @@ case class FieldStats(field: String,
 class BigDiffy[T](lhs: SCollection[T], rhs: SCollection[T],
                   d: Diffy[T], keyFn: T => String) {
 
-  private lazy val deltas: SCollection[(String, (Seq[Delta], DiffType.Value))] =
+  private lazy val _deltas: SCollection[(String, (Seq[Delta], DiffType.Value))] =
     BigDiffy.computeDeltas(lhs, rhs, d, keyFn)
 
   private lazy val globalAndFieldStats: SCollection[(GlobalStats, Iterable[FieldStats])] =
-    BigDiffy.computeGlobalAndFieldStats(deltas)
+    BigDiffy.computeGlobalAndFieldStats(_deltas)
+
+  /**
+   * Key and field level delta.
+   *
+   * Output tuples are (key, field, LHS, RHS). Note that LHS and RHS may not be serializable.
+   */
+  lazy val deltas: SCollection[(String, String, Any, Any)] =
+    _deltas.flatMap { case (k, (ds, dt)) =>
+      ds.map(d => (k, d.field, d.left, d.right))
+    }
 
   /** Global level statistics. */
   lazy val globalStats: SCollection[GlobalStats] = globalAndFieldStats.keys
 
   /** Key level statistics. */
-  lazy val keyStats: SCollection[KeyStats] = deltas.map { case (k, (_, dt)) => KeyStats(k, dt) }
+  lazy val keyStats: SCollection[KeyStats] = _deltas.map { case (k, (_, dt)) => KeyStats(k, dt) }
 
   /** Field level statistics. */
   lazy val fieldStats: SCollection[FieldStats] = globalAndFieldStats.flatMap(_._2)
