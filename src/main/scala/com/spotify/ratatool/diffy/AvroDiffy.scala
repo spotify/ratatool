@@ -23,8 +23,9 @@ import org.apache.avro.generic.GenericRecord
 import scala.collection.JavaConverters._
 
 /** Field level diff tool for Avro records. */
-class AvroDiffy[T <: GenericRecord](val ignore: Set[String] = Set.empty,
-                                    val unordered: Set[String] = Set.empty) extends Diffy[T] {
+class AvroDiffy[T <: GenericRecord](ignore: Set[String] = Set.empty,
+                                    unordered: Set[String] = Set.empty)
+  extends Diffy[T](ignore, unordered) {
 
   override def apply(x: T, y: T): Seq[Delta] = {
     require(x.getSchema == y.getSchema)
@@ -48,8 +49,8 @@ class AvroDiffy[T <: GenericRecord](val ignore: Set[String] = Set.empty,
             diff(a, b, fullName)
           }
         case Schema.Type.ARRAY if unordered.contains(fullName) =>
-          val a = DiffyUtils.sortList(x.get(name).asInstanceOf[java.util.List[AnyRef]])
-          val b = DiffyUtils.sortList(y.get(name).asInstanceOf[java.util.List[AnyRef]])
+          val a = sortList(x.get(name).asInstanceOf[java.util.List[AnyRef]])
+          val b = sortList(y.get(name).asInstanceOf[java.util.List[AnyRef]])
           if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
         case _ =>
           val a = x.get(name)

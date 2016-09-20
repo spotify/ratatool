@@ -25,9 +25,9 @@ import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
 /** Field level diff tool for ProtoBuf records. */
-class ProtoBufDiffy[T <: GeneratedMessage : ClassTag](val ignore: Set[String] = Set.empty,
-                                                      val unordered: Set[String] = Set.empty)
-  extends Diffy[T] {
+class ProtoBufDiffy[T <: GeneratedMessage : ClassTag](ignore: Set[String] = Set.empty,
+                                                      unordered: Set[String] = Set.empty)
+  extends Diffy[T](ignore, unordered) {
 
   override def apply(x: T, y: T): Seq[Delta] = diff(x, y, descriptor.getFields.asScala, "")
 
@@ -51,8 +51,8 @@ class ProtoBufDiffy[T <: GeneratedMessage : ClassTag](val ignore: Set[String] = 
       val name = f.getName
       val fullName = if (root.isEmpty) name else root + "." + name
       if (f.isRepeated && unordered.contains(fullName)) {
-        val a = DiffyUtils.sortList(x.getField(f).asInstanceOf[java.util.List[AnyRef]])
-        val b = DiffyUtils.sortList(y.getField(f).asInstanceOf[java.util.List[AnyRef]])
+        val a = sortList(x.getField(f).asInstanceOf[java.util.List[AnyRef]])
+        val b = sortList(y.getField(f).asInstanceOf[java.util.List[AnyRef]])
         if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
       } else {
         f.getJavaType match {

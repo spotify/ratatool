@@ -35,8 +35,13 @@ object DeltaType extends Enumeration {
 /** Delta value of a single node between two records. */
 sealed trait DeltaValue
 
+/** Delta value of unknown type. */
 case object UnknownDelta extends DeltaValue
+
+/** Delta value with a known type and computed difference. */
 case class TypedDelta(deltaType: DeltaType.Value, value: Double) extends DeltaValue
+
+/** Companion objects for `TypedDelta`. */
 object NumericDelta {
   def apply(value: Double): TypedDelta = TypedDelta(DeltaType.NUMERIC, value)
 }
@@ -57,8 +62,14 @@ object VectorDelta {
  */
 case class Delta(field: String, left: Any, right: Any, delta: DeltaValue)
 
-/** Field level diff tool. */
-trait Diffy[T] extends Serializable {
+/**
+ * Field level diff tool.
+ *
+ * Use `ignore` to specify set of fields to ignore during comparison.
+ * Use `unordered` to specify set of fields to be treated as unordered, i.e. sort before comparison.
+ */
+abstract class Diffy[T](val ignore: Set[String],
+                        val unordered: Set[String]) extends Serializable {
 
   def apply(x: T, y: T): Seq[Delta]
 
@@ -91,6 +102,14 @@ trait Diffy[T] extends Serializable {
 
   /** Distance function for vector values, can be overridden by user. */
   def vectorDelta(x: Seq[Double], y: Seq[Double]): Double = CosineDistance.distance(x, y)
+
+  /**
+   * Sort a repeated field.
+   *
+   * Elements are sorted by `_.toString` since most types we deal with are not comparable.
+   */
+  def sortList(l: java.util.List[AnyRef]): java.util.List[AnyRef] =
+    if (l == null) null else l.asScala.sortBy(_.toString).asJava
 
 }
 
@@ -134,9 +153,4 @@ object CosineDistance {
     }
     dp / math.sqrt(xss * yss)
   }
-}
-
-object DiffyUtils {
-  def sortList(l: java.util.List[AnyRef]): java.util.List[AnyRef] =
-    if (l == null) null else l.asScala.sortBy(_.toString).asJava
 }

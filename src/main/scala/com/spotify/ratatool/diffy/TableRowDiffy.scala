@@ -28,9 +28,9 @@ import scala.collection.JavaConverters._
 
 /** Field level diff tool for TableRow records. */
 class TableRowDiffy(tableSchema: TableSchema,
-                    val ignore: Set[String] = Set.empty,
-                    val unordered: Set[String] = Set.empty)
-  extends Diffy[TableRow] {
+                    ignore: Set[String] = Set.empty,
+                    unordered: Set[String] = Set.empty)
+  extends Diffy[TableRow](ignore, unordered) {
 
   override def apply(x: TableRow, y: TableRow): Seq[Delta] =
     diff(x, y, schema.getFields.asScala, "")
@@ -62,8 +62,8 @@ class TableRowDiffy(tableSchema: TableSchema,
           diff(a, b, f.getFields.asScala, fullName)
         }
       } else if (f.getMode == "REPEATED" && unordered.contains(fullName)) {
-        val a = DiffyUtils.sortList(x.get(name).asInstanceOf[java.util.List[AnyRef]])
-        val b = DiffyUtils.sortList(y.get(name).asInstanceOf[java.util.List[AnyRef]])
+        val a = sortList(x.get(name).asInstanceOf[java.util.List[AnyRef]])
+        val b = sortList(y.get(name).asInstanceOf[java.util.List[AnyRef]])
         if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
       } else {
         val a = x.get(name)
