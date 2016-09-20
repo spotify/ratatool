@@ -99,10 +99,10 @@ case class FieldStats(field: String,
 
 /** Big diff between two data sets given a primary key. */
 class BigDiffy[T](lhs: SCollection[T], rhs: SCollection[T],
-                  d: Diffy[T], keyFn: T => String) {
+                  diffy: Diffy[T], keyFn: T => String) {
 
   private lazy val _deltas: SCollection[(String, (Seq[Delta], DiffType.Value))] =
-    BigDiffy.computeDeltas(lhs, rhs, d, keyFn)
+    BigDiffy.computeDeltas(lhs, rhs, diffy, keyFn)
 
   private lazy val globalAndFieldStats: SCollection[(GlobalStats, Iterable[FieldStats])] =
     BigDiffy.computeGlobalAndFieldStats(_deltas)
