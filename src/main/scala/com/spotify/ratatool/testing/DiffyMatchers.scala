@@ -19,7 +19,8 @@ package com.spotify.ratatool.testing
 
 import com.google.cloud.dataflow.sdk.testing.DataflowAssert
 import com.google.cloud.dataflow.sdk.util.CoderUtils
-import com.spotify.ratatool.diffy.Diffy
+import com.google.protobuf.GeneratedMessage
+import com.spotify.ratatool.diffy.{Diffy, ProtoBufDiffy}
 import com.spotify.scio.values.SCollection
 import org.scalatest.matchers.{MatchResult, Matcher}
 
@@ -43,20 +44,22 @@ trait DiffyMatchers {
       .map(e => CoderUtils.decodeFromByteArray(coder, CoderUtils.encodeToByteArray(coder, e)))
   }
 
-  class Diffyable[T](val value: T, val diffy: Diffy[T]) extends Serializable {
+  class Diffyable[T <: GeneratedMessage : ClassTag](val value: T, val unordered: Set[String])
+    extends Serializable {
     override def equals(that: Any): Boolean = that match {
-      case d: Diffyable[T] => this.diffy(this.value, d.value).isEmpty
+      case d: Diffyable[T] =>
+        new ProtoBufDiffy[T](unordered = unordered).apply(this.value, d.value).isEmpty
       case _ => false
     }
     override def hashCode(): Int = value.hashCode()
   }
 
-  def beEquivalentInAnyOrder[T: ClassTag](diffy: Diffy[T])(value: Iterable[T])
+  def beEquivalentInAnyOrder[T <: GeneratedMessage : ClassTag]
+  (unordered: Set[String])(value: Iterable[T])
   : Matcher[SCollection[T]] = new Matcher[SCollection[T]] {
-    val d = diffy
     override def apply(left: SCollection[T]): MatchResult = {
-      val leftD = left.map(new Diffyable(_, d))
-      val rightD = value.map(new Diffyable(_, d))
+      val leftD = left.map(new Diffyable(_, unordered))
+      val rightD = value.map(new Diffyable(_, unordered))
       m(() => DataflowAssert.that(serDeCycle(leftD).internal).containsInAnyOrder(rightD.asJava))
     }
   }
