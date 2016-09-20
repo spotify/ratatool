@@ -31,6 +31,7 @@ import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.fs.{FileSystem, Path}
 
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -278,15 +279,62 @@ object BigDiffy {
       .toSeq
   }
 
+  private def usage(): Unit = {
+    // scalastyle:off regex
+    println(
+      """BigDiffy - pair-wise field-level statistical diff
+        |Usage: BigDiffy [dataflow_options] [options]
+        |
+        |  --mode=[avro|bigquery]
+        |  --key=<key>            '.' separated key field
+        |  --lhs=<path>           LHS File path or BigQuery table
+        |  --rhs=<path>           RHS File path or BigQuery table
+        |  --output=<output>      File path prefix for output
+        |  --ignore=<keys>        ',' separated field list to ignore
+        |  --unordered=<keys>     ',' separated field list to treat as unordered
+      """.stripMargin)
+    // scalastyle:on regex
+    sys.exit(1)
+  }
+
+  private def avroKeyFn(key: String): GenericRecord => String = {
+    @tailrec
+    def get(xs: Array[String], i: Int, r: GenericRecord): String =
+      if (i == xs.length - 1) {
+        r.get(xs(i)).toString
+      } else {
+        get(xs, i + 1, r.get(xs(i)).asInstanceOf[GenericRecord])
+      }
+    val xs = key.split('.')
+    (r: GenericRecord) => get(xs, 0, r)
+  }
+
+  private def tableRowKeyFn(key: String): TableRow => String = {
+    @tailrec
+    def get(xs: Array[String], i: Int, r: java.util.Map[String, AnyRef]): String =
+      if (i == xs.length - 1) {
+        r.get(xs(i)).toString
+      } else {
+        get(xs, i + 1, r.get(xs(i)).asInstanceOf[java.util.Map[String, AnyRef]])
+      }
+    val xs = key.split('.')
+    (r: TableRow) => get(xs, 0, r)
+  }
+
   /** Scio pipeline for BigDiffy. */
   def main(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
-    val mode = args("mode")
-    val lhs = args("left")
-    val rhs = args("right")
-    val key = args("key")
-    val output = args("output")
+    val (mode, key, lhs, rhs, output, ignore, unordered) = {
+      try {
+        (args("mode"), args("key"), args("lhs"), args("rhs"), args("output"),
+          args.list("ignore").toSet, args.list("unordered").toSet)
+      } catch {
+        case e: Throwable =>
+          usage()
+          throw e
+      }
+    }
 
     val result = mode match {
       case "avro" =>
@@ -294,16 +342,16 @@ object BigDiffy {
         val fs = FileSystem.get(new URI(rhs), GcsConfiguration.get())
         val path = fs.globStatus(new Path(rhs)).head.getPath
         val schema = new AvroSampler(path).sample(1, true).head.getSchema
-        val diffy = new AvroDiffy[GenericRecord]()
-        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, _.get(key).toString, diffy, schema)
+        val diffy = new AvroDiffy[GenericRecord](ignore, unordered)
+        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(key), diffy, schema)
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQueryClient.defaultInstance()
         val lSchema = bq.getTableSchema(lhs)
         val rSchema = bq.getTableSchema(rhs)
         val schema = mergeTableSchema(lSchema, rSchema)
-        val diffy = new TableRowDiffy(schema)
-        BigDiffy.diffTableRow(sc, lhs, rhs, _.get(key).toString, diffy)
+        val diffy = new TableRowDiffy(schema, ignore, unordered)
+        BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(key), diffy)
       case m =>
         throw new IllegalArgumentException(s"mode $m not supported")
     }
