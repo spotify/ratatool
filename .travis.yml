@@ -10,11 +10,7 @@ cache:
     - $HOME/.ivy2/cache
 
 script:
-  - if [[ "${TRAVIS_SCALA_VERSION%.*}" == "2.10" ]]; then
-      sbt ++$TRAVIS_SCALA_VERSION clean test;
-    else
-      sbt ++$TRAVIS_SCALA_VERSION clean scalastyle coverage test coverageReport coverageAggregate;
-    fi
+  - sbt ++$TRAVIS_SCALA_VERSION clean scalastyle coverage test coverageReport coverageAggregate;
 
   # Tricks to avoid unnecessary cache updates
   - find $HOME/.sbt -name "*.lock" | xargs rm
