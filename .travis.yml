@@ -10,7 +10,7 @@ cache:
     - $HOME/.ivy2/cache
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION clean scalastyle coverage test coverageReport coverageAggregate;
+  - sbt ++$TRAVIS_SCALA_VERSION clean scalastyle coverage test coverageReport coverageAggregate
 
   # Tricks to avoid unnecessary cache updates
   - find $HOME/.sbt -name "*.lock" | xargs rm
