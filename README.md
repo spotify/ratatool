@@ -20,7 +20,7 @@ A tool for random data sampling and generation
 
 If you use [sbt](http://www.scala-sbt.org/) add the following dependency to your build file:
 ```scala
-libraryDependencies += "com.spotify" %% "ratatool" % "0.1.4" % "test"
+libraryDependencies += "com.spotify" %% "ratatool" % "0.1.8" % "test"
 ```
 
 Or install via our [Homebrew tap](https://github.com/spotify/homebrew-public) if you're on a Mac:
