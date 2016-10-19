@@ -28,7 +28,6 @@ javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked")
 
 val algebirdVersion = "0.12.1"
 val avroVersion = "1.7.7"
-val bijectionVersion = "0.9.0"
 val gcsVersion = "1.5.2-hadoop2"
 val hadoopVersion = "2.7.2"
 val jodaTimeVersion = "2.9.4"
@@ -46,7 +45,6 @@ libraryDependencies ++= Seq(
   "com.spotify" %% "scio-core" % scioVersion,
   "com.spotify" %% "scio-test" % scioVersion % "test",
   "com.twitter" %% "algebird-core" % algebirdVersion,
-  "com.twitter" %% "bijection-avro" % bijectionVersion,
   "joda-time" % "joda-time" % jodaTimeVersion,
   "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
   "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
