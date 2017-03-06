@@ -88,6 +88,9 @@ pomExtra                      := {
   </developers>
 }
 
+// Pack
+packAutoSettings
+
 // Assembly settings
 mainClass in assembly := Some("com.spotify.ratatool.tool.Tool")
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
