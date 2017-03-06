@@ -93,4 +93,11 @@ object AvroIO {
     fileWriter.close()
   }
 
+  def getAvroSchemaFromFile(path: String): Schema = {
+    require(FileStorage(path).exists, s"File `$path` does not exist!")
+    val reader = new GenericDatumReader[GenericRecord]()
+    val dfr = new DataFileReader[GenericRecord](FileStorage(path).getAvroSeekableInput, reader)
+    dfr.getSchema
+  }
+
 }
