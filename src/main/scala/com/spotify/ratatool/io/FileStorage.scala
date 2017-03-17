@@ -165,7 +165,7 @@ private class LocalStorage(protected val path: String)  extends FileStorage {
       (new File("."), new WildcardFileFilter(path))
     }
 
-    if (dir.exists()) {
+    if (dir.isDirectory) {
       FileUtils
         .listFiles(dir, filter, null)
         .asScala
