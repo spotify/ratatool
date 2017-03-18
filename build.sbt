@@ -54,6 +54,9 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-simple" % slf4jVersion
 )
 
+// In case of scalacheck failures print more info
+testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
+
 Seq(sbtavro.SbtAvro.avroSettings : _*)
 PB.protobufSettings
 version in PB.protobufConfig := protoBufVersion
@@ -102,3 +105,4 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
 }
 }
 assemblyJarName in assembly := s"ratatool-${version.value}.jar"
+
