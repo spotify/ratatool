@@ -17,9 +17,11 @@
 
 package com.spotify.ratatool.generators
 
+import java.nio.ByteBuffer
 import java.util.Random
 
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
+import com.google.common.io.BaseEncoding
 import org.joda.time.Instant
 import org.joda.time.format.DateTimeFormat
 
@@ -32,7 +34,13 @@ object TableRowGenerator {
 
   private val random = new Random
 
-  private val formatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS").withZoneUTC()
+  private val timeStampFormatter =
+    DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS").withZoneUTC()
+  private val dateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd").withZoneUTC()
+  private val dateTimeFormatter =
+    DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").withZoneUTC()
+  private val timeFormatter =
+    DateTimeFormat.forPattern("HH:mm:ss.SSSSSS").withZoneUTC()
 
   /** Generate a BigQuery [[TableRow]] record. */
   def tableRowOf(schema: TableSchema): TableRow = randomTableRow(schema, random)
@@ -45,15 +53,26 @@ object TableRowGenerator {
     r
   }
 
+  private def genInstant: Instant = {
+    new Instant(random.nextInt(Int.MaxValue).toLong * 1000 + random.nextInt(1000))
+  }
+
+  // scalastyle:off cyclomatic.complexity
   private def generate(schema: TableFieldSchema, random: Random, d: Int): Any = {
     def genV() = schema.getType match {
       case "INTEGER" => random.nextLong()
       case "FLOAT" => random.nextFloat()
       case "BOOLEAN" => random.nextBoolean()
       case "STRING" => random.nextString(40)
-      case "TIMESTAMP" =>
-        val i = new Instant(random.nextInt(Int.MaxValue).toLong * 1000 + random.nextInt(1000))
-        formatter.print(i) + " UTC"
+      case "TIMESTAMP" => timeStampFormatter.print(genInstant) + " UTC"
+      case "DATE" => dateFormatter.print(genInstant)
+      case "TIME" => timeFormatter.print(genInstant)
+      case "DATETIME" => dateTimeFormatter.print(genInstant)
+      case "BYTES" => {
+        val bytes = ByteBuffer.allocate(random.nextInt(40)).array()
+        random.nextBytes(bytes)
+        BaseEncoding.base64().encode(bytes)
+      }
       case "RECORD" =>
         val r = new TableRow()
         schema.getFields.asScala.foreach { f =>
@@ -74,5 +93,6 @@ object TableRowGenerator {
       case m => throw new RuntimeException(s"Unknown mode: $m")
     }
   }
+  // scalastyle:on cyclomatic.complexity
 
 }

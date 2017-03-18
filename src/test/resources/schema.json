@@ -5,21 +5,33 @@
             {"mode": "NULLABLE", "name": "float_field", "type": "FLOAT"},
             {"mode": "NULLABLE", "name": "boolean_field", "type": "BOOLEAN"},
             {"mode": "NULLABLE", "name": "string_field", "type": "STRING"},
-            {"mode": "NULLABLE", "name": "timestamp_field", "type": "TIMESTAMP"}
+            {"mode": "NULLABLE", "name": "timestamp_field", "type": "TIMESTAMP"},
+            {"mode": "NULLABLE", "name": "date_field", "type": "DATE"},
+            {"mode": "NULLABLE", "name": "time_field", "type": "TIME"},
+            {"mode": "NULLABLE", "name": "datetime_field", "type": "DATETIME"},
+            {"mode": "NULLABLE", "name": "bytes_field", "type": "BYTES"}
         ]},
         {"mode": "REQUIRED", "name": "required_fields", "type": "RECORD", "fields": [
             {"mode": "REQUIRED", "name": "int_field", "type": "INTEGER"},
             {"mode": "REQUIRED", "name": "float_field", "type": "FLOAT"},
             {"mode": "REQUIRED", "name": "boolean_field", "type": "BOOLEAN"},
             {"mode": "REQUIRED", "name": "string_field", "type": "STRING"},
-            {"mode": "REQUIRED", "name": "timestamp_field", "type": "TIMESTAMP"}
+            {"mode": "REQUIRED", "name": "timestamp_field", "type": "TIMESTAMP"},
+            {"mode": "REQUIRED", "name": "date_field", "type": "DATE"},
+            {"mode": "REQUIRED", "name": "time_field", "type": "TIME"},
+            {"mode": "REQUIRED", "name": "datetime_field", "type": "DATETIME"},
+            {"mode": "REQUIRED", "name": "bytes_field", "type": "BYTES"}
         ]},
         {"mode": "REQUIRED", "name": "repeated_fields", "type": "RECORD", "fields": [
             {"mode": "REPEATED", "name": "int_field", "type": "INTEGER"},
             {"mode": "REPEATED", "name": "float_field", "type": "FLOAT"},
             {"mode": "REPEATED", "name": "boolean_field", "type": "BOOLEAN"},
             {"mode": "REPEATED", "name": "string_field", "type": "STRING"},
-            {"mode": "REPEATED", "name": "timestamp_field", "type": "TIMESTAMP"}
+            {"mode": "REPEATED", "name": "timestamp_field", "type": "TIMESTAMP"},
+            {"mode": "REPEATED", "name": "date_field", "type": "DATE"},
+            {"mode": "REPEATED", "name": "time_field", "type": "TIME"},
+            {"mode": "REPEATED", "name": "datetime_field", "type": "DATETIME"},
+            {"mode": "REPEATED", "name": "bytes_field", "type": "BYTES"}
         ]}
     ]
 }
