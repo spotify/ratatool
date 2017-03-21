@@ -66,7 +66,7 @@ object BigSampler {
                              sampleSize: Int,
                              module: Int): Option[T] = {
     //TODO: for now leave it up to jit/compiler to optimize
-    if (math.abs(hash.padToLong) % module < sampleSize) {
+    if (math.abs(hash.asLong) % module < sampleSize) {
       Some(e)
     } else {
       None
