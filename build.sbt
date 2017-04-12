@@ -35,7 +35,7 @@ val parquetVersion = "1.8.1"
 val protoBufVersion = "2.6.1"
 val scalaCheckVersion = "1.13.3"
 val scalaTestVersion = "3.0.0"
-val scioVersion = "0.2.3"
+val scioVersion = "0.2.13"
 val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.21"
 
