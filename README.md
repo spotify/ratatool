@@ -22,7 +22,7 @@ A tool for random data sampling and generation
 
 If you use [sbt](http://www.scala-sbt.org/) add the following dependency to your build file:
 ```scala
-libraryDependencies += "com.spotify" %% "ratatool" % "0.1.8" % "test"
+libraryDependencies += "com.spotify" %% "ratatool" % "0.1.9" % "test"
 ```
 
 Or install via our [Homebrew tap](https://github.com/spotify/homebrew-public) if you're on a Mac:
@@ -35,8 +35,8 @@ brew install ratatool
 Or download the [release](https://github.com/spotify/ratatool/releases) jar and run it.
 
 ```bash
-wget https://github.com/spotify/ratatool/releases/download/v0.1.4/ratatool-0.1.4.jar
-java -jar ratatool-0.1.4.jar
+wget https://github.com/spotify/ratatool/releases/download/v0.1.9/ratatool-0.1.9.jar
+java -jar ratatool-0.1.9.jar
 ```
 
 The command line tool can be used to sample from local file system or Google Cloud Storage directly if [Google Cloud SDK](https://cloud.google.com/sdk/) is installed and authenticated.
@@ -59,6 +59,6 @@ java -cp ratatool-0.1.4.jar:/path/to/hadoop/conf com.spotify.ratatool.tool.Tool 
 
 # License
 
-Copyright 2016 Spotify AB.
+Copyright 2016-2017 Spotify AB.
 
 Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
