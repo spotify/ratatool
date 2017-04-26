@@ -18,26 +18,25 @@
 import sbtprotobuf.{ProtobufPlugin => PB}
 
 val algebirdVersion = "0.12.1"
-val avroVersion = "1.7.7"
+val avroVersion = "1.8.1"
 val gcsVersion = "1.5.2-hadoop2"
-val hadoopVersion = "2.7.2"
+val hadoopVersion = "2.7.3"
 val jodaTimeVersion = "2.9.9"
 val parquetVersion = "1.8.1"
 val protoBufVersion = "2.6.1"
 val scalaCheckVersion = "1.13.3"
 val scalaTestVersion = "3.0.0"
-val scioVersion = "0.2.13"
+val scioVersion = "0.3.0"
 val scoptVersion = "3.5.0"
-val slf4jVersion = "1.7.21"
+val slf4jVersion = "1.7.25"
 
 val commonSettings = Seq(
   organization := "com.spotify",
   name := "ratatool",
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.11.11",
-  crossScalaVersions := Seq("2.10.6", "2.11.8"),
-  scalacOptions ++= Seq("-target:jvm-1.7", "-deprecation", "-feature", "-unchecked"),
-  javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked")
+  scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
+  javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked")
 )
 
 val releaseSettings = Seq(
@@ -91,6 +90,7 @@ lazy val ratatool = project
       "com.spotify" %% "scio-test" % scioVersion % "test",
       "com.twitter" %% "algebird-core" % algebirdVersion,
       "joda-time" % "joda-time" % jodaTimeVersion,
+      "org.apache.avro" % "avro" % avroVersion % "compile" classifier "tests",
       "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
       "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
       "org.apache.parquet" % "parquet-avro" % parquetVersion,
@@ -111,3 +111,4 @@ lazy val ratatool = project
   )
   .settings(packAutoSettings)
 
+val root = project.in(file(".")).aggregate(ratatool)

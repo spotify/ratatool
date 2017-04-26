@@ -21,14 +21,14 @@ import java.io._
 import java.net.URI
 import java.nio.ByteBuffer
 import java.nio.channels.Channels
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 import java.util.Collections
 import java.util.regex.Pattern
 
-import com.google.cloud.dataflow.sdk.options.PipelineOptionsFactory
-import com.google.cloud.dataflow.sdk.util.GcsUtil.GcsUtilFactory
-import com.google.cloud.dataflow.sdk.util.gcsfs.GcsPath
 import org.apache.avro.file.{SeekableFileInput, SeekableInput}
+import org.apache.beam.sdk.options.PipelineOptionsFactory
+import org.apache.beam.sdk.util.GcsUtil.GcsUtilFactory
+import org.apache.beam.sdk.util.gcsfs.GcsPath
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.WildcardFileFilter
 

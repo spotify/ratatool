@@ -17,11 +17,11 @@
 
 package com.spotify.ratatool.diffy
 
-import com.google.cloud.dataflow.sdk.coders.AvroCoder
-import com.google.cloud.dataflow.sdk.util.CoderUtils
 import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.scalacheck.AvroGen
 import com.spotify.scio.testing.PipelineSpec
+import org.apache.beam.sdk.coders.AvroCoder
+import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Gen
 
 class BigDiffyTest extends PipelineSpec {
