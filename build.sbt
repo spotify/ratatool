@@ -90,7 +90,8 @@ lazy val ratatool = project
       "com.spotify" %% "scio-test" % scioVersion % "test",
       "com.twitter" %% "algebird-core" % algebirdVersion,
       "joda-time" % "joda-time" % jodaTimeVersion,
-      "org.apache.avro" % "avro" % avroVersion % "compile" classifier "tests",
+      "org.apache.avro" % "avro" % avroVersion,
+      "org.apache.avro" % "avro" % avroVersion classifier("tests"),
       "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
       "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
       "org.apache.parquet" % "parquet-avro" % parquetVersion,
@@ -111,4 +112,16 @@ lazy val ratatool = project
   )
   .settings(packAutoSettings)
 
-val root = project.in(file(".")).aggregate(ratatool)
+lazy val ratatoolScalacheck = project.in(file("ratatool-scalacheck"))
+  .settings(commonSettings)
+  .settings(releaseSettings)
+  .settings(
+    name := "ratatool-scalacheck",
+    crossScalaVersions := Seq("2.11.11", "2.12.2"),
+    libraryDependencies ++= Seq(
+      "org.apache.avro" % "avro" % avroVersion,
+      "org.scalacheck" %% "scalacheck" % scalaCheckVersion
+    )
+  ).dependsOn(ratatool % "test")
+
+val root = project.in(file(".")).aggregate(ratatool, ratatoolScalacheck)
