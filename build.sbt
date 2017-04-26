@@ -17,15 +17,6 @@
 
 import sbtprotobuf.{ProtobufPlugin => PB}
 
-organization := "com.spotify"
-name := "ratatool"
-description := "A tool for random data sampling and generation"
-
-scalaVersion := "2.11.8"
-crossScalaVersions := Seq("2.10.6", "2.11.8")
-scalacOptions ++= Seq("-target:jvm-1.7", "-deprecation", "-feature", "-unchecked")
-javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked")
-
 val algebirdVersion = "0.12.1"
 val avroVersion = "1.7.7"
 val gcsVersion = "1.5.2-hadoop2"
@@ -39,70 +30,84 @@ val scioVersion = "0.2.13"
 val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.21"
 
-libraryDependencies ++= Seq(
-  "com.github.scopt" %% "scopt" % scoptVersion,
-  "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
-  "com.spotify" %% "scio-core" % scioVersion,
-  "com.spotify" %% "scio-test" % scioVersion % "test",
-  "com.twitter" %% "algebird-core" % algebirdVersion,
-  "joda-time" % "joda-time" % jodaTimeVersion,
-  "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
-  "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
-  "org.apache.parquet" % "parquet-avro" % parquetVersion,
-  "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
-  "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-  "org.slf4j" % "slf4j-simple" % slf4jVersion
+val commonSettings = Seq(
+  organization := "com.spotify",
+  name := "ratatool",
+  description := "A tool for random data sampling and generation",
+  scalaVersion := "2.11.11",
+  crossScalaVersions := Seq("2.10.6", "2.11.8"),
+  scalacOptions ++= Seq("-target:jvm-1.7", "-deprecation", "-feature", "-unchecked"),
+  javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked")
 )
 
-// In case of scalacheck failures print more info
-testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
-
-Seq(sbtavro.SbtAvro.avroSettings : _*)
-PB.protobufSettings
-version in PB.protobufConfig := protoBufVersion
-PB.runProtoc in PB.protobufConfig := (args =>
-  com.github.os72.protocjar.Protoc.runProtoc("-v261" +: args.toArray)
+val releaseSettings = Seq(
+  releaseCrossBuild             := true,
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  publishMavenStyle             := true,
+  publishArtifact in Test       := false,
+  sonatypeProfileName           := "com.spotify",
+  pomExtra                      := {
+    <url>https://github.com/spotify/ratatool</url>
+    <licenses>
+      <license>
+        <name>Apache 2</name>
+        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      </license>
+    </licenses>
+    <scm>
+      <url>git@github.com/spotify/ratatool.git</url>
+      <connection>scm:git:git@github.com:spotify/ratatool.git</connection>
+    </scm>
+    <developers>
+      <developer>
+        <id>sinisa_lyh</id>
+        <name>Neville Li</name>
+        <url>https://twitter.com/sinisa_lyh</url>
+      </developer>
+    </developers>
+  }
 )
 
-// Release settings
-releaseCrossBuild             := true
-releasePublishArtifactsAction := PgpKeys.publishSigned.value
-publishMavenStyle             := true
-publishArtifact in Test       := false
-sonatypeProfileName           := "com.spotify"
-pomExtra                      := {
-  <url>https://github.com/spotify/ratatool</url>
-  <licenses>
-    <license>
-      <name>Apache 2</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-    </license>
-  </licenses>
-  <scm>
-    <url>git@github.com/spotify/ratatool.git</url>
-    <connection>scm:git:git@github.com:spotify/ratatool.git</connection>
-  </scm>
-  <developers>
-    <developer>
-      <id>sinisa_lyh</id>
-      <name>Neville Li</name>
-      <url>https://twitter.com/sinisa_lyh</url>
-    </developer>
-  </developers>
-}
+val assemblySettings = Seq(
+  mainClass in assembly := Some("com.spotify.ratatool.tool.Tool"),
+  assemblyMergeStrategy in assembly ~= { old => {
+    case s if s.endsWith(".class") => MergeStrategy.last
+    case s if s.endsWith(".dtd") => MergeStrategy.rename
+    case s if s.endsWith(".properties") => MergeStrategy.filterDistinctLines
+    case s if s.endsWith(".xsd") => MergeStrategy.rename
+    case s => old(s)
+  }},
+  assemblyJarName in assembly := s"ratatool-${version.value}.jar"
+)
 
-// Pack
-packAutoSettings
-
-// Assembly settings
-mainClass in assembly := Some("com.spotify.ratatool.tool.Tool")
-mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
-  case s if s.endsWith(".class") => MergeStrategy.last
-  case s if s.endsWith(".dtd") => MergeStrategy.rename
-  case s if s.endsWith(".properties") => MergeStrategy.filterDistinctLines
-  case s if s.endsWith(".xsd") => MergeStrategy.rename
-  case s => old(s)
-}
-}
-assemblyJarName in assembly := s"ratatool-${version.value}.jar"
+lazy val ratatool = project
+  .settings(commonSettings)
+  .settings(releaseSettings)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.github.scopt" %% "scopt" % scoptVersion,
+      "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
+      "com.spotify" %% "scio-core" % scioVersion,
+      "com.spotify" %% "scio-test" % scioVersion % "test",
+      "com.twitter" %% "algebird-core" % algebirdVersion,
+      "joda-time" % "joda-time" % jodaTimeVersion,
+      "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
+      "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
+      "org.apache.parquet" % "parquet-avro" % parquetVersion,
+      "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+      "org.slf4j" % "slf4j-simple" % slf4jVersion
+    ),
+    // In case of scalacheck failures print more info
+    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
+  )
+  .settings(sbtavro.SbtAvro.avroSettings)
+  .settings(PB.protobufSettings)
+  .settings(
+    version in PB.protobufConfig := protoBufVersion,
+    PB.runProtoc in PB.protobufConfig := (args =>
+      com.github.os72.protocjar.Protoc.runProtoc("-v261" +: args.toArray)
+    )
+  )
+  .settings(packAutoSettings)
 
