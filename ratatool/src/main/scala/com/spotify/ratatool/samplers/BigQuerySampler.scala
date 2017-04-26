@@ -21,8 +21,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.util.Utils
 import com.google.api.services.bigquery.model.{TableReference, TableRow, TableSchema}
 import com.google.api.services.bigquery.{Bigquery, BigqueryScopes}
-import com.google.cloud.dataflow.sdk.io.BigQueryIO
-import com.google.cloud.dataflow.sdk.util.BigQueryTableRowIterator
+import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryIO, BigQueryTableRowIterator}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._

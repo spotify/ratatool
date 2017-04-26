@@ -21,8 +21,9 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.util.Utils
 import com.google.api.services.bigquery.model.{TableReference, TableRow, TableSchema}
 import com.google.api.services.bigquery.{Bigquery, BigqueryScopes}
-import com.google.cloud.dataflow.sdk.io.BigQueryIO.Write.{CreateDisposition, WriteDisposition}
-import com.google.cloud.dataflow.sdk.util.{BigQueryTableInserter, BigQueryTableRowIterator}
+import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.{CreateDisposition, WriteDisposition}
+import org.apache.beam.sdk.io.gcp.bigquery.BigQueryTableRowIterator
+import org.apache.beam.sdk.util.BigQueryTableInserter
 
 import scala.collection.JavaConverters._
 
@@ -31,11 +32,11 @@ object BigQueryIO {
 
   /** Parse a table specification string. */
   def parseTableSpec(tableSpec: String): TableReference =
-    com.google.cloud.dataflow.sdk.io.BigQueryIO.parseTableSpec(tableSpec)
+    org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.parseTableSpec(tableSpec)
 
   /** Convert a table reference to string. */
   def toTableSpec(tableRef: TableReference): String =
-    com.google.cloud.dataflow.sdk.io.BigQueryIO.toTableSpec(tableRef)
+    org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.toTableSpec(tableRef)
 
   /** BigQuery Java client. */
   val bigquery: Bigquery = {

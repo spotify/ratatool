@@ -17,12 +17,12 @@
 
 package com.spotify.ratatool.generators
 
-import com.google.cloud.dataflow.sdk.coders.AvroCoder
-import com.google.cloud.dataflow.sdk.util.CoderUtils
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecord
 import org.apache.avro.{RandomData, Schema}
+import org.apache.beam.sdk.coders.AvroCoder
+import org.apache.beam.sdk.util.CoderUtils
 
 import scala.reflect.ClassTag
 

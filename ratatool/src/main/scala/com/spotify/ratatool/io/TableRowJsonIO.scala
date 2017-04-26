@@ -20,10 +20,10 @@ package com.spotify.ratatool.io
 import java.io.{File, InputStream, OutputStream}
 
 import com.google.api.services.bigquery.model.TableRow
-import com.google.cloud.dataflow.sdk.coders.TableRowJsonCoder
-import com.google.cloud.dataflow.sdk.util.CoderUtils
 import com.google.common.base.Charsets
 import com.google.common.io.Files
+import org.apache.beam.sdk.coders.TableRowJsonCoder
+import org.apache.beam.sdk.util.CoderUtils
 
 import scala.collection.JavaConverters._
 import scala.io.Source

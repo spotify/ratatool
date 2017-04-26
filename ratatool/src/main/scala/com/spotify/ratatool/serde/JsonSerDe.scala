@@ -17,7 +17,7 @@
 
 package com.spotify.ratatool.serde
 
-import com.google.cloud.dataflow.sdk.util.Transport
+import org.apache.beam.sdk.util.Transport
 
 import scala.util.{Failure, Success, Try}
 

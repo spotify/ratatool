@@ -24,10 +24,6 @@ import java.util.{List => JList}
 import com.google.api.client.googleapis.services.AbstractGoogleClientRequest
 import com.google.api.client.util.{BackOff, BackOffUtils, Sleeper}
 import com.google.api.services.bigquery.model.{Table, TableFieldSchema, TableReference, TableSchema}
-import com.google.cloud.dataflow.sdk.io.BigQueryIO
-import com.google.cloud.dataflow.sdk.options.BigQueryOptions
-import com.google.cloud.dataflow.sdk.transforms.SerializableFunction
-import com.google.cloud.dataflow.sdk.util.{FluentBackoff, Transport}
 import com.google.cloud.hadoop.util.ApiErrorExtractor
 import com.google.common.hash.{HashCode, HashFunction, Hasher, Hashing}
 import com.google.common.io.BaseEncoding
@@ -40,6 +36,11 @@ import com.spotify.scio.{ContextAndArgs, ScioContext, _}
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
 import org.apache.avro.generic.GenericRecord
+import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO
+import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO
+import org.apache.beam.sdk.options.BigQueryOptions
+import org.apache.beam.sdk.transforms.SerializableFunction
+import org.apache.beam.sdk.util.{FluentBackoff, Transport}
 import org.joda.time.Duration
 import org.slf4j.LoggerFactory
 
@@ -408,20 +409,21 @@ private[samplers] object BigSamplerBigQuery {
                           fields: List[String],
                           samplePct: Float,
                           seed: Option[Int]): Future[Tap[TableRow]] = {
-    val patchedBigQueryService = new PatchedBigQueryService(sc.optionsAs[BigQueryOptions])
+    import BigQueryIO.Write.WriteDisposition.WRITE_EMPTY
+    import BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED
 
+    val patchedBigQueryService = new PatchedBigQueryService(sc.optionsAs[BigQueryOptions])
     if (patchedBigQueryService.getTable(outputTbl) != null) {
       log.info(s"Reuse previous sample at $outputTbl")
       Taps().bigQueryTable(outputTbl)
     } else {
       log.info(s"Will sample from BigQuery table: $inputTbl, output will be $outputTbl")
-
       val schema = patchedBigQueryService.getTable(inputTbl).getSchema
 
       if (fields.isEmpty) {
         val r = sc.bigQueryTable(inputTbl)
           .sample(withReplacement = false, samplePct)
-          .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED)
+          .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "")
         sc.close()
         r
       } else {
@@ -442,7 +444,7 @@ private[samplers] object BigSamplerBigQuery {
             val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(e, f, schemaFields, h)).hash()
             BigSampler.diceElement(e, hash, s.toInt, n)
           }
-          .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED)
+          .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "")
         sc.close()
         r
       }

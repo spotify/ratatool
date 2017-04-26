@@ -18,9 +18,9 @@
 package com.spotify.ratatool.scalacheck
 
 import com.google.api.services.bigquery.model.TableRow
-import com.google.cloud.dataflow.sdk.coders.TableRowJsonCoder
-import com.google.cloud.dataflow.sdk.util.CoderUtils
 import com.spotify.ratatool.Schemas
+import org.apache.beam.sdk.coders.TableRowJsonCoder
+import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Prop.{BooleanOperators, all, forAll}
 import org.scalacheck._
 

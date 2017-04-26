@@ -17,11 +17,11 @@
 
 package com.spotify.ratatool.diffy
 
-import com.google.cloud.dataflow.sdk.coders.AvroCoder
-import com.google.cloud.dataflow.sdk.util.CoderUtils
 import com.spotify.ratatool.avro.specific.{NullableNestedRecord, TestRecord}
 import com.spotify.ratatool.generators.AvroGenerator
 import org.apache.avro.generic.GenericRecord
+import org.apache.beam.sdk.coders.AvroCoder
+import org.apache.beam.sdk.util.CoderUtils
 import org.scalatest.{FlatSpec, Matchers}
 
 import scala.collection.JavaConverters._

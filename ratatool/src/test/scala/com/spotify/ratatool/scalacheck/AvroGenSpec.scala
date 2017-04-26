@@ -17,9 +17,9 @@
 
 package com.spotify.ratatool.scalacheck
 
-import com.google.cloud.dataflow.sdk.coders.AvroCoder
-import com.google.cloud.dataflow.sdk.util.CoderUtils
 import com.spotify.ratatool.avro.specific.TestRecord
+import org.apache.beam.sdk.coders.AvroCoder
+import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Prop.{BooleanOperators, all, forAll}
 import org.scalacheck._
 
