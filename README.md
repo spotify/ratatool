@@ -10,13 +10,13 @@ A tool for random data sampling and generation
 
 # Features
 
-- [Generators](./src/main/scala/com/spotify/ratatool/generators) - random data generators for [Avro](https://avro.apache.org/), [Protocol Buffers](https://developers.google.com/protocol-buffers/) and [BigQuery](https://cloud.google.com/bigquery/) [TableRow](https://developers.google.com/resources/api-libraries/documentation/bigquery/v2/java/latest/com/google/api/services/bigquery/model/TableRow.html)
-- [IO](./src/main/scala/com/spotify/ratatool/io) - utilities for reading and writing records in Avro, [Parquet](http://parquet.apache.org/) (via Avro GenericRecord), BigQuery and TableRow JSON files. Local file system, HDFS and [Google Cloud Storage](https://cloud.google.com/storage/) are supported.
-- [Samplers](./src/main/scala/com/spotify/ratatool/samplers) - random data samplers for Avro, BigQuery and Parquet. True random sampling is supported for Avro only while head mode (sampling from the start) is supported for all sources.
-- [ScalaCheck](./src/main/scala/com/spotify/ratatool/scalacheck) - [ScalaCheck](http://scalacheck.org/) generators (`Gen[T]`) for property-based testing.
-- [Diffy](./src/main/scala/com/spotify/ratatool/diffy) - field-level record diff tool for Avro, Protobuf and BigQuery TableRow.
-- [BigDiffy](./src/main/scala/com/spotify/ratatool/diffy/BigDiffy.scala) - [Scio](https://github.com/spotify/scio) library for pairwise field-level statistical diff of data sets. See [slides](http://www.lyh.me/slides/bigdiffy.html) for more.
-- [Command line tool](./src/main/scala/com/spotify/ratatool/tool) - command line tool for sampling from various sources.
+- [Generators](https://github.com/spotify/ratatool/tree/master/ratatool/src/main/scala/com/spotify/ratatool/generators) - random data generators for [Avro](https://avro.apache.org/), [Protocol Buffers](https://developers.google.com/protocol-buffers/) and [BigQuery](https://cloud.google.com/bigquery/) [TableRow](https://developers.google.com/resources/api-libraries/documentation/bigquery/v2/java/latest/com/google/api/services/bigquery/model/TableRow.html)
+- [IO](https://github.com/spotify/ratatool/tree/master/ratatool/src/main/scala/com/spotify/ratatool/io) - utilities for reading and writing records in Avro, [Parquet](http://parquet.apache.org/) (via Avro GenericRecord), BigQuery and TableRow JSON files. Local file system, HDFS and [Google Cloud Storage](https://cloud.google.com/storage/) are supported.
+- [Samplers](https://github.com/spotify/ratatool/tree/master/ratatool/src/main/scala/com/spotify/ratatool/samplers) - random data samplers for Avro, BigQuery and Parquet. True random sampling is supported for Avro only while head mode (sampling from the start) is supported for all sources.
+- [ScalaCheck](https://github.com/spotify/ratatool/tree/master/ratatool/src/main/scala/com/spotify/ratatool/scalacheck) - [ScalaCheck](http://scalacheck.org/) generators (`Gen[T]`) for property-based testing.
+- [Diffy](https://github.com/spotify/ratatool/tree/master/ratatool/src/main/scala/com/spotify/ratatool/diffy) - field-level record diff tool for Avro, Protobuf and BigQuery TableRow.
+- [BigDiffy](https://github.com/spotify/ratatool/blob/master/ratatool/src/main/scala/com/spotify/ratatool/diffy/BigDiffy.scala) - [Scio](https://github.com/spotify/scio) library for pairwise field-level statistical diff of data sets. See [slides](http://www.lyh.me/slides/bigdiffy.html) for more.
+- [Command line tool](https://github.com/spotify/ratatool/tree/master/ratatool/src/main/scala/com/spotify/ratatool/tool) - command line tool for sampling from various sources.
 
 # Usage
 
