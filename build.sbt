@@ -15,9 +15,7 @@
  * under the License.
  */
 
-import sbtprotobuf.{ProtobufPlugin => PB}
-
-val algebirdVersion = "0.12.1"
+val algebirdVersion = "0.13.0"
 val avroVersion = "1.8.1"
 val gcsVersion = "1.5.2-hadoop2"
 val hadoopVersion = "2.7.3"
@@ -35,6 +33,7 @@ val commonSettings = Seq(
   name := "ratatool",
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.11.11",
+  crossScalaVersions := Seq("2.11.11"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked")
 )
@@ -102,11 +101,10 @@ lazy val ratatool = project
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
-  .settings(sbtavro.SbtAvro.avroSettings)
-  .settings(PB.protobufSettings)
+  .enablePlugins(ProtobufPlugin)
   .settings(
-    version in PB.protobufConfig := protoBufVersion,
-    PB.runProtoc in PB.protobufConfig := (args =>
+    version in ProtobufConfig := protoBufVersion,
+    protobufRunProtoc in ProtobufConfig := (args =>
       com.github.os72.protocjar.Protoc.runProtoc("-v261" +: args.toArray)
     )
   )
@@ -117,7 +115,6 @@ lazy val ratatoolScalacheck = project.in(file("ratatool-scalacheck"))
   .settings(releaseSettings)
   .settings(
     name := "ratatool-scalacheck",
-    crossScalaVersions := Seq("2.11.11", "2.12.2"),
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion
