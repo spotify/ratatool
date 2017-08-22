@@ -11,3 +11,9 @@ addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "1.1")
 libraryDependencies ++= Seq(
   "com.github.os72" % "protoc-jar" % "3.3.0.1"
 )
+
+// sbt-avro-1-7 uses avro 1.7, so we bump it to 1.8.1
+libraryDependencies ++= Seq(
+  "org.apache.avro" % "avro" % "1.8.1",
+  "org.apache.avro" % "avro-compiler" % "1.8.1"
+)

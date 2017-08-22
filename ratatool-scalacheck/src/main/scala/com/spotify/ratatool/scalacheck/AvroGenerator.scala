@@ -20,7 +20,7 @@ package com.spotify.ratatool.scalacheck
 import java.io.ByteArrayOutputStream
 
 import org.apache.avro._
-import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
+import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericFixed, GenericRecord}
 import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.apache.avro.specific.{SpecificData, SpecificDatumReader, SpecificRecord}
 import org.scalacheck.{Arbitrary, Gen}
@@ -130,7 +130,7 @@ trait AvroGeneratorOps {
         Gen.listOfN(
           schema.getFixedSize,
           Arbitrary.arbByte.arbitrary
-        ).map(x => AvroValue(x.toArray))
+        ).map(x => AvroValue(new GenericData.Fixed(schema, x.toArray)))
 
       case Schema.Type.STRING =>
         Gen.oneOf(
