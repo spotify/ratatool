@@ -20,10 +20,12 @@ package com.spotify.ratatool.scalacheck
 import java.io.ByteArrayOutputStream
 
 import org.apache.avro._
-import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericFixed, GenericRecord}
+import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
 import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.apache.avro.specific.{SpecificData, SpecificDatumReader, SpecificRecord}
 import org.scalacheck.{Arbitrary, Gen}
+
+import scala.collection.JavaConverters._
 
 import scala.reflect.ClassTag
 
@@ -122,9 +124,9 @@ trait AvroGeneratorOps {
         Gen.mapOf(
           for {
             k <- Gen.alphaStr
-            v <- avroValueOf(schema.getElementType)
-          } yield (k, v)
-        ).map(AvroValue(_))
+            v <- avroValueOf(schema.getValueType)
+          } yield (k, v.value)
+        ).map(x => AvroValue(x.asJava))
 
       case Schema.Type.FIXED =>
         Gen.listOfN(
