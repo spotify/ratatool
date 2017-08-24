@@ -57,16 +57,16 @@ class ParquetIOTest extends FlatSpec with Matchers {
     val out = new ByteArrayOutputStream()
     ParquetIO.writeToOutputStream(specificData, specificSchema, out)
     val in = new ByteArrayInputStream(out.toByteArray)
-    val result = ParquetIO.readFromInputStream(in).toList
-    result should equal (specificData)
+    val result = ParquetIO.readFromInputStream[TestRecord](in).toList
+    result.map(FixRandomData(_)) should equal (specificData.map(FixRandomData(_)))
   }
 
   it should "work with specific record and file" in {
     val dir = Files.createTempDirectory("ratatool-")
     val file = new File(dir.toString, "temp.parquet")
     ParquetIO.writeToFile(specificData, specificSchema, file)
-    val result = ParquetIO.readFromFile(file).toList
-    result should equal (specificData)
+    val result = ParquetIO.readFromFile[TestRecord](file).toList
+    result.map(FixRandomData(_)) should equal (specificData.map(FixRandomData(_)))
     FileUtils.deleteDirectory(dir.toFile)
   }
 

@@ -19,7 +19,7 @@
                     {"name": "boolean_field", "type": ["null", "boolean"], "default": null},
                     {"name": "string_field", "type": ["null", "string"], "default": null},
                     {"name": "fixed_field", "type": ["null", {"type": "fixed", "size": 16, "name": "MD5"}], "default": null},
-                    {"name": "map_field", "type": ["null", {"type": "map", "values": "string"}], "default": null}
+                    {"name": "map_field", "type": ["null", {"type": "map", "values": "int"}], "default": null}
                 ]
             }
         },
@@ -38,7 +38,7 @@
                     {"name": "boolean_field", "type": "boolean"},
                     {"name": "string_field", "type": "string"},
                     {"name": "fixed_field", "type": {"type": "fixed", "size": 16, "name": "UUID"}},
-                    {"name": "map_field", "type": {"type": "map", "values": "string"}}
+                    {"name": "map_field", "type": {"type": "map", "values": "int"}}
                 ]
             }
         },
