@@ -18,6 +18,7 @@
 package com.spotify.ratatool.scalacheck
 
 import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
 
 import org.apache.avro._
 import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
@@ -26,7 +27,6 @@ import org.apache.avro.specific.{SpecificData, SpecificDatumReader, SpecificReco
 import org.scalacheck.{Arbitrary, Gen}
 
 import scala.collection.JavaConverters._
-
 import scala.reflect.ClassTag
 
 /** Mainly type inference not to fall into `Any` */
@@ -141,7 +141,11 @@ trait AvroGeneratorOps {
         ).map(AvroValue(_))
 
       case Schema.Type.BYTES =>
-        Gen.listOf(Arbitrary.arbByte.arbitrary).map(x => AvroValue(x.toArray))
+        Gen.listOf(Arbitrary.arbByte.arbitrary).map { values =>
+          val bb = ByteBuffer.wrap(values.toArray)
+
+          AvroValue(bb)
+        }
 
       case Schema.Type.INT => Arbitrary.arbInt.arbitrary.map(AvroValue(_))
       case Schema.Type.LONG => Arbitrary.arbLong.arbitrary.map(AvroValue(_))
