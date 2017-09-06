@@ -28,7 +28,7 @@ val scioVersion = "0.3.0"
 val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.25"
 
-val commonSettings = Seq(
+val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
   name := "ratatool",
   description := "A tool for random data sampling and generation",
@@ -38,7 +38,7 @@ val commonSettings = Seq(
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked")
 )
 
-val releaseSettings = Seq(
+lazy val releaseSettings = Seq(
   releaseCrossBuild             := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   publishMavenStyle             := true,
@@ -66,7 +66,7 @@ val releaseSettings = Seq(
   }
 )
 
-val assemblySettings = Seq(
+lazy val assemblySettings = Seq(
   mainClass in assembly := Some("com.spotify.ratatool.tool.Tool"),
   assemblyMergeStrategy in assembly ~= { old => {
     case s if s.endsWith(".class") => MergeStrategy.last
@@ -80,7 +80,6 @@ val assemblySettings = Seq(
 
 lazy val ratatool = project
   .settings(commonSettings)
-  .settings(releaseSettings)
   .settings(
     libraryDependencies ++= Seq(
       "com.github.scopt" %% "scopt" % scoptVersion,
@@ -112,7 +111,6 @@ lazy val ratatool = project
 
 lazy val ratatoolScalacheck = project.in(file("ratatool-scalacheck"))
   .settings(commonSettings)
-  .settings(releaseSettings)
   .settings(
     name := "ratatool-scalacheck",
     libraryDependencies ++= Seq(
