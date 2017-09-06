@@ -22,7 +22,7 @@ notifications:
   email:
     - neville@spotify.com
 
-before_deploy: sbt ++$TRAVIS_SCALA_VERSION clean ratatool/assembly ratatoolScalastyle/publish
+before_deploy: sbt ++$TRAVIS_SCALA_VERSION clean ratatool/assembly
 deploy:
   provider: releases
   api_key:
