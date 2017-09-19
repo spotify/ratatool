@@ -22,7 +22,7 @@ import java.io.{File, InputStream, OutputStream}
 import com.google.api.services.bigquery.model.TableRow
 import com.google.common.base.Charsets
 import com.google.common.io.Files
-import org.apache.beam.sdk.coders.TableRowJsonCoder
+import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 import org.apache.beam.sdk.util.CoderUtils
 
 import scala.collection.JavaConverters._

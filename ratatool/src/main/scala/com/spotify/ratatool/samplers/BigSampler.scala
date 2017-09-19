@@ -21,10 +21,7 @@ import java.net.URI
 import java.nio.charset.Charset
 import java.util.{List => JList}
 
-import com.google.api.client.googleapis.services.AbstractGoogleClientRequest
-import com.google.api.client.util.{BackOff, BackOffUtils, Sleeper}
-import com.google.api.services.bigquery.model.{Table, TableFieldSchema, TableReference, TableSchema}
-import com.google.cloud.hadoop.util.ApiErrorExtractor
+import com.google.api.services.bigquery.model.{TableFieldSchema, TableReference, TableSchema}
 import com.google.common.hash.{HashCode, HashFunction, Hasher, Hashing}
 import com.google.common.io.BaseEncoding
 import com.spotify.ratatool.avro.specific.TestRecord
@@ -32,23 +29,22 @@ import com.spotify.ratatool.io.{AvroIO, FileStorage}
 import com.spotify.ratatool.serde.JsonSerDe
 import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.io.{Tap, Taps}
-import com.spotify.scio.{ContextAndArgs, ScioContext, _}
+import com.spotify.scio.{ContextAndArgs, ScioContext}
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
 import org.apache.avro.generic.GenericRecord
-import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO
-import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO
-import org.apache.beam.sdk.options.BigQueryOptions
-import org.apache.beam.sdk.transforms.SerializableFunction
-import org.apache.beam.sdk.util.{FluentBackoff, Transport}
-import org.joda.time.Duration
+import org.apache.beam.sdk.io.FileSystems
+import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers,
+                                            BigQueryIO,
+                                            BigQueryOptions,
+                                            BigQueryServicesImpl}
 import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.language.existentials
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 object BigSampler {
   private val log = LoggerFactory.getLogger(BigSampler.getClass)
@@ -75,7 +71,7 @@ object BigSampler {
   }
 
   private def parseAsBigQueryTable(tblRef: String): Option[TableReference] = {
-    Try(BigQueryIO.parseTableSpec(tblRef)).toOption
+    Try(BigQueryHelpers.parseTableSpec(tblRef)).toOption
   }
 
   private def parseAsURI(uri: String): Option[URI] = {
@@ -287,7 +283,8 @@ private[samplers] object BigSamplerAvro {
                          fields: Seq[String],
                          samplePct: Float,
                          seed: Option[Int]): Future[Tap[GenericRecord]] = {
-    val schema = AvroIO.getAvroSchemaFromFile(input.toString)
+    val singleFile = FileSystems.`match`(input).metadata().asScala.head.resourceId().getFilename
+    val schema = AvroIO.getAvroSchemaFromFile(singleFile)
     val outputParts =
       if (output.endsWith("/")) output + "part*" else output + "/part*"
     if (FileStorage(outputParts).isDone) {
@@ -299,7 +296,7 @@ private[samplers] object BigSamplerAvro {
         val r = sc.avroFile[GenericRecord](input, schema)
           .sample(false, samplePct)
           .saveAsAvroFile(output, schema=schema)
-        sc.close()
+        sc.close().waitUntilDone()
         r
       } else {
         val (s, n) = BigSampler.samplePctToInt(samplePct, 100)
@@ -318,7 +315,7 @@ private[samplers] object BigSamplerAvro {
             BigSampler.diceElement(e, hash, s.toInt, n)
           }
           .saveAsAvroFile(output, schema = schema)
-        sc.close()
+        sc.close().waitUntilDone()
         r
       }
     }
@@ -409,10 +406,11 @@ private[samplers] object BigSamplerBigQuery {
                           fields: List[String],
                           samplePct: Float,
                           seed: Option[Int]): Future[Tap[TableRow]] = {
-    import BigQueryIO.Write.WriteDisposition.WRITE_EMPTY
     import BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED
+    import BigQueryIO.Write.WriteDisposition.WRITE_EMPTY
 
-    val patchedBigQueryService = new PatchedBigQueryService(sc.optionsAs[BigQueryOptions])
+    val patchedBigQueryService = new BigQueryServicesImpl()
+      .getDatasetService(sc.optionsAs[BigQueryOptions])
     if (patchedBigQueryService.getTable(outputTbl) != null) {
       log.info(s"Reuse previous sample at $outputTbl")
       Taps().bigQueryTable(outputTbl)
@@ -424,7 +422,7 @@ private[samplers] object BigSamplerBigQuery {
         val r = sc.bigQueryTable(inputTbl)
           .sample(withReplacement = false, samplePct)
           .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "")
-        sc.close()
+        sc.close().waitUntilDone()
         r
       } else {
         val fieldsMissing = fields.filterNot(f => fieldInTblSchema(schema.getFields.asScala, f))
@@ -445,78 +443,9 @@ private[samplers] object BigSamplerBigQuery {
             BigSampler.diceElement(e, hash, s.toInt, n)
           }
           .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "")
-        sc.close()
+        sc.close().waitUntilDone()
         r
       }
-    }
-  }
-}
-
-
-/**
- * Patched BigQuery Service without bug which retries request if table does not exist.
- */
-private[ratatool] class PatchedBigQueryService(options: BigQueryOptions) {
-  private val log = LoggerFactory.getLogger(classOf[PatchedBigQueryService])
-  private val client = Transport.newBigQueryClient(options).build
-
-  def getTable(tbl: TableReference): Table = {
-    val retires = 9
-    val backoff =
-      FluentBackoff.DEFAULT
-        .withMaxRetries(retires).withInitialBackoff(Duration.standardSeconds(1)).backoff
-    try {
-      executeWithRetries(
-        client.tables.get(tbl.getProjectId, tbl.getDatasetId, tbl.getTableId),
-        s"Unable to get table: ${tbl.getTableId}, aborting after $retires retries.",
-        Sleeper.DEFAULT,
-        backoff,
-        new SerializableFunction[IOException, Boolean] {
-          override def apply(input: IOException): Boolean = {
-            val extractor = new ApiErrorExtractor()
-            !extractor.itemNotFound(input)
-          }
-        })
-    } catch {
-      case e: IOException => {
-        val extractor = new ApiErrorExtractor()
-        if (extractor.itemNotFound(e)) {
-          null
-        } else {
-          throw e
-        }
-      }
-    }
-  }
-
-  def executeWithRetries[T](request: AbstractGoogleClientRequest[T],
-                            errorMessage: String,
-                            sleeper: Sleeper,
-                            backoff: BackOff,
-                            shouldRetry: SerializableFunction[IOException, Boolean]): T = {
-    var lastException: IOException = null
-    var r: T = null.asInstanceOf[T]
-    do {
-      if (lastException != null) {
-        log.info("Ignore the error and retry the request.", lastException)
-      }
-      Try(request.execute()) match {
-        case Success(t) => r = t
-        case Failure(e) => lastException = e.asInstanceOf[IOException]
-      }
-    } while (r != null && !shouldRetry.apply(lastException) && nextBackOff(sleeper, backoff))
-    if (r != null) {
-      r
-    } else {
-      throw new IOException(errorMessage, lastException)
-    }
-  }
-
-  private def nextBackOff(sleeper: Sleeper, backoff: BackOff): Boolean = {
-    try {
-      BackOffUtils.next(sleeper, backoff)
-    } catch {
-      case e: IOException => throw new RuntimeException(e)
     }
   }
 }
