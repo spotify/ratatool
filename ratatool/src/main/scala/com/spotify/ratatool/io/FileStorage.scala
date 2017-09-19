@@ -47,7 +47,7 @@ private[ratatool] trait FileStorage {
 
   protected val path: String
 
-  protected def listFiles: Seq[Path]
+  private[io] def listFiles: Seq[Path]
 
   protected def getObjectInputStream(path: Path): InputStream
 
@@ -100,7 +100,7 @@ private class GcsStorage(protected val path: String) extends FileStorage {
 
   private val GLOB_PREFIX = Pattern.compile("(?<PREFIX>[^\\[*?]*)[\\[*?].*")
 
-  override protected def listFiles: Seq[Path] = {
+  override private[io] def listFiles: Seq[Path] = {
     if (GLOB_PREFIX.matcher(path).matches()) {
       gcs
         .expand(GcsPath.fromUri(uri))
@@ -152,7 +152,7 @@ private class LocalStorage(protected val path: String)  extends FileStorage {
   private val uri = new URI(path)
   require(FileStorage.isLocalUri(uri), s"Not a local path: $path")
 
-  override protected def listFiles: Seq[Path] = {
+  override private[io] def listFiles: Seq[Path] = {
     val p = path.lastIndexOf("/")
     val (dir, filter) = if (p == 0) {
       // "/file.ext"
