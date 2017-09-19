@@ -21,7 +21,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.util.Utils
 import com.google.api.services.bigquery.model.{TableReference, TableRow, TableSchema}
 import com.google.api.services.bigquery.{Bigquery, BigqueryScopes}
-import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryIO, BigQueryTableRowIterator}
+import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers, PatchedBigQueryTableRowIterator}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
@@ -53,11 +53,12 @@ class BigQuerySampler(tableRef: TableReference, protected val seed: Option[Long]
   override def sample(n: Long, head: Boolean): Seq[TableRow] = {
     require(n > 0, "n must be > 0")
     require(head, "BigQuery can only be used with --head")
-    logger.info("Taking a sample of {} from BigQuery table {}", n, BigQueryIO.toTableSpec(tableRef))
+    logger.info("Taking a sample of {} from BigQuery table {}", n,
+      BigQueryHelpers.toTableSpec(tableRef))
 
     val numRows = BigInt(table.getNumRows)
 
-    val iterator = BigQueryTableRowIterator.fromTable(tableRef, bigquery)
+    val iterator = PatchedBigQueryTableRowIterator.fromTable(tableRef, bigquery)
     iterator.open()
     val result = ListBuffer.empty[TableRow]
     while (result.length < (numRows min n) && iterator.advance()) {

@@ -141,10 +141,10 @@ object BigDiffy {
     val rKeyed = rhs.map(t => (keyFn(t), ("r", t)))
 
     val sc = lhs.context
-    val accSame = sc.sumAccumulator[Long]("SAME")
-    val accDiff = sc.sumAccumulator[Long]("DIFFERENT")
-    val accMissingLhs = sc.sumAccumulator[Long]("MISSING_LHS")
-    val accMissingRhs = sc.sumAccumulator[Long]("MISSING_RHS")
+    val accSame = ScioMetrics.counter[Long]("SAME")
+    val accDiff = ScioMetrics.counter[Long]("DIFFERENT")
+    val accMissingLhs = ScioMetrics.counter[Long]("MISSING_LHS")
+    val accMissingRhs = ScioMetrics.counter[Long]("MISSING_RHS")
 
     (lKeyed ++ rKeyed)
       .groupByKey
@@ -159,17 +159,15 @@ object BigDiffy {
           (k, (Nil, dt))
         }
       }
-      .withAccumulator(accSame, accDiff, accMissingLhs, accMissingRhs)
-      .map { (x, c) =>
+      .map { x =>
         x._2._2 match {
-          case DiffType.SAME => c.addValue(accSame, 1L)
-          case DiffType.DIFFERENT => c.addValue(accDiff, 1L)
-          case DiffType.MISSING_LHS => c.addValue(accMissingLhs, 1L)
-          case DiffType.MISSING_RHS => c.addValue(accMissingRhs, 1L)
+          case DiffType.SAME => accSame.inc()
+          case DiffType.DIFFERENT => accDiff.inc()
+          case DiffType.MISSING_LHS => accMissingLhs.inc()
+          case DiffType.MISSING_RHS => accMissingRhs.inc()
         }
         x
       }
-      .toSCollection
   }
 
   private def computeGlobalAndFieldStats(deltas: DeltaSCollection)
@@ -360,7 +358,7 @@ object BigDiffy {
     result.fieldStats.saveAsTextFile(s"$output/fields")
     result.globalStats.saveAsTextFile(s"$output/global")
 
-    sc.close()
+    sc.close().waitUntilDone()
   }
 
 }

@@ -17,13 +17,20 @@
 
 package com.spotify.ratatool.io
 
+import java.util
+
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.util.Utils
-import com.google.api.services.bigquery.model.{TableReference, TableRow, TableSchema}
+import com.google.api.services.bigquery.model.{Table, TableReference, TableRow, TableSchema}
 import com.google.api.services.bigquery.{Bigquery, BigqueryScopes}
-import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.{CreateDisposition, WriteDisposition}
-import org.apache.beam.sdk.io.gcp.bigquery.BigQueryTableRowIterator
-import org.apache.beam.sdk.util.BigQueryTableInserter
+import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryOptions,
+                                            BigQueryServicesImpl,
+                                            InsertRetryPolicy,
+                                            PatchedBigQueryTableRowIterator}
+import org.apache.beam.sdk.options.PipelineOptionsFactory
+import org.apache.beam.sdk.transforms.windowing.{GlobalWindow, PaneInfo}
+import org.apache.beam.sdk.values.ValueInSingleWindow
+import org.joda.time.Instant
 
 import scala.collection.JavaConverters._
 
@@ -32,11 +39,11 @@ object BigQueryIO {
 
   /** Parse a table specification string. */
   def parseTableSpec(tableSpec: String): TableReference =
-    org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.parseTableSpec(tableSpec)
+    org.apache.beam.sdk.io.gcp.bigquery.BigQueryHelpers.parseTableSpec(tableSpec)
 
   /** Convert a table reference to string. */
   def toTableSpec(tableRef: TableReference): String =
-    org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.toTableSpec(tableRef)
+    org.apache.beam.sdk.io.gcp.bigquery.BigQueryHelpers.toTableSpec(tableRef)
 
   /** BigQuery Java client. */
   val bigquery: Bigquery = {
@@ -50,7 +57,7 @@ object BigQueryIO {
 
   /** Read records from a BigQuery table. */
   def readFromTable(tableRef: TableReference): Iterator[TableRow] =
-    new TableRowIterator(BigQueryTableRowIterator.fromTable(tableRef, bigquery))
+    new TableRowIterator(PatchedBigQueryTableRowIterator.fromTable(tableRef, bigquery))
 
   /** Read records from a BigQuery table. */
   def readFromTable(tableSpec: String): Iterator[TableRow] =
@@ -58,13 +65,16 @@ object BigQueryIO {
 
   /** Write records to a BigQuery table. */
   def writeToTable(data: Seq[TableRow], schema: TableSchema, tableRef: TableReference): Unit = {
-    val inserter = new BigQueryTableInserter(bigquery)
-    inserter.getOrCreateTable(
-      tableRef,
-      WriteDisposition.WRITE_EMPTY,
-      CreateDisposition.CREATE_IF_NEEDED,
-      schema)
-    inserter.insertAll(tableRef, data.asJava)
+    val ds = new BigQueryServicesImpl()
+      .getDatasetService(PipelineOptionsFactory.create().as(classOf[BigQueryOptions]))
+    val rows = data.map(e =>
+      ValueInSingleWindow.of(e, Instant.now(), GlobalWindow.INSTANCE, PaneInfo.NO_FIRING))
+    val failures = new java.util.ArrayList[ValueInSingleWindow[TableRow]]
+    val tbl = new Table()
+      .setTableReference(tableRef)
+      .setSchema(schema)
+    ds.createTable(tbl)
+    ds.insertAll(tableRef, rows.asJava, null, InsertRetryPolicy.alwaysRetry(), failures)
   }
 
   /** Write records to a BigQuery table. */
@@ -73,7 +83,7 @@ object BigQueryIO {
 
 }
 
-private class TableRowIterator(private val iterator: BigQueryTableRowIterator)
+private class TableRowIterator(private val iterator: PatchedBigQueryTableRowIterator)
   extends Iterator[TableRow] {
   private var _isOpen = false
   private var _hasNext = false
