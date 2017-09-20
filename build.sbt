@@ -70,9 +70,11 @@ lazy val assemblySettings = Seq(
   mainClass in assembly := Some("com.spotify.ratatool.tool.Tool"),
   assemblyMergeStrategy in assembly ~= { old => {
     case s if s.endsWith(".class") => MergeStrategy.last
+    case s if s.endsWith(".proto") => MergeStrategy.last
     case s if s.endsWith(".dtd") => MergeStrategy.rename
     case s if s.endsWith(".properties") => MergeStrategy.filterDistinctLines
     case s if s.endsWith(".xsd") => MergeStrategy.rename
+    case PathList("META-INF", "services", "org.apache.hadoop.fs.FileSystem") => MergeStrategy.filterDistinctLines
     case s => old(s)
   }},
   assemblyJarName in assembly := s"ratatool-${version.value}.jar"
