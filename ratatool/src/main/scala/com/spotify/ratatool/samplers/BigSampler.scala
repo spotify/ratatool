@@ -283,8 +283,7 @@ private[samplers] object BigSamplerAvro {
                          fields: Seq[String],
                          samplePct: Float,
                          seed: Option[Int]): Future[Tap[GenericRecord]] = {
-    val singleFile = FileSystems.`match`(input).metadata().asScala.head.resourceId().getFilename
-    val schema = AvroIO.getAvroSchemaFromFile(singleFile)
+    val schema = AvroIO.getAvroSchemaFromFile(input)
     val outputParts =
       if (output.endsWith("/")) output + "part*" else output + "/part*"
     if (FileStorage(outputParts).isDone) {
