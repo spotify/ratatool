@@ -17,49 +17,39 @@
 
 package com.spotify.ratatool.io
 
-import java.io._
+import java.io.FileNotFoundException
 import java.net.URI
 import java.nio.ByteBuffer
-import java.nio.channels.Channels
-import java.nio.file.Path
-import java.util.Collections
-import java.util.regex.Pattern
+import java.nio.channels.SeekableByteChannel
 
-import org.apache.avro.file.{SeekableFileInput, SeekableInput}
-import org.apache.beam.sdk.options.PipelineOptionsFactory
-import org.apache.beam.sdk.util.GcsUtil.GcsUtilFactory
-import org.apache.beam.sdk.util.gcsfs.GcsPath
-import org.apache.commons.io.FileUtils
-import org.apache.commons.io.filefilter.WildcardFileFilter
+import org.apache.avro.file.SeekableInput
+import org.apache.beam.sdk.io.FileSystems
+import org.apache.beam.sdk.io.fs.MatchResult.Metadata
 
 import scala.collection.JavaConverters._
-import scala.util.Try
 
 private[ratatool] object FileStorage {
-  def apply(path: String): FileStorage =
-    if (isGcsUri(new URI(path))) new GcsStorage(path) else new LocalStorage(path)
+  def apply(path: String): FileStorage = new FileStorage(path)
   def isLocalUri(uri: URI): Boolean = uri.getScheme == null || uri.getScheme == "file"
   def isGcsUri(uri: URI): Boolean = uri.getScheme == "gs"
   def isHdfsUri(uri: URI): Boolean = uri.getScheme == "hdfs"
 }
 
-private[ratatool] trait FileStorage {
+private[ratatool] class FileStorage(protected[io] val path: String) {
 
-  protected val path: String
+  def exists: Boolean = ! FileSystems.`match`(path).metadata.isEmpty
 
-  private[io] def listFiles: Seq[Path]
-
-  protected def getObjectInputStream(path: Path): InputStream
-
-  def getAvroSeekableInput: SeekableInput
-
-  def exists: Boolean
+  def listFiles: Seq[Metadata] = FileSystems.`match`(path).metadata().asScala
 
   def isDone: Boolean = {
     val partPattern = "([0-9]{5})-of-([0-9]{5})".r
-    val paths = listFiles
-    val nums = paths.flatMap { p =>
-      val m = partPattern.findAllIn(p.toString)
+    val metadata = try {
+      listFiles
+    } catch {
+      case e: FileNotFoundException => Seq.empty
+    }
+    val nums = metadata.flatMap { meta =>
+      val m = partPattern.findAllIn(meta.resourceId().toString)
       if (m.hasNext) {
         Some(m.group(1).toInt, m.group(2).toInt)
       } else {
@@ -67,14 +57,14 @@ private[ratatool] trait FileStorage {
       }
     }
 
-    if (paths.isEmpty) {
+    if (metadata.isEmpty) {
       // empty list
       false
     } else if (nums.nonEmpty) {
       // found xxxxx-of-yyyyy pattern
       val parts = nums.map(_._1).sorted
       val total = nums.map(_._2).toSet
-      paths.size == nums.size &&  // all paths matched
+      metadata.size == nums.size &&  // all paths matched
         total.size == 1 && total.head == parts.size &&  // yyyyy part
         parts.head == 0 && parts.last + 1 == parts.size // xxxxx part
     } else {
@@ -82,105 +72,4 @@ private[ratatool] trait FileStorage {
     }
   }
 
-  private def getDirectoryInputStream(path: String,
-                                      wrapperFn: InputStream => InputStream = identity)
-  : InputStream = {
-    val inputs = listFiles.map(getObjectInputStream).map(wrapperFn).asJava
-    new SequenceInputStream(Collections.enumeration(inputs))
-  }
-
-}
-
-private class GcsStorage(protected val path: String) extends FileStorage {
-
-  private val uri = new URI(path)
-  require(FileStorage.isGcsUri(uri), s"Not a GCS path: $path")
-
-  private lazy val gcs = new GcsUtilFactory().create(PipelineOptionsFactory.create())
-
-  private val GLOB_PREFIX = Pattern.compile("(?<PREFIX>[^\\[*?]*)[\\[*?].*")
-
-  override private[io] def listFiles: Seq[Path] = {
-    if (GLOB_PREFIX.matcher(path).matches()) {
-      gcs
-        .expand(GcsPath.fromUri(uri))
-        .asScala
-    } else {
-      // not a glob, GcsUtil may return non-existent files
-      val p = GcsPath.fromUri(path)
-      if (Try(gcs.fileSize(p)).isSuccess) Seq(p) else Seq.empty
-    }
-  }
-
-  override protected def getObjectInputStream(path: Path): InputStream =
-    Channels.newInputStream(gcs.open(GcsPath.fromUri(path.toUri)))
-
-  override def getAvroSeekableInput: SeekableInput =
-    new SeekableInput {
-      private val in = gcs.open(GcsPath.fromUri(path))
-
-      override def tell(): Long = in.position()
-
-      override def length(): Long = in.size()
-
-      override def seek(p: Long): Unit = in.position(p)
-
-      override def read(b: Array[Byte], off: Int, len: Int): Int =
-        in.read(ByteBuffer.wrap(b, off, len))
-
-      override def close(): Unit = in.close()
-    }
-
-  override def exists: Boolean = {
-    try {
-      if (GLOB_PREFIX.matcher(path).matches()) {
-        gcs
-          .expand(GcsPath.fromUri(uri))
-          .asScala.nonEmpty
-      } else {
-        gcs.fileSize(GcsPath.fromUri(path))
-        true
-      }
-    } catch {
-      case _: FileNotFoundException => false
-    }
-  }
-}
-
-private class LocalStorage(protected val path: String)  extends FileStorage {
-
-  private val uri = new URI(path)
-  require(FileStorage.isLocalUri(uri), s"Not a local path: $path")
-
-  override private[io] def listFiles: Seq[Path] = {
-    val p = path.lastIndexOf("/")
-    val (dir, filter) = if (p == 0) {
-      // "/file.ext"
-      (new File("/"), new WildcardFileFilter(path.substring(p + 1)))
-    } else if (p > 0) {
-      // "/path/to/file.ext"
-      (new File(path.substring(0, p)), new WildcardFileFilter(path.substring(p + 1)))
-    } else {
-      // "file.ext"
-      (new File("."), new WildcardFileFilter(path))
-    }
-
-    if (dir.isDirectory) {
-      FileUtils
-        .listFiles(dir, filter, null)
-        .asScala
-        .toSeq
-        .map(_.toPath)
-    } else {
-      Seq.empty
-    }
-  }
-
-  override protected def getObjectInputStream(path: Path): InputStream =
-    new FileInputStream(path.toFile)
-
-  override def getAvroSeekableInput: SeekableInput =
-    new SeekableFileInput(new File(path))
-
-  override def exists: Boolean = listFiles.nonEmpty
 }
