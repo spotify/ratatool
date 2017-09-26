@@ -18,14 +18,18 @@
 package com.spotify.ratatool.io
 
 import java.io.{File, InputStream, OutputStream}
+import java.nio.ByteBuffer
+import java.nio.channels.SeekableByteChannel
 
 import com.google.common.io.ByteStreams
 import org.apache.avro.Schema
-import org.apache.avro.file.{DataFileReader, DataFileWriter, SeekableByteArrayInput}
+import org.apache.avro.file.{DataFileReader, DataFileWriter, SeekableByteArrayInput, SeekableInput}
 import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericRecord}
 import org.apache.avro.io.{DatumReader, DatumWriter}
 import org.apache.avro.reflect.{ReflectDatumReader, ReflectDatumWriter}
 import org.apache.avro.specific.{SpecificDatumReader, SpecificDatumWriter, SpecificRecord}
+import org.apache.beam.sdk.io.FileSystems
+import org.apache.beam.sdk.io.fs.MatchResult.Metadata
 
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
@@ -95,12 +99,22 @@ object AvroIO {
 
   def getAvroSchemaFromFile(path: String): Schema = {
     require(FileStorage(path).exists, s"File `$path` does not exist!")
-    val files = FileStorage(path).listFiles.filter(_.endsWith(".avro"))
+    val files = FileStorage(path).listFiles.filter(_.resourceId.getFilename.endsWith(".avro"))
     require(files.nonEmpty, s"File `$path` does not contain avro files")
     val reader = new GenericDatumReader[GenericRecord]()
-    val dfr = new DataFileReader[GenericRecord](
-      FileStorage(files.head.toString).getAvroSeekableInput, reader)
+    val dfr = new DataFileReader[GenericRecord](AvroIO.getAvroSeekableInput(files.head), reader)
     dfr.getSchema
+  }
+
+  private def getAvroSeekableInput(meta: Metadata): SeekableInput = new SeekableInput {
+    require(meta.isReadSeekEfficient)
+    private val in = FileSystems.open(meta.resourceId()).asInstanceOf[SeekableByteChannel]
+    override def read(b: Array[Byte], off: Int, len: Int): Int =
+      in.read(ByteBuffer.wrap(b, off, len))
+    override def tell(): Long = in.position()
+    override def length(): Long = in.size()
+    override def seek(p: Long): Unit = in.position(p)
+    override def close(): Unit = in.close()
   }
 
 }
