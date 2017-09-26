@@ -16,12 +16,18 @@
  */
 package com.spotify.ratatool.samplers
 
+import java.io.File
+import java.nio.file.Files
+
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific.TestRecord
+import com.spotify.ratatool.generators.AvroGenerator
+import com.spotify.ratatool.io.{AvroIO, FileStorage}
 import com.spotify.ratatool.scalacheck.{AvroGen, TableRowGen}
 import org.apache.avro.generic.GenericRecord
 import org.scalacheck.Prop.{all, forAll, proved}
 import org.scalacheck.{Gen, Properties}
+import org.scalatest.{BeforeAndAfterAllConfigMap, ConfigMap, FlatSpec, Matchers}
 
 import scala.collection.JavaConverters._
 
@@ -33,10 +39,10 @@ object BigSamplerTest extends Properties("BigSampler") {
   property("dice on the same element should match") = forAll { i: Int =>
     val hasher1 = newTestHasher()
     hasher1.putInt(i)
-    val dice1 = BigSampler.diceElement(i, hasher1.hash(), 1, 10)
+    val dice1 = BigSampler.diceElement(i, hasher1.hash(), 1.0)
     val hasher2 = newTestHasher()
     hasher2.putInt(i)
-    val dice2 = BigSampler.diceElement(i, hasher2.hash(), 1, 10)
+    val dice2 = BigSampler.diceElement(i, hasher2.hash(), 1.0)
     dice1 == dice2
   }
 
@@ -199,4 +205,61 @@ object BigSamplerTest extends Properties("BigSampler") {
     hashes._1.hash() == hashes._2.hash()
   }
 
+}
+
+class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllConfigMap {
+
+  val schema = Schemas.avroSchema
+  val data1 = (1 to 40000).map(_ => AvroGenerator.avroOf(schema))
+  val data2 = (1 to 10000).map(_ => AvroGenerator.avroOf(schema))
+  val totalElements = 50000
+  val dir = Files.createTempDirectory("ratatool-big-sampler-input")
+  val file1 = new File(dir.toString, "part-00000.avro")
+  val file2 = new File(dir.toString, "part-00001.avro")
+
+  override protected def beforeAll(configMap: ConfigMap): Unit = {
+    AvroIO.writeToFile(data1, schema, file1)
+    AvroIO.writeToFile(data2, schema, file2)
+
+    dir.toFile.deleteOnExit()
+    file1.deleteOnExit()
+    file2.deleteOnExit()
+  }
+
+  private def withOutFile(testCode: (File) => Any) {
+    val outDir = Files.createTempDirectory("ratatool-big-sampler-output").toFile
+    try {
+      testCode(outDir)
+    } finally {
+      outDir.delete()
+    }
+  }
+  private def getNumOfAvroRecords(p: String): Long =
+    FileStorage(p).listFiles.foldLeft(0)((i, m) =>
+      i + AvroIO.readFromFile[GenericRecord](m.resourceId.toString).size)
+
+  "BigSampler" should "work for 50%" in withOutFile { outDir =>
+    BigSampler.main(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.5"))
+    getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 1000
+  }
+
+  it should "work for 1%" in withOutFile { outDir =>
+    BigSampler.main(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.01"))
+    getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.01 +- 100
+  }
+
+  it should "work for 100%" in withOutFile { outDir =>
+    BigSampler.main(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=1.0"))
+    getNumOfAvroRecords(s"$outDir/*.avro") shouldBe totalElements
+  }
+
+  it should "work for 50% with hash field and seed" in withOutFile { outDir =>
+    BigSampler.main(Array(
+      s"--input=$dir/*.avro",
+      s"--output=$outDir",
+      "--sample=0.5",
+      "--seed=42",
+      "--fields=required_fields.int_field"))
+    getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 10000
+  }
 }
