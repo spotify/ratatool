@@ -33,7 +33,6 @@ import com.spotify.scio.{ContextAndArgs, ScioContext}
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
 import org.apache.avro.generic.GenericRecord
-import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers,
                                             BigQueryIO,
                                             BigQueryOptions,
@@ -58,12 +57,14 @@ object BigSampler {
     }
   }
 
-  private[samplers] def diceElement[T](e: T,
-                             hash: HashCode,
-                             sampleSize: Int,
-                             module: Int): Option[T] = {
+  /**
+   * Internal element dicing method.
+   *
+   * @param samplePct (0.0, 100.0]
+   */
+  private[samplers] def diceElement[T](e: T, hash: HashCode, samplePct: Double): Option[T] = {
     //TODO: for now leave it up to jit/compiler to optimize
-    if (math.abs(hash.asLong) % module < sampleSize) {
+    if (math.abs(hash.asLong) % 100.0 < samplePct) {
       Some(e)
     } else {
       None
@@ -76,15 +77,6 @@ object BigSampler {
 
   private def parseAsURI(uri: String): Option[URI] = {
     Try(new URI(uri)).toOption
-  }
-
-  @tailrec
-  private[samplers] def samplePctToInt(samplePct: Float, n: Int): (Float, Int) = {
-    if (samplePct < 1.0) {
-      samplePctToInt(samplePct * 10, n * 10)
-    } else {
-      (samplePct, n)
-    }
   }
 
   private[samplers] def hashTableRow(r: TableRow,
@@ -103,8 +95,8 @@ object BigSampler {
     val (sc, args) = ContextAndArgs(argv)
     val samplePct = args("sample").toFloat
 
-    require(samplePct > 0.0F && samplePct < 100.0F,
-      "Sample percentage should be between (0.0, 100.0)")
+    require(samplePct > 0.0F && samplePct <= 1.0F,
+      "Sample percentage should be between (0.0, 1.0]")
 
     val input = args("input")
     val output = args("output")
@@ -121,8 +113,8 @@ object BigSampler {
 
     if (parseAsBigQueryTable(input).isDefined) {
       require(parseAsBigQueryTable(output).isDefined,
-        s"Input is a BigQuery table `${input}`, output should be a BigQuery table too," +
-          s"but instead it's `${output}`.")
+        s"Input is a BigQuery table `$input`, output should be a BigQuery table too," +
+          s"but instead it's `$output`.")
       val inputTbl = parseAsBigQueryTable(input).get
       val outputTbl = parseAsBigQueryTable(output).get
       BigSamplerBigQuery.sampleBigQueryTable(
@@ -135,10 +127,10 @@ object BigSampler {
     } else if (parseAsURI(input).isDefined) {
       // right now only support for avro
       require(parseAsURI(output).isDefined,
-        s"Input is a URI: `${input}`, output should be a URI too, but instead it's `${output}`.")
+        s"Input is a URI: `$input`, output should be a URI too, but instead it's `$output`.")
       BigSamplerAvro.sampleAvro(sc, input, output, fields, samplePct, seed.map(_.toInt))
     } else {
-      throw new UnsupportedOperationException(s"Input `${input} not supported.")
+      throw new UnsupportedOperationException(s"Input `$input not supported.")
     }
   }
 
@@ -298,20 +290,20 @@ private[samplers] object BigSamplerAvro {
         sc.close().waitUntilDone()
         r
       } else {
-        val (s, n) = BigSampler.samplePctToInt(samplePct, 100)
         val fieldsMissing = fields.filterNot(f => fieldInAvroSchema(schema, f))
         if (fieldsMissing.nonEmpty) {
           throw new NoSuchElementException(
             s"""Could not locate field(s) ${fieldsMissing.mkString(",")} """ +
-              s"""in table $input with schema $schema""")
+              s"""in $input with schema $schema""")
         }
         val schemaSer = schema.toString(false)
         @transient lazy val schemaSerDe = new Schema.Parser().parse(schemaSer)
+        val samplePct100 = samplePct * 100.0
         val r = sc.avroFile[GenericRecord](input, schema)
           .flatMap { e =>
             val hasher = BigSampler.kissHashFun(seed).newHasher(fields.size)
             val hash = fields.foldLeft(hasher)((h, f) => hashAvroField(e, f, schemaSerDe, h)).hash
-            BigSampler.diceElement(e, hash, s.toInt, n)
+            BigSampler.diceElement(e, hash, samplePct100)
           }
           .saveAsAvroFile(output, schema = schema)
         sc.close().waitUntilDone()
@@ -434,12 +426,12 @@ private[samplers] object BigSamplerBigQuery {
         val schemaStr = JsonSerDe.toJsonString(schema)
         @transient lazy val schemaFields =
           JsonSerDe.fromJsonString(schemaStr, classOf[TableSchema]).getFields.asScala
-        val (s, n) = BigSampler.samplePctToInt(samplePct, 100)
+        val samplePct100 = samplePct * 100.0
         val r = sc.bigQueryTable(inputTbl)
           .flatMap { e =>
             val hasher = BigSampler.kissHashFun(seed).newHasher(fields.size)
             val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(e, f, schemaFields, h)).hash()
-            BigSampler.diceElement(e, hash, s.toInt, n)
+            BigSampler.diceElement(e, hash, samplePct100)
           }
           .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "")
         sc.close().waitUntilDone()
