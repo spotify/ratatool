@@ -15,16 +15,16 @@
  * under the License.
  */
 
-val algebirdVersion = "0.13.0"
-val avroVersion = "1.8.1"
-val gcsVersion = "1.5.2-hadoop2"
+val algebirdVersion = "0.13.2"
+val avroVersion = "1.8.2"
+val gcsVersion = "1.6.1-hadoop2"
 val hadoopVersion = "2.7.3"
 val jodaTimeVersion = "2.9.9"
-val parquetVersion = "1.8.1"
-val protoBufVersion = "2.6.1"
-val scalaCheckVersion = "1.13.3"
-val scalaTestVersion = "3.0.0"
-val scioVersion = "0.4.1"
+val parquetVersion = "1.9.0"
+val protoBufVersion = "3.3.1"
+val scalaCheckVersion = "1.13.5"
+val scalaTestVersion = "3.0.4"
+val scioVersion = "0.4.3"
 val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.25"
 
@@ -32,8 +32,8 @@ val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSet
   organization := "com.spotify",
   name := "ratatool",
   description := "A tool for random data sampling and generation",
-  scalaVersion := "2.11.11",
-  crossScalaVersions := Seq("2.11.11"),
+  scalaVersion := "2.12.4",
+  crossScalaVersions := Seq("2.11.11", "2.12.4"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked")
 )
