@@ -121,4 +121,4 @@ lazy val ratatoolScalacheck = project.in(file("ratatool-scalacheck"))
     )
   ).dependsOn(ratatool % "test")
 
-val root = project.in(file(".")).aggregate(ratatool, ratatoolScalacheck)
+val root = project.in(file(".")).settings(commonSettings).aggregate(ratatool, ratatoolScalacheck)
