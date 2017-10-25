@@ -44,11 +44,18 @@ val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSet
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked")
 )
 
+lazy val noPublishSettings = Seq(
+  publish := {},
+  publishLocal := {},
+  publishArtifact := false
+)
+
 lazy val releaseSettings = Seq(
   releaseCrossBuild             := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   publishMavenStyle             := true,
   publishArtifact in Test       := false,
+  publishTo := Some(if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging),
   sonatypeProfileName           := "com.spotify",
   pomExtra                      := {
     <url>https://github.com/spotify/ratatool</url>
@@ -127,4 +134,6 @@ lazy val ratatoolScalacheck = project.in(file("ratatool-scalacheck"))
     )
   ).dependsOn(ratatool % "test")
 
-val root = project.in(file(".")).settings(commonSettings).aggregate(ratatool, ratatoolScalacheck)
+val root = project.in(file("."))
+  .settings(commonSettings ++ noPublishSettings)
+  .aggregate(ratatool, ratatoolScalacheck)
