@@ -34,7 +34,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSet
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.12.4",
   crossScalaVersions := Seq("2.11.11", "2.12.4"),
-  scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
+  scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-no-java-comments"),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked")
 )
 
