@@ -35,6 +35,12 @@ val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSet
   scalaVersion := "2.12.4",
   crossScalaVersions := Seq("2.11.11", "2.12.4"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
+  scalacOptions in (Compile,doc) ++= {
+    scalaBinaryVersion.value match {
+      case "2.12" => "-no-java-comments" :: Nil
+      case _ => Nil
+    }
+  },
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked")
 )
 
