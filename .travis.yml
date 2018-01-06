@@ -1,6 +1,6 @@
 language: scala
 scala:
-  - 2.11.11
+  - 2.11.12
   - 2.12.4
 jdk: oraclejdk8
 
@@ -32,5 +32,5 @@ deploy:
   file: "ratatool/target/scala-*/ratatool-*.jar"
   skip_cleanup: true
   on:
-    scala: 2.11.11
+    scala: 2.11.12
     tags: true
