@@ -25,7 +25,7 @@ import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import com.google.protobuf.DescriptorProtos.FieldDescriptorProto.Label
 import com.google.protobuf.Descriptors.Descriptor
 import com.google.protobuf.Descriptors.FieldDescriptor.Type
-import com.google.protobuf.{CodedOutputStream, Descriptors, GeneratedMessage}
+import com.google.protobuf.{CodedOutputStream, Descriptors, AbstractMessage}
 
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
@@ -48,7 +48,7 @@ object ProtoBufGenerator {
     })
 
   /** Generate a ProtoBuf record. */
-  def protoBufOf[T <: GeneratedMessage : ClassTag]: T = {
+  def protoBufOf[T <: AbstractMessage : ClassTag]: T = {
     val (desc, parseFn) = cache.get(implicitly[ClassTag[T]].runtimeClass)
     val bytes = generate(desc)
     parseFn.invoke(null, bytes).asInstanceOf[T]

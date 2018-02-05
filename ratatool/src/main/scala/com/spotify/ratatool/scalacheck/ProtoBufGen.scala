@@ -17,7 +17,7 @@
 
 package com.spotify.ratatool.scalacheck
 
-import com.google.protobuf.GeneratedMessage
+import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.generators.ProtoBufGenerator
 import org.scalacheck._
 
@@ -26,7 +26,7 @@ import scala.reflect.ClassTag
 object ProtoBufGen {
 
   /** ScalaCheck generator of ProtoBuf records. */
-  def protoBufOf[T <: GeneratedMessage : ClassTag]: Gen[T] =
+  def protoBufOf[T <: AbstractMessage : ClassTag]: Gen[T] =
     Gen.const(0).map(_ => ProtoBufGenerator.protoBufOf[T])
 
 }
