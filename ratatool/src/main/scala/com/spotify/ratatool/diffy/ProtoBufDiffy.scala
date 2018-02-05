@@ -19,13 +19,13 @@ package com.spotify.ratatool.diffy
 
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import com.google.protobuf.Descriptors.{Descriptor, FieldDescriptor}
-import com.google.protobuf.AbstractMessage
+import com.google.protobuf.GeneratedMessage
 
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
 /** Field level diff tool for ProtoBuf records. */
-class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.empty,
+class ProtoBufDiffy[T <: GeneratedMessage : ClassTag](ignore: Set[String] = Set.empty,
                                                       unordered: Set[String] = Set.empty)
   extends Diffy[T](ignore, unordered) {
 
@@ -38,9 +38,9 @@ class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.e
       .invoke(null).asInstanceOf[Descriptor]
 
   // scalastyle:off cyclomatic.complexity
-  private def diff(x: AbstractMessage, y: AbstractMessage,
+  private def diff(x: GeneratedMessage, y: GeneratedMessage,
                    fields: Seq[FieldDescriptor], root: String): Seq[Delta] = {
-    def getField(m: AbstractMessage, f: FieldDescriptor): AnyRef =
+    def getField(m: GeneratedMessage, f: FieldDescriptor): AnyRef =
       if (f.isRepeated) {
         m.getField(f)
       } else {
@@ -57,8 +57,8 @@ class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.e
       } else {
         f.getJavaType match {
           case JavaType.MESSAGE if !f.isRepeated =>
-            val a = getField(x, f).asInstanceOf[AbstractMessage]
-            val b = getField(y, f).asInstanceOf[AbstractMessage]
+            val a = getField(x, f).asInstanceOf[GeneratedMessage]
+            val b = getField(y, f).asInstanceOf[GeneratedMessage]
             if (a == null && b == null) {
               Nil
             } else if (a == null || b == null) {
