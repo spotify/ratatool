@@ -20,7 +20,7 @@ package com.spotify.ratatool.diffy
 import java.net.URI
 
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
-import com.google.protobuf.GeneratedMessage
+import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.GcsConfiguration
 import com.spotify.ratatool.samplers.AvroSampler
 import com.spotify.scio._
@@ -233,7 +233,7 @@ object BigDiffy {
     diff(sc.avroFile[T](lhs, schema), sc.avroFile[T](rhs, schema), diffy, keyFn)
 
   /** Diff two ProtoBuf data sets. */
-  def diffProtoBuf[T <: GeneratedMessage : ClassTag](sc: ScioContext,
+  def diffProtoBuf[T <: AbstractMessage : ClassTag](sc: ScioContext,
                                                      lhs: String, rhs: String,
                                                      keyFn: T => String,
                                                      diffy: ProtoBufDiffy[T]): BigDiffy[T] =

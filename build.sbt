@@ -119,7 +119,7 @@ lazy val ratatool = project
   .settings(
     version in ProtobufConfig := protoBufVersion,
     protobufRunProtoc in ProtobufConfig := (args =>
-      com.github.os72.protocjar.Protoc.runProtoc("-v261" +: args.toArray)
+      com.github.os72.protocjar.Protoc.runProtoc("-v330" +: args.toArray)
     )
   )
   .settings(packAutoSettings)
