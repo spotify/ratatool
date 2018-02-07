@@ -15,6 +15,9 @@
  * under the License.
  */
 
+import sbt._
+import Keys._
+
 val algebirdVersion = "0.13.2"
 val avroVersion = "1.8.2"
 val gcsVersion = "1.6.1-hadoop2"
@@ -115,14 +118,13 @@ lazy val ratatool = project
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
-  .enablePlugins(ProtobufPlugin)
+  .enablePlugins(ProtobufPlugin, PackPlugin)
   .settings(
     version in ProtobufConfig := protoBufVersion,
     protobufRunProtoc in ProtobufConfig := (args =>
       com.github.os72.protocjar.Protoc.runProtoc("-v330" +: args.toArray)
     )
   )
-  .settings(packAutoSettings)
 
 lazy val ratatoolScalacheck = project.in(file("ratatool-scalacheck"))
   .settings(commonSettings)
