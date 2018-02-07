@@ -21,7 +21,7 @@ after_success:
 
 notifications:
   email:
-    - neville@spotify.com
+    - idrees@spotify.com
 
 before_deploy: sbt ++$TRAVIS_SCALA_VERSION clean ratatool/assembly
 deploy:
