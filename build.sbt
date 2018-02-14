@@ -48,6 +48,13 @@ val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSet
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked")
 )
 
+lazy val protoBufSettings = Seq(
+  version in ProtobufConfig := protoBufVersion,
+  protobufRunProtoc in ProtobufConfig := (args =>
+    com.github.os72.protocjar.Protoc.runProtoc("-v330" +: args.toArray)
+    )
+)
+
 lazy val noPublishSettings = Seq(
   publish := {},
   publishLocal := {},
@@ -120,12 +127,7 @@ lazy val ratatool = project
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
   .enablePlugins(ProtobufPlugin, PackPlugin)
-  .settings(
-    version in ProtobufConfig := protoBufVersion,
-    protobufRunProtoc in ProtobufConfig := (args =>
-      com.github.os72.protocjar.Protoc.runProtoc("-v330" +: args.toArray)
-    )
-  )
+  .settings(protoBufSettings)
 
 lazy val ratatoolScalacheck = project.in(file("ratatool-scalacheck"))
   .settings(commonSettings)
@@ -138,12 +140,7 @@ lazy val ratatoolScalacheck = project.in(file("ratatool-scalacheck"))
     )
   ).dependsOn(ratatool % "test")
   .enablePlugins(ProtobufPlugin, PackPlugin)
-  .settings(
-    version in ProtobufConfig := protoBufVersion,
-    protobufRunProtoc in ProtobufConfig := (args =>
-      com.github.os72.protocjar.Protoc.runProtoc("-v330" +: args.toArray)
-      )
-  )
+  .settings(protoBufSettings)
 
 val root = project.in(file("."))
   .settings(commonSettings ++ noPublishSettings)
