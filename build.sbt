@@ -30,6 +30,7 @@ val scalaTestVersion = "3.0.4"
 val scioVersion = "0.4.3"
 val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.25"
+val bigqueryVersion = "v2-rev372-1.23.0"
 
 val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
@@ -132,9 +133,17 @@ lazy val ratatoolScalacheck = project.in(file("ratatool-scalacheck"))
     name := "ratatool-scalacheck",
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion,
-      "org.scalacheck" %% "scalacheck" % scalaCheckVersion
+      "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion
     )
   ).dependsOn(ratatool % "test")
+  .enablePlugins(ProtobufPlugin, PackPlugin)
+  .settings(
+    version in ProtobufConfig := protoBufVersion,
+    protobufRunProtoc in ProtobufConfig := (args =>
+      com.github.os72.protocjar.Protoc.runProtoc("-v330" +: args.toArray)
+      )
+  )
 
 val root = project.in(file("."))
   .settings(commonSettings ++ noPublishSettings)
