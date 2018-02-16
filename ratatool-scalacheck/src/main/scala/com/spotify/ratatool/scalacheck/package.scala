@@ -18,3 +18,5 @@
 package com.spotify.ratatool
 
 package object scalacheck extends AvroGeneratorOps
+  with ProtoBufGeneratorOps
+  with TableRowGeneratorOps

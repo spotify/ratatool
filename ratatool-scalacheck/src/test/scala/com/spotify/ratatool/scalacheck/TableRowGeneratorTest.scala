@@ -39,7 +39,7 @@ object TableRowGeneratorTest extends Properties("TableRowGenerator") {
             ).asJava)
       ).asJava)
 
-  property("round trip") = forAll(TableRowGeneratorOps.tableRowOf(schema)) { m =>
+  property("round trip") = forAll(tableRowOf(schema)) { m =>
     m.setF(m.getF) == m
   }
 

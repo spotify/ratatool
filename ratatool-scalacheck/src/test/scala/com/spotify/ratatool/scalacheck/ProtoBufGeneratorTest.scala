@@ -23,7 +23,7 @@ import org.scalacheck.Prop._
 
 
 object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
-  property("round trip") = forAll(ProtoBufGeneratorOps.protoBufOf[TestRecord]) { m =>
+  property("round trip") = forAll(protoBufOf[TestRecord]) { m =>
     m == TestRecord.parseFrom(m.toByteArray)
   }
 
