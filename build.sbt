@@ -142,7 +142,6 @@ lazy val ratatoolSampling = project
       "org.apache.parquet" % "parquet-avro" % parquetVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-      "org.slf4j" % "slf4j-simple" % slf4jVersion
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
@@ -159,7 +158,6 @@ lazy val ratatoolDiffy = project
   .settings(
     name := "ratatool-diffy",
     libraryDependencies ++= Seq(
-      "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
       "com.spotify" %% "scio-core" % scioVersion,
       "com.spotify" %% "scio-test" % scioVersion % "test",
       "com.twitter" %% "algebird-core" % algebirdVersion,
@@ -182,14 +180,8 @@ lazy val ratatoolCli = project
     name := "ratatool-cli",
     libraryDependencies ++= Seq(
       "com.github.scopt" %% "scopt" % scoptVersion,
-      "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
-      "org.apache.avro" % "avro" % avroVersion,
-      "org.apache.avro" % "avro" % avroVersion classifier("tests"),
-      "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
-      "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
       "org.apache.parquet" % "parquet-avro" % parquetVersion,
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-      "org.slf4j" % "slf4j-simple" % slf4jVersion
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
@@ -206,10 +198,6 @@ lazy val ratatoolGenerators = project
   .settings(
     name := "ratatool-generators",
     libraryDependencies ++= Seq(
-      "org.apache.avro" % "avro" % avroVersion,
-      "org.apache.avro" % "avro" % avroVersion classifier("tests"),
-      "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
-      "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
