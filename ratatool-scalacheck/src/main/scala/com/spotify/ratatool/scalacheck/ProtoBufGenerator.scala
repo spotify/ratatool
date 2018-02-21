@@ -160,9 +160,7 @@ trait ProtoBufGeneratorOps {
       case Type.SFIXED32 => genPositiveInt.map(v => SFixed32Writer(id, v))
       case Type.SFIXED64 => genPositiveLong.map(v => SFixed64Writer(id, v))
       case Type.BOOL => Arbitrary.arbBool.arbitrary.map(v => BoolWriter(id, v))
-      case Type.STRING => Gen.choose(0, 40)
-        .flatMap(n => Gen.listOfN(n, Arbitrary.arbChar.arbitrary))
-        .map(l => StringWriter(id, l.mkString))
+      case Type.STRING => Arbitrary.arbString.arbitrary.map(v => StringWriter(id, v))
 
       case Type.ENUM =>
         Gen.oneOf(field.getEnumType.getValues.asScala)
