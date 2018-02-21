@@ -217,6 +217,7 @@ lazy val ratatoolGenerators = project
   .settings(protoBufSettings)
   .dependsOn(ratatoolCommon % "compile->compile;test->test")
 
+
 lazy val ratatoolScalacheck = project
   .in(file("ratatool-scalacheck"))
   .settings(commonSettings)
@@ -224,7 +225,8 @@ lazy val ratatoolScalacheck = project
     name := "ratatool-scalacheck",
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion,
-      "org.scalacheck" %% "scalacheck" % scalaCheckVersion
+      "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion
     )
   )
   .enablePlugins(ProtobufPlugin, PackPlugin)
