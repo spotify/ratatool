@@ -55,10 +55,7 @@ class AvroDiffy[T <: GenericRecord](ignore: Set[String] = Set.empty,
         case _ =>
           val a = x.get(name)
           val b = y.get(name)
-          if (a == b) {
-            Nil
-          } else {
-            Seq(Delta(fullName, a, b, delta(a, b)))}
+          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
       }
     }
     .filter(d => !ignore.contains(d.field))
