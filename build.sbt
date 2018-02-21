@@ -86,6 +86,10 @@ lazy val releaseSettings = Seq(
         <name>Neville Li</name>
         <url>https://twitter.com/sinisa_lyh</url>
       </developer>
+      <developer>
+        <id>idreeskhan</id>
+        <name>Idrees Khan</name>
+      </developer>
     </developers>
   }
 )
@@ -104,24 +108,20 @@ lazy val assemblySettings = Seq(
   assemblyJarName in assembly := s"ratatool-${version.value}.jar"
 )
 
-lazy val ratatool = project
+lazy val ratatoolCommon = project
+  .in(file("ratatool-common"))
   .settings(commonSettings)
   .settings(
+    name := "ratatool-common",
     libraryDependencies ++= Seq(
-      "com.github.scopt" %% "scopt" % scoptVersion,
       "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
-      "com.spotify" %% "scio-core" % scioVersion,
-      "com.spotify" %% "scio-test" % scioVersion % "test",
-      "com.twitter" %% "algebird-core" % algebirdVersion,
-      "joda-time" % "joda-time" % jodaTimeVersion,
       "org.apache.avro" % "avro" % avroVersion,
       "org.apache.avro" % "avro" % avroVersion classifier("tests"),
       "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
       "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
-      "org.apache.parquet" % "parquet-avro" % parquetVersion,
-      "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-      "org.slf4j" % "slf4j-simple" % slf4jVersion
+      "org.slf4j" % "slf4j-simple" % slf4jVersion,
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
+      "com.google.guava" % "guava" % "20.0"
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
@@ -129,7 +129,90 @@ lazy val ratatool = project
   .enablePlugins(ProtobufPlugin, PackPlugin)
   .settings(protoBufSettings)
 
-lazy val ratatoolScalacheck = project.in(file("ratatool-scalacheck"))
+lazy val ratatoolSampling = project
+  .in(file("ratatool-sampling"))
+  .settings(commonSettings)
+  .settings(
+    name := "ratatool-sampling",
+    libraryDependencies ++= Seq(
+      "com.spotify" %% "scio-core" % scioVersion,
+      "com.spotify" %% "scio-test" % scioVersion % "test",
+      "com.twitter" %% "algebird-core" % algebirdVersion,
+      "joda-time" % "joda-time" % jodaTimeVersion,
+      "org.apache.parquet" % "parquet-avro" % parquetVersion,
+      "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+    ),
+    // In case of scalacheck failures print more info
+    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
+  )
+  .enablePlugins(ProtobufPlugin, PackPlugin)
+  .dependsOn(
+    ratatoolCommon % "compile->compile;test->test",
+    ratatoolGenerators % "test"
+  )
+
+lazy val ratatoolDiffy = project
+  .in(file("ratatool-diffy"))
+  .settings(commonSettings)
+  .settings(
+    name := "ratatool-diffy",
+    libraryDependencies ++= Seq(
+      "com.spotify" %% "scio-core" % scioVersion,
+      "com.spotify" %% "scio-test" % scioVersion % "test",
+      "com.twitter" %% "algebird-core" % algebirdVersion,
+      "joda-time" % "joda-time" % jodaTimeVersion
+    ),
+    // In case of scalacheck failures print more info
+    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
+  )
+  .enablePlugins(ProtobufPlugin, PackPlugin)
+  .dependsOn(
+    ratatoolCommon % "compile->compile;test->test",
+    ratatoolSampling,
+    ratatoolGenerators % "test"
+  )
+
+lazy val ratatoolCli = project
+  .in(file("ratatool-cli"))
+  .settings(commonSettings)
+  .settings(
+    name := "ratatool-cli",
+    libraryDependencies ++= Seq(
+      "com.github.scopt" %% "scopt" % scoptVersion,
+      "org.apache.parquet" % "parquet-avro" % parquetVersion,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+    ),
+    // In case of scalacheck failures print more info
+    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
+  )
+  .enablePlugins(ProtobufPlugin, PackPlugin)
+  .dependsOn(
+    ratatoolCommon % "compile->compile;test->test",
+    ratatoolSampling
+  )
+
+lazy val ratatoolGenerators = project
+  .in(file("ratatool-generators"))
+  .settings(commonSettings ++ noPublishSettings)
+  .settings(
+    name := "ratatool-generators",
+    libraryDependencies ++= Seq(
+      "org.slf4j" % "slf4j-simple" % slf4jVersion,
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
+      "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
+      "com.spotify" %% "scio-core" % scioVersion
+    ),
+    // In case of scalacheck failures print more info
+    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
+  )
+  .enablePlugins(ProtobufPlugin, PackPlugin)
+  .settings(protoBufSettings)
+  .dependsOn(ratatoolCommon % "compile->compile;test->test")
+
+
+lazy val ratatoolScalacheck = project
+  .in(file("ratatool-scalacheck"))
   .settings(commonSettings)
   .settings(
     name := "ratatool-scalacheck",
@@ -138,10 +221,17 @@ lazy val ratatoolScalacheck = project.in(file("ratatool-scalacheck"))
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion
     )
-  ).dependsOn(ratatool % "test")
+  )
   .enablePlugins(ProtobufPlugin, PackPlugin)
-  .settings(protoBufSettings)
+  .dependsOn(ratatoolCommon % "compile->compile;test->test")
 
 val root = project.in(file("."))
   .settings(commonSettings ++ noPublishSettings)
-  .aggregate(ratatool, ratatoolScalacheck)
+  .aggregate(
+    ratatoolCommon,
+    ratatoolScalacheck,
+    ratatoolDiffy,
+    ratatoolSampling,
+    ratatoolCli,
+    ratatoolGenerators
+  )
