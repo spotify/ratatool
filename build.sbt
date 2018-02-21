@@ -82,6 +82,11 @@ lazy val releaseSettings = Seq(
     </scm>
     <developers>
       <developer>
+        <id>sinisa_lyh</id>
+        <name>Neville Li</name>
+        <url>https://twitter.com/sinisa_lyh</url>
+      </developer>
+      <developer>
         <id>idreeskhan</id>
         <name>Idrees Khan</name>
       </developer>
