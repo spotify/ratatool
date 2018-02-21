@@ -105,7 +105,7 @@ lazy val assemblySettings = Seq(
 
 lazy val ratatoolCommon = project
   .in(file("ratatool-common"))
-  .settings(commonSettings ++ noPublishSettings)
+  .settings(commonSettings)
   .settings(
     name := "ratatool-common",
     libraryDependencies ++= Seq(
