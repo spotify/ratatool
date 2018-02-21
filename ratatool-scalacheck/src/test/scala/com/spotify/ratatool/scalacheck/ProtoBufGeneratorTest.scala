@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Spotify AB.
+ * Copyright 2018 Spotify AB.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,16 @@
  * under the License.
  */
 
-package com.spotify.ratatool
+package com.spotify.ratatool.scalacheck
 
-package object scalacheck extends AvroGeneratorOps
-  with ProtoBufGeneratorOps
-  with TableRowGeneratorOps
+import com.spotify.ratatool.proto.Schemas.TestRecord
+import org.scalacheck.Properties
+import org.scalacheck.Prop._
+
+
+object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
+  property("round trip") = forAll(protoBufOf[TestRecord]) { m =>
+    m == TestRecord.parseFrom(m.toByteArray)
+  }
+
+}

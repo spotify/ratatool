@@ -1,0 +1,120 @@
+/*
+ * Copyright 2018 Spotify AB.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package com.spotify.ratatool.scalacheck
+
+import java.nio.ByteBuffer
+import com.google.api.services.bigquery.model.{TableCell, TableFieldSchema, TableRow, TableSchema}
+import org.joda.time._
+import org.joda.time.format.DateTimeFormat
+import org.scalacheck.{Arbitrary, Gen}
+
+import scala.collection.JavaConverters._
+
+/** Mainly type inference not to fall into `Any` */
+private class TableFieldValue(val name: String, val value: Any)
+
+private object TableFieldValue {
+  def apply(n: String, x: Int): TableFieldValue = new TableFieldValue(n, x)
+  def apply(n: String, x: Float): TableFieldValue = new TableFieldValue(n, x)
+  def apply(n: String, x: Instant): TableFieldValue = new TableFieldValue(n, x)
+  def apply(n: String, x: LocalDateTime): TableFieldValue = new TableFieldValue(n, x)
+  def apply(n: String, x: Null): TableFieldValue = new TableFieldValue(n, x)
+  def apply(n: String, x: ByteBuffer): TableFieldValue = new TableFieldValue(n, x)
+  def apply(n: String, x: Boolean): TableFieldValue = new TableFieldValue(n, x)
+  def apply(n: String, x: String): TableFieldValue = new TableFieldValue(n, x)
+  def apply(n: String, x: LocalDate): TableFieldValue = new TableFieldValue(n, x)
+  def apply(n: String, x: LocalTime): TableFieldValue = new TableFieldValue(n, x)
+  def apply(n: String, x: TableRow): TableFieldValue = new TableFieldValue(n, x)
+  def apply(n: String, x: List[TableFieldValue]): TableFieldValue =
+    new TableFieldValue(n, x)
+}
+
+object TableRowGeneratorOps extends TableRowGeneratorOps
+
+trait TableRowGeneratorOps {
+  private val timeStampFormatter =
+    DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS").withZoneUTC()
+  private val dateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd").withZoneUTC()
+  private val dateTimeFormatter =
+    DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").withZoneUTC()
+  private val timeFormatter =
+    DateTimeFormat.forPattern("HH:mm:ss.SSSSSS").withZoneUTC()
+
+  private def instantGen: Gen[Instant] = Gen.choose(0L, Long.MaxValue).map(l => new Instant(l))
+
+  /** Generate a BigQuery [[TableRow]] record. */
+  def tableRowOf(schema: TableSchema): Gen[TableRow] = {
+   tableRowOfList(schema.getFields.asScala.toList)
+  }
+
+  /**
+   * Generate a TableRow from an `Iterable[TableFieldSchema]` so this can be reused
+   * by `RECORD` fields
+   */
+  private def tableRowOfList(row: Iterable[TableFieldSchema]): Gen[TableRow] = {
+    def tableCellOf(s: TableFieldValue): TableCell = {
+      s.value match {
+        /** Workaround for type erasure */
+        case List(_: TableFieldValue, _*) =>
+          new TableCell().set(s.name,
+            s.value.asInstanceOf[List[TableFieldValue]].map(tableCellOf).asJava)
+        case _ => new TableCell().set(s.name, s.value)
+      }
+    }
+
+    val fieldGens = Gen.sequence(row.map(t => tableFieldValueOf(t)))
+    fieldGens.map { list =>
+      new TableRow().setF(list.asScala.map { f =>
+        tableCellOf(f)
+      }.asJava)
+    }
+  }
+
+  //scalastyle:off cyclomatic.complexity
+  private def tableFieldValueOf(fieldSchema: TableFieldSchema): Gen[TableFieldValue] = {
+    val n = fieldSchema.getName
+    def genV(): Gen[TableFieldValue] = fieldSchema.getType match {
+      case "INTEGER" => Arbitrary.arbInt.arbitrary.map(TableFieldValue(n, _))
+      case "FLOAT" => Arbitrary.arbFloat.arbitrary.map(TableFieldValue(n, _))
+      case "BOOLEAN" => Arbitrary.arbBool.arbitrary.map(TableFieldValue(n, _))
+      case "STRING" => Arbitrary.arbString.arbitrary.map(TableFieldValue(n, _))
+      case "TIMESTAMP" => instantGen.map(i =>
+        TableFieldValue(n, timeStampFormatter.print(i) + " UTC"))
+      case "DATE" => instantGen.map(i => TableFieldValue(n, dateFormatter.print(i)))
+      case "TIME" =>  instantGen.map(i => TableFieldValue(n, timeFormatter.print(i)))
+      case "DATETIME" =>  instantGen.map(i => TableFieldValue(n, dateTimeFormatter.print(i)))
+      case "BYTES" => Gen.listOf(Arbitrary.arbByte.arbitrary)
+        .map(v => TableFieldValue(n, ByteBuffer.wrap(v.toArray)))
+      case "RECORD" =>
+        tableRowOfList(fieldSchema.getFields.asScala).map(TableFieldValue(n, _))
+
+      case t => throw new RuntimeException(s"Unknown type: $t")
+    }
+
+    fieldSchema.getMode match {
+      case "REQUIRED" => genV()
+      case "NULLABLE" => Arbitrary.arbBool.arbitrary.flatMap { e =>
+        if (e) genV() else Gen.const(TableFieldValue(n, null))
+      }
+      case "REPEATED" => Gen.listOf(genV()).map(l => TableFieldValue(n, l))
+
+      case m => throw new RuntimeException(s"Unknown mode: $m")
+    }
+  }
+  //scalastyle:on cyclomatic.complexity
+}
