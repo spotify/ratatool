@@ -9,3 +9,4 @@
 -XX:+UseConcMarkSweepGC
 # Additional flag that might help in case of serialization failures
 -Dsun.io.serialization.extendedDebugInfo=true
+
