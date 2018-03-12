@@ -63,17 +63,22 @@ trait AvroGeneratorOps {
   }
 
   def genericRecordOf(schema: Schema): Gen[GenericRecord] = {
-    avroValueOf(schema).map { avroValue =>
+    /**
+     * Adding the Gen.const in front fixes behaviour with Gen.listOfN, which would
+     * previously return the exact result for every item in the list. Also means that the
+     * behaviour of the generated
+     */
+    Gen.const(0).flatMap( _ => avroValueOf(schema).map { avroValue =>
       avroValue.value match {
         case x: GenericRecord => x
         case other => sys.error(s"Not a record: $schema")
       }
-    }
+    })
   }
 
   /**
    *  Arbitrary [0-39] range and directly creating Utf-8 chosen to mimic [[RandomData]].
-   *  Also avoids some ser/de issues with IndexOutOfBounds decoding with Kryo
+   *  Also avoids some ser/de issues with IndexOutOfBounds decoding with CoderUtils & Kryo
    */
   private def boundedLengthGen = Gen.chooseNum(0, 39)
   private def utf8Gen = boundedLengthGen.flatMap(n =>
@@ -123,7 +128,8 @@ trait AvroGeneratorOps {
 
       /**
        *  Directly creating a [[java.util.HashMap]] since JavaConverters `.asJava` method
-       *  is lazy and seems to cause issues with ser/de in Kryo, resulting in flaky BigDiffy tests
+       *  is lazy and seems to cause issues with ser/de in Beam & Kryo
+       *  resulting in flaky BigDiffy tests
        */
       case Schema.Type.MAP =>
         Gen.mapOf(

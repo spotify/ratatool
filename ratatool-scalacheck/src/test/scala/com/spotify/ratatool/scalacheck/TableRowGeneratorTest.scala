@@ -17,30 +17,35 @@
 
 package com.spotify.ratatool.scalacheck
 
-import com.google.api.services.bigquery.model.{TableFieldSchema, TableSchema}
-import org.scalacheck.Properties
-import org.scalacheck.Prop._
-
-import scala.collection.JavaConverters._
+import com.google.api.services.bigquery.model.TableRow
+import com.spotify.ratatool.Schemas
+import org.scalacheck.{Gen, Properties}
+import org.scalacheck.Prop.{all, forAll, BooleanOperators}
 
 object TableRowGeneratorTest extends Properties("TableRowGenerator") {
-  val schema: TableSchema =
-    new TableSchema().setFields(
-      List(
-        new TableFieldSchema().setName("required").setType("BOOLEAN").setMode("REQUIRED"),
-        new TableFieldSchema().setName("nullable").setType("FLOAT").setMode("NULLABLE"),
-        new TableFieldSchema().setName("repeated_record").setType("RECORD").setMode("REPEATED")
-            .setFields(List(
-              new TableFieldSchema().setName("string").setType("STRING").setMode("REQUIRED"),
-              new TableFieldSchema().setName("timestamp").setType("TIMESTAMP").setMode("REQUIRED"),
-              new TableFieldSchema().setName("datetime").setType("DATETIME").setMode("REQUIRED"),
-              new TableFieldSchema().setName("time").setType("TIME").setMode("NULLABLE"),
-              new TableFieldSchema().setName("date").setType("DATE").setMode("REQUIRED")
-            ).asJava)
-      ).asJava)
-
-  property("round trip") = forAll(tableRowOf(schema)) { m =>
+  property("round trip") = forAll(tableRowOf(Schemas.tableSchema)) { m =>
     m.setF(m.getF) == m
+  }
+
+  val n = "nullable_fields"
+  val richGen = tableRowOf(Schemas.tableSchema)
+    .amend(Gen.choose(10L, 20L))(_.getRecord(n).set("int_field"))
+    .amend(Gen.choose(10.0, 20.0))(_.getRecord(n).set("float_field"))
+    .amend(Gen.const(true))(_.getRecord(n).set("boolean_field"))
+    .amend(Gen.const("hello"))(_.getRecord(n).set("string_field"))
+
+  property("support RichTableRowGen") = forAll (richGen) { r =>
+    val fields = r.get(n).asInstanceOf[TableRow]
+    val i = fields.get("int_field").asInstanceOf[Long]
+    val f = fields.get("float_field").asInstanceOf[Double]
+    val b = fields.get("boolean_field").asInstanceOf[Boolean]
+    val s = fields.get("string_field").asInstanceOf[String]
+    all(
+      "Int"     |: i >= 10L && i <= 20L,
+      "Float"   |: f >= 10.0 && f <= 20.0,
+      "Boolean" |: b == true,
+      "String"  |: s == "hello"
+    )
   }
 
 }

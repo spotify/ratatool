@@ -20,8 +20,8 @@ package com.spotify.ratatool.scalacheck
 import com.spotify.ratatool.avro.specific.TestRecord
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
-import org.scalacheck.Properties
-import org.scalacheck.Prop._
+import org.scalacheck._
+import org.scalacheck.Prop.{all, forAll, BooleanOperators, AnyOperators}
 
 object AvroGeneratorTest extends Properties("AvroGenerator") {
   property("round trips") = forAll (specificRecordOf[TestRecord]) { m =>
@@ -30,5 +30,28 @@ object AvroGeneratorTest extends Properties("AvroGenerator") {
     val bytes = CoderUtils.encodeToByteArray(coder, m)
     val decoded = CoderUtils.decodeFromByteArray(coder, bytes)
     decoded ?= m
+  }
+
+  val richGen = specificRecordOf[TestRecord]
+    .amend(Gen.choose(10, 20))(_.getNullableFields.setIntField)
+    .amend(Gen.choose(10L, 20L))(_.getNullableFields.setLongField)
+    .amend(Gen.choose(10.0f, 20.0f))(_.getNullableFields.setFloatField)
+    .amend(Gen.choose(10.0, 20.0))(_.getNullableFields.setDoubleField)
+    .amend(Gen.const(true))(_.getNullableFields.setBooleanField)
+    .amend(Gen.const("hello"))(_.getNullableFields.setStringField)
+
+  property("support RichAvroGen") = forAll (richGen) { r =>
+    all(
+      "Int" |:
+        r.getNullableFields.getIntField >= 10 && r.getNullableFields.getIntField <= 20,
+      "Long" |:
+        r.getNullableFields.getLongField >= 10L && r.getNullableFields.getLongField <= 20L,
+      "Float" |:
+        r.getNullableFields.getFloatField >= 10.0f && r.getNullableFields.getFloatField <= 20.0f,
+      "Double" |:
+        r.getNullableFields.getDoubleField >= 10.0 && r.getNullableFields.getDoubleField <= 20.0,
+      "Boolean" |: r.getNullableFields.getBooleanField == true,
+      "String" |: r.getNullableFields.getStringField == "hello"
+    )
   }
 }
