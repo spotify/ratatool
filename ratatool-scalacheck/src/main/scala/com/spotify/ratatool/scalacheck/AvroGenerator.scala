@@ -66,7 +66,7 @@ trait AvroGeneratorOps {
     /**
      * Adding the Gen.const in front fixes behaviour with Gen.listOfN, which would
      * previously return the exact result for every item in the list. Also means that the
-     * behaviour of the generated
+     * behaviour of the generated data matches that of other `Gen[T]`
      */
     Gen.const(0).flatMap( _ => avroValueOf(schema).map { avroValue =>
       avroValue.value match {
