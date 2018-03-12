@@ -217,7 +217,7 @@ private[samplers] object BigSamplerAvro {
   private def hashAvroUnionField(field: Schema.Field, v: AnyRef, hasher: Hasher): Hasher = {
     val types = field.schema.getTypes.asScala
     types.foldLeft(hasher)( (hasher, p) =>
-      p.getType match {
+      p.getType match {f
         case Type.ENUM if v.isInstanceOf[Enum[_]] =>
           hasher.putString(v.asInstanceOf[Enum[_]].name, BigSampler.utf8Charset)
         case Type.STRING if v.isInstanceOf[CharSequence] =>
