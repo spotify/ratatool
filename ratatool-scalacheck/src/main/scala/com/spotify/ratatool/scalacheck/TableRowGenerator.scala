@@ -18,7 +18,9 @@
 package com.spotify.ratatool.scalacheck
 
 import java.nio.ByteBuffer
+
 import com.google.api.services.bigquery.model.{TableCell, TableFieldSchema, TableRow, TableSchema}
+import com.google.common.io.BaseEncoding
 import org.joda.time._
 import org.joda.time.format.DateTimeFormat
 import org.scalacheck.{Arbitrary, Gen}
@@ -67,21 +69,23 @@ trait TableRowGeneratorOps {
    * by `RECORD` fields
    */
   private def tableRowOfList(row: Iterable[TableFieldSchema]): Gen[TableRow] = {
-    def tableCellOf(s: TableFieldValue): TableCell = {
-      s.value match {
-        /** Workaround for type erasure */
-        case List(_: TableFieldValue, _*) =>
-          new TableCell().set(s.name,
-            s.value.asInstanceOf[List[TableFieldValue]].map(tableCellOf).asJava)
-        case _ => new TableCell().set(s.name, s.value)
+    def buildRow(r: TableRow, v: List[TableFieldValue]): TableRow = {
+      v.foreach { s =>
+        s.value match {
+          /** Workaround for type erasure */
+          case List(_: TableFieldValue, _*) =>
+            r.set(s.name, s.value.asInstanceOf[List[TableFieldValue]].map(_.value).asJava)
+          case _ => r.set(s.name, s.value)
+        }
       }
+      r
     }
 
     val fieldGens = Gen.sequence(row.map(t => tableFieldValueOf(t)))
     fieldGens.map { list =>
-      new TableRow().setF(list.asScala.map { f =>
-        tableCellOf(f)
-      }.asJava)
+      val r = new TableRow
+      buildRow(r, list.asScala.toList)
+      r
     }
   }
 
@@ -99,7 +103,8 @@ trait TableRowGeneratorOps {
       case "TIME" =>  instantGen.map(i => TableFieldValue(n, timeFormatter.print(i)))
       case "DATETIME" =>  instantGen.map(i => TableFieldValue(n, dateTimeFormatter.print(i)))
       case "BYTES" => Gen.listOf(Arbitrary.arbByte.arbitrary)
-        .map(v => TableFieldValue(n, ByteBuffer.wrap(v.toArray)))
+        .map(i => ByteBuffer.wrap(i.toArray))
+        .map(v => TableFieldValue(n, BaseEncoding.base64().encode(v.array())))
       case "RECORD" =>
         tableRowOfList(fieldSchema.getFields.asScala).map(TableFieldValue(n, _))
 
@@ -111,7 +116,7 @@ trait TableRowGeneratorOps {
       case "NULLABLE" => Arbitrary.arbBool.arbitrary.flatMap { e =>
         if (e) genV() else Gen.const(TableFieldValue(n, null))
       }
-      case "REPEATED" => Gen.listOf(genV()).map(l => TableFieldValue(n, l))
+      case "REPEATED" => Gen.nonEmptyListOf(genV()).map(l => TableFieldValue(n, l))
 
       case m => throw new RuntimeException(s"Unknown mode: $m")
     }

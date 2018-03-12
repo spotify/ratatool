@@ -21,9 +21,8 @@ import java.nio.file.Files
 
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific.TestRecord
-import com.spotify.ratatool.generators.AvroGenerator
+import com.spotify.ratatool.scalacheck._
 import com.spotify.ratatool.io.{AvroIO, FileStorage}
-import com.spotify.ratatool.scalacheck.{AvroGen, TableRowGen}
 import org.apache.avro.generic.GenericRecord
 import org.scalacheck.Prop.{all, forAll, proved}
 import org.scalacheck.{Gen, Properties}
@@ -52,7 +51,6 @@ object BigSamplerTest extends Properties("BigSampler") {
     hasher1.putInt(i).hash() != hasher2.putInt(i).hash()
   }
 
-  import TableRowGen._
   private val tblSchemaFields = Schemas.tableSchema.getFields.asScala
   private val richTableRowGen = tableRowOf(Schemas.tableSchema)
   private val supportedTableRowTypes = Seq(
@@ -104,9 +102,8 @@ object BigSamplerTest extends Properties("BigSampler") {
       ): _*)
   }
 
-  import AvroGen._
   private val avroSchema = TestRecord.SCHEMA$
-  private val richAvroGen = avroOf[TestRecord]
+  private val richAvroGen = specificRecordOf[TestRecord]
   private val supportedAvroTypes = Seq(
     "int_field",
     "float_field",
@@ -164,14 +161,17 @@ object BigSamplerTest extends Properties("BigSampler") {
   property("hash of the same single field should match") = forAll(
     Gen.zip(richAvroGen, Gen.oneOf(supportedCommonFields), Gen.oneOf(records)).map {
       case (i, f, r) =>
-        val tbGen = richTableRowGen.amend(
-          Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f))
-    (i, tbGen.sample.get, s"$r.$f")
-  }) { case (avro, tblRow, f) =>
-    val tblHash = BigSampler.hashTableRow(tblRow, f, tblSchemaFields, newTestHasher()).hash()
-    val avroHash = BigSampler.hashAvroField(avro, f, avroSchema, newTestHasher()).hash()
-    tblHash == avroHash
-  }
+        val tbGen =
+          richTableRowGen
+            .amend(
+              Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f))
+            )(_.getRecord(r).set(f))
+        (i, tbGen.sample.get, s"$r.$f")
+    }) { case (avro, tblRow, f) =>
+      val tblHash = BigSampler.hashTableRow(tblRow, f, tblSchemaFields, newTestHasher()).hash()
+      val avroHash = BigSampler.hashAvroField(avro, f, avroSchema, newTestHasher()).hash()
+      tblHash == avroHash
+    }
 
   property("hash of the same fields from the same record should match") = forAll(
     Gen.zip(richAvroGen, Gen.someOf(supportedCommonFields), Gen.oneOf(records)).map {
@@ -210,8 +210,8 @@ object BigSamplerTest extends Properties("BigSampler") {
 class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllConfigMap {
 
   val schema = Schemas.avroSchema
-  val data1 = (1 to 40000).map(_ => AvroGenerator.avroOf(schema))
-  val data2 = (1 to 10000).map(_ => AvroGenerator.avroOf(schema))
+  val data1 = Gen.listOfN(40000, genericRecordOf(schema)).sample.get
+  val data2 = Gen.listOfN(10000, genericRecordOf(schema)).sample.get
   val totalElements = 50000
   val dir = Files.createTempDirectory("ratatool-big-sampler-input")
   val file1 = new File(dir.toString, "part-00000.avro")

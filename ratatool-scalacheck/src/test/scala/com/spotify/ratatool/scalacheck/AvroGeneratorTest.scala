@@ -18,26 +18,17 @@
 package com.spotify.ratatool.scalacheck
 
 import com.spotify.ratatool.avro.specific.TestRecord
-import org.apache.avro.generic.GenericDatumWriter
-import org.apache.avro.io.{DecoderFactory, EncoderFactory}
-import org.apache.avro.specific.SpecificDatumReader
-import org.apache.commons.io.output.ByteArrayOutputStream
+import org.apache.beam.sdk.coders.AvroCoder
+import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
 
 object AvroGeneratorTest extends Properties("AvroGenerator") {
   property("round trips") = forAll (specificRecordOf[TestRecord]) { m =>
-    val writer = new GenericDatumWriter[TestRecord](TestRecord.SCHEMA$)
-    val out = new ByteArrayOutputStream()
-    val encoder = EncoderFactory.get().binaryEncoder(out, null)
-    writer.write(m, encoder)
-    encoder.flush()
+    val coder = AvroCoder.of(classOf[TestRecord])
 
-    val bytes = out.toByteArray
-
-    val reader = new SpecificDatumReader(classOf[TestRecord])
-    val decoder = DecoderFactory.get().binaryDecoder(bytes, null)
-
-    reader.read(null, decoder) ?= m
+    val bytes = CoderUtils.encodeToByteArray(coder, m)
+    val decoded = CoderUtils.decodeFromByteArray(coder, bytes)
+    decoded ?= m
   }
 }

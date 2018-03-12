@@ -18,7 +18,7 @@
 package com.spotify.ratatool.diffy
 
 import com.spotify.ratatool.avro.specific.{NullableNestedRecord, TestRecord}
-import com.spotify.ratatool.generators.AvroGenerator
+import com.spotify.ratatool.scalacheck._
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
@@ -45,12 +45,12 @@ class AvroDiffyTest extends FlatSpec with Matchers {
   it should "support nested fields" in {
     val coder = AvroCoder.of(classOf[TestRecord])
 
-    val nnr = AvroGenerator.avroOf[NullableNestedRecord]
+    val nnr = specificRecordOf[NullableNestedRecord].sample.get
     nnr.setIntField(10)
     nnr.setLongField(20L)
     nnr.setStringField("hello")
 
-    val x = AvroGenerator.avroOf[TestRecord]
+    val x = specificRecordOf[TestRecord].sample.get
     x.setNullableNestedField(nnr)
 
     val y = CoderUtils.clone(coder, x)
@@ -73,7 +73,8 @@ class AvroDiffyTest extends FlatSpec with Matchers {
   it should "support repeated fields" in {
     val coder = AvroCoder.of(classOf[TestRecord])
 
-    val x = AvroGenerator.avroOf[TestRecord]
+
+    val x = specificRecordOf[TestRecord].sample.get
     x.getRepeatedFields.setIntField(jl(10, 11))
     x.getRepeatedFields.setLongField(jl(20L, 21L))
     x.getRepeatedFields.setStringField(jl("hello", "world"))
@@ -109,7 +110,7 @@ class AvroDiffyTest extends FlatSpec with Matchers {
     val b = NullableNestedRecord.newBuilder().setIntField(20).setLongField(200L).build()
     val c = NullableNestedRecord.newBuilder().setIntField(30).setLongField(300L).build()
 
-    val x = AvroGenerator.avroOf[TestRecord]
+    val x = specificRecordOf[TestRecord].sample.get
     x.setRepeatedNestedField(jl(a, b, c))
     val y = CoderUtils.clone(coder, x)
     val z = CoderUtils.clone(coder, x)

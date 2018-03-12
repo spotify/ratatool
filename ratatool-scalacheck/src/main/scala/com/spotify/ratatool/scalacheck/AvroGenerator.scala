@@ -17,22 +17,23 @@
 
 package com.spotify.ratatool.scalacheck
 
-import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
+import java.util
 
 import org.apache.avro._
-import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
-import org.apache.avro.io.{DecoderFactory, EncoderFactory}
-import org.apache.avro.specific.{SpecificData, SpecificDatumReader, SpecificRecord}
+import org.apache.avro.generic.{GenericData, GenericRecord}
+import org.apache.avro.specific.SpecificRecord
+import org.apache.avro.util.Utf8
+import org.apache.beam.sdk.coders.AvroCoder
+import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.{Arbitrary, Gen}
 
-import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
 /** Mainly type inference not to fall into `Any` */
 class AvroValue(val value: Any) extends AnyVal
 
-object AvroValue {
+private object AvroValue {
   def apply(x: Int): AvroValue = new AvroValue(x)
   def apply(x: Long): AvroValue = new AvroValue(x)
   def apply(x: Float): AvroValue = new AvroValue(x)
@@ -52,21 +53,12 @@ object AvroGeneratorOps extends AvroGeneratorOps
 trait AvroGeneratorOps {
   def specificRecordOf[A <: SpecificRecord: ClassTag]: Gen[A] = {
     val cls = implicitly[ClassTag[A]].runtimeClass.asInstanceOf[Class[A]]
-    val schema = SpecificData.get().getSchema(cls)
+    val specificCoder = AvroCoder.of(cls)
+    val genericCoder = AvroCoder.of(specificCoder.getSchema)
 
-    genericRecordOf(schema).map { generic =>
-      val writer = new GenericDatumWriter[GenericRecord](schema)
-      val out = new ByteArrayOutputStream()
-      val encoder = EncoderFactory.get().binaryEncoder(out, null)
-      writer.write(generic, encoder)
-      encoder.flush()
-
-      val bytes = out.toByteArray
-
-      val reader = new SpecificDatumReader(cls)
-      val decoder = DecoderFactory.get().binaryDecoder(bytes, null)
-
-      reader.read(null.asInstanceOf[A], decoder)
+    genericRecordOf(specificCoder.getSchema).map { generic =>
+      val bytes = CoderUtils.encodeToByteArray(genericCoder, generic)
+      CoderUtils.decodeFromByteArray(specificCoder, bytes)
     }
   }
 
@@ -79,9 +71,18 @@ trait AvroGeneratorOps {
     }
   }
 
+  /**
+   *  Arbitrary [0-39] range and directly creating Utf-8 chosen to mimic [[RandomData]].
+   *  Also avoids some ser/de issues with IndexOutOfBounds decoding with Kryo
+   */
+  private def boundedLengthGen = Gen.chooseNum(0, 39)
+  private def utf8Gen = boundedLengthGen.flatMap(n =>
+                          Gen.listOfN(n, Arbitrary.arbChar.arbitrary))
+                          .map(l => new Utf8(l.mkString))
+
   // scalastyle:off cyclomatic.complexity
   // scalastyle:off method.length
-  def avroValueOf(schema: Schema): Gen[AvroValue] = {
+  private def avroValueOf(schema: Schema): Gen[AvroValue] = {
     import scala.collection.JavaConversions._
 
     schema.getType match {
@@ -109,10 +110,9 @@ trait AvroGeneratorOps {
         val gen = avroValueOf(schema.getElementType)
 
         Gen.listOf(gen).map { xs =>
-          val values = xs.map(_.value)
-          val javaList = new java.util.ArrayList(asJavaCollection(values))
-
-          AvroValue(javaList)
+          val al = new util.ArrayList[Any]()
+          xs.map(_.value).foreach(al.add)
+          AvroValue(al)
         }
 
       case Schema.Type.ENUM =>
@@ -120,13 +120,22 @@ trait AvroGeneratorOps {
           .map(GenericData.get().createEnum(_, schema))
           .map(AvroValue(_))
 
+
+      /**
+       *  Directly creating a [[java.util.HashMap]] since JavaConverters `.asJava` method
+       *  is lazy and seems to cause issues with ser/de in Kryo, resulting in flaky BigDiffy tests
+       */
       case Schema.Type.MAP =>
         Gen.mapOf(
           for {
-            k <- Gen.alphaStr
+            k <- utf8Gen
             v <- avroValueOf(schema.getValueType)
           } yield (k, v.value)
-        ).map(x => AvroValue(x.asJava))
+        ).map { x =>
+          val map: util.Map[Any, Any] = new util.HashMap[Any, Any]()
+          x.foreach { case (k, v) => map.put(k, v)}
+          AvroValue(map)
+        }
 
       case Schema.Type.FIXED =>
         Gen.listOfN(
@@ -137,16 +146,16 @@ trait AvroGeneratorOps {
       case Schema.Type.STRING =>
         Gen.oneOf(
           Gen.oneOf[String](" ", "", "foo "),
-          Arbitrary.arbString.arbitrary
+          utf8Gen
         ).map(AvroValue(_))
 
       case Schema.Type.BYTES =>
-        Gen.listOf(Arbitrary.arbByte.arbitrary).map { values =>
-          val bb = ByteBuffer.wrap(values.toArray)
-
-          AvroValue(bb)
-        }
-
+        boundedLengthGen.flatMap(n =>
+          Gen.listOfN(n, Arbitrary.arbByte.arbitrary).map { values =>
+            val bb = ByteBuffer.wrap(values.toArray)
+            AvroValue(bb)
+          }
+        )
       case Schema.Type.INT => Arbitrary.arbInt.arbitrary.map(AvroValue(_))
       case Schema.Type.LONG => Arbitrary.arbLong.arbitrary.map(AvroValue(_))
       case Schema.Type.FLOAT => Arbitrary.arbFloat.arbitrary.map(AvroValue(_))

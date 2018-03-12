@@ -20,14 +20,31 @@ package com.spotify.ratatool.io
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 
 import com.spotify.ratatool.Schemas
-import com.spotify.ratatool.scalacheck.TableRowGen
+import com.spotify.ratatool.scalacheck._
+import org.scalacheck.Gen
 import org.scalatest.{FlatSpec, Matchers}
+import scala.collection.JavaConverters._
 
 class TableRowJsonIOTest extends FlatSpec with Matchers {
 
-  val schema = Schemas.tableSchema
-  val gen = TableRowGen.tableRowOf(schema)
-  val data = (1 to 100).flatMap(_ => gen.sample)
+  /**
+   * Reduce bounds of the float from [[org.scalacheck.Arbitrary.arbFloat]] to avoid floating point
+   * precision errors with `.toString()`
+   */
+  private def floatGen = Gen.choose[Float](0.0F, 1.0F)
+
+  private val schema = Schemas.tableSchema
+  private val data = Gen.listOfN(100,
+    tableRowOf(schema)
+      .amend(Gen.oneOf(
+        Gen.const(null),
+        floatGen
+      ))(_.getRecord("nullable_fields").set("float_field"))
+      .amend(floatGen)(_.getRecord("required_fields").set("float_field"))
+      .amend(Gen.nonEmptyListOf(floatGen)
+        .map(_.asJava)
+      )(_.getRecord("repeated_fields").set("float_field"))
+  ).sample.get
 
   "TableRowJsonIO" should "work with stream" in {
     val out = new ByteArrayOutputStream()
