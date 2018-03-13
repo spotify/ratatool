@@ -165,7 +165,8 @@ lazy val ratatoolDiffy = project
       "joda-time" % "joda-time" % jodaTimeVersion
     ),
     // In case of scalacheck failures print more info
-    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
+    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
+    parallelExecution in Test := false
   )
   .enablePlugins(ProtobufPlugin, PackPlugin)
   .dependsOn(
