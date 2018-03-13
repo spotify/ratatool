@@ -19,7 +19,7 @@ package com.spotify.ratatool.scalacheck
 
 import java.nio.ByteBuffer
 
-import com.google.api.services.bigquery.model.{TableCell, TableFieldSchema, TableRow, TableSchema}
+import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
 import org.joda.time._
 import org.joda.time.format.DateTimeFormat
