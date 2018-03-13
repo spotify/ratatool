@@ -4,10 +4,6 @@ scala:
   - 2.12.4
 jdk: oraclejdk8
 
-# To get a machine with more memory capacity
-dist: trusty
-sudo: required
-
 cache:
   directories:
     - $HOME/.sbt/boot
