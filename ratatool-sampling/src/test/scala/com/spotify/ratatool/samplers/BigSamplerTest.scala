@@ -25,6 +25,7 @@ import com.spotify.ratatool.scalacheck._
 import com.spotify.ratatool.io.{AvroIO, FileStorage}
 import org.apache.avro.generic.GenericRecord
 import org.scalacheck.Prop.{all, forAll, proved}
+import org.scalacheck.rng.Seed
 import org.scalacheck.{Gen, Properties}
 import org.scalatest.{BeforeAndAfterAllConfigMap, ConfigMap, FlatSpec, Matchers}
 
@@ -210,8 +211,10 @@ object BigSamplerTest extends Properties("BigSampler") {
 class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllConfigMap {
 
   val schema = Schemas.avroSchema
-  val data1 = Gen.listOfN(40000, genericRecordOf(schema)).sample.get
-  val data2 = Gen.listOfN(10000, genericRecordOf(schema)).sample.get
+  val data1 = Gen.listOfN(40000, genericRecordOf(schema))
+    .pureApply(Gen.Parameters.default.withSize(5), Seed.random())
+  val data2 = Gen.listOfN(10000, genericRecordOf(schema))
+    .pureApply(Gen.Parameters.default.withSize(5), Seed.random())
   val totalElements = 50000
   val dir = Files.createTempDirectory("ratatool-big-sampler-input")
   val file1 = new File(dir.toString, "part-00000.avro")
