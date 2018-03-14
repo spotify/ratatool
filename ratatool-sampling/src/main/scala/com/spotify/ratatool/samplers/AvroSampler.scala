@@ -35,13 +35,15 @@ class AvroSampler(path: Path, protected val seed: Option[Long] = None)
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[AvroSampler])
 
+  private def getFileContext: FileContext = FileContext.getFileContext(GcsConfiguration.get())
+
   override def sample(n: Long, head: Boolean): Seq[GenericRecord] = {
     require(n > 0, "n must be > 0")
     logger.info("Taking a sample of {} from Avro {}", n, path)
 
     val fs = FileSystem.get(path.toUri, GcsConfiguration.get())
     if (fs.isFile(path)) {
-      new AvroFileSampler(path, seed).sample(n, head)
+      new AvroFileSampler(getFileContext, path, seed).sample(n, head)
     } else {
       val filter = new PathFilter {
         override def accept(path: Path): Boolean = path.getName.endsWith(".avro")
@@ -54,7 +56,7 @@ class AvroSampler(path: Path, protected val seed: Option[Long] = None)
         val result = ListBuffer.empty[GenericRecord]
         val iter = paths.iterator
         while (result.size < n && iter.hasNext) {
-          result.appendAll(new AvroFileSampler(iter.next()).sample(n, head))
+          result.appendAll(new AvroFileSampler(getFileContext, iter.next()).sample(n, head))
         }
         result
       } else {
@@ -62,7 +64,9 @@ class AvroSampler(path: Path, protected val seed: Option[Long] = None)
         val sizes = statuses.map(_.getLen)
         val samples = scaleWeights(sizes, n)
         val futures = paths.zip(samples).map { case (p, s) =>
-          Future(new AvroFileSampler(p).sample(s, head))
+          val fc = getFileContext
+          Future(new AvroFileSampler(fc, p)
+            .sample(s, head))
         }.toSeq
         Await.result(Future.sequence(futures), Duration.Inf).flatten
       }
@@ -88,7 +92,7 @@ class AvroSampler(path: Path, protected val seed: Option[Long] = None)
 
 }
 
-private class AvroFileSampler(path: Path, protected val seed: Option[Long] = None)
+private class AvroFileSampler(fc: FileContext, path: Path, protected val seed: Option[Long] = None)
   extends Sampler[GenericRecord] {
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[AvroFileSampler])
@@ -97,7 +101,7 @@ private class AvroFileSampler(path: Path, protected val seed: Option[Long] = Non
     require(n > 0, "n must be > 0")
     logger.debug("Taking a sample of {} from Avro file {}", n, path)
 
-    val input = new AvroFSInput(FileContext.getFileContext(GcsConfiguration.get()), path)
+    val input = new AvroFSInput(fc, path)
     val datumReader = new GenericDatumReader[GenericRecord]()
     val fileReader = DataFileReader.openReader(input, datumReader)
 
