@@ -121,7 +121,7 @@ lazy val ratatoolCommon = project
       "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
       "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "com.google.guava" % "guava" % "20.0"
     ),
     // In case of scalacheck failures print more info
@@ -203,7 +203,7 @@ lazy val ratatoolScalacheck = project
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion
     )
   )
