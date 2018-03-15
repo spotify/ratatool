@@ -27,11 +27,11 @@ val parquetVersion = "1.9.0"
 val protoBufVersion = "3.3.1"
 val scalaCheckVersion = "1.13.5"
 val scalaTestVersion = "3.0.4"
-val scioVersion = "0.4.3"
+val scioVersion = "0.5.0"
 val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.25"
 val bigqueryVersion = "v2-rev372-1.23.0"
-val beamVersion = "2.1.0"
+val beamVersion = "2.2.0"
 
 val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
