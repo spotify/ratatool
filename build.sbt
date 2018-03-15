@@ -69,30 +69,17 @@ lazy val releaseSettings = Seq(
   publishArtifact in Test       := false,
   publishTo := Some(if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging),
   sonatypeProfileName           := "com.spotify",
-  pomExtra                      := {
-    <url>https://github.com/spotify/ratatool</url>
-    <licenses>
-      <license>
-        <name>Apache 2</name>
-        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      </license>
-    </licenses>
-    <scm>
-      <url>git@github.com/spotify/ratatool.git</url>
-      <connection>scm:git:git@github.com:spotify/ratatool.git</connection>
-    </scm>
-    <developers>
-      <developer>
-        <id>sinisa_lyh</id>
-        <name>Neville Li</name>
-        <url>https://twitter.com/sinisa_lyh</url>
-      </developer>
-      <developer>
-        <id>idreeskhan</id>
-        <name>Idrees Khan</name>
-      </developer>
-    </developers>
-  }
+
+  licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
+  homepage := Some(url("https://github.com/spotify/ratatool")),
+  scmInfo := Some(ScmInfo(
+    url("https://github.com/spotify/ratatool.git"),
+    "scm:git:git@github.com:spotify/ratatool.git")),
+  developers := List(
+    Developer(id="sinisa_lyh", name="Neville Li", email="neville.lyh@gmail.com", url=url("https://twitter.com/sinisa_lyh")),
+    Developer(id="ravwojdyla", name="Rafal Wojdyla", email="ravwojdyla@gmail.com", url=url("https://twitter.com/ravwojdyla")),
+    Developer(id="idreeskhan", name="Idrees Khan", email="me@idreeskhan.com", url=url("https://github.com/idreeskhan"))
+  ),
 )
 
 lazy val assemblySettings = Seq(
