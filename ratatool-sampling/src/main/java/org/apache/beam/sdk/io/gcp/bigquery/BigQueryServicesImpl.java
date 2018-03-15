@@ -837,22 +837,22 @@ public class BigQueryServicesImpl implements BigQueryServices {
   }
 
   private static class BigQueryJsonReaderImpl implements BigQueryJsonReader {
-    private BigQueryTableRowIterator iterator;
+    private PatchedBigQueryTableRowIterator iterator;
 
-    private BigQueryJsonReaderImpl(BigQueryTableRowIterator iterator) {
+    private BigQueryJsonReaderImpl(PatchedBigQueryTableRowIterator iterator) {
       this.iterator = iterator;
     }
 
     private static BigQueryJsonReader fromQuery(
         BigQueryOptions bqOptions, String projectId, JobConfigurationQuery queryConfig) {
       return new BigQueryJsonReaderImpl(
-          BigQueryTableRowIterator.fromQuery(
+          PatchedBigQueryTableRowIterator.fromQuery(
               queryConfig, projectId, newBigQueryClient(bqOptions).build()));
     }
 
     private static BigQueryJsonReader fromTable(
         BigQueryOptions bqOptions, TableReference tableRef) {
-      return new BigQueryJsonReaderImpl(BigQueryTableRowIterator.fromTable(
+      return new BigQueryJsonReaderImpl(PatchedBigQueryTableRowIterator.fromTable(
           tableRef, newBigQueryClient(bqOptions).build()));
     }
 
