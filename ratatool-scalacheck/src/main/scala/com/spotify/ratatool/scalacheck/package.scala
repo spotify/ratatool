@@ -19,7 +19,7 @@ package com.spotify.ratatool
 
 import com.google.api.services.bigquery.model.TableRow
 import org.apache.avro.specific.SpecificRecord
-import org.scalacheck.{Arbitrary, Gen}
+import org.scalacheck.Gen
 
 import scala.util.Try
 import scala.language.implicitConversions
