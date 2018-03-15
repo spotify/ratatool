@@ -22,19 +22,19 @@ import java.nio.file.Files
 
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific.TestRecord
-import com.spotify.ratatool.scalacheck.AvroGen
+import com.spotify.ratatool.scalacheck._
 import org.apache.commons.io.FileUtils
 import org.scalatest.{FlatSpec, Matchers}
 
 class ParquetIOTest extends FlatSpec with Matchers {
 
-  val genericSchema = Schemas.avroSchema
-  val genericGen = AvroGen.avroOf(genericSchema)
-  val genericData = (1 to 100).flatMap(_ => genericGen.sample)
+  private val genericSchema = Schemas.avroSchema
+  private val genericGen = genericRecordOf(genericSchema)
+  private val genericData = (1 to 100).flatMap(_ => genericGen.sample)
 
-  val specificSchema = TestRecord.getClassSchema
-  val specificGen = AvroGen.avroOf[TestRecord]
-  val specificData = (1 to 100).flatMap(_ => specificGen.sample)
+  private val specificSchema = TestRecord.getClassSchema
+  private val specificGen = specificRecordOf[TestRecord]
+  private val specificData = (1 to 100).flatMap(_ => specificGen.sample)
 
   "ParquetIO" should "work with generic record and stream" in {
     val out = new ByteArrayOutputStream()

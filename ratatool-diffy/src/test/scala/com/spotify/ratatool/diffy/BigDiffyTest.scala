@@ -17,21 +17,30 @@
 
 package com.spotify.ratatool.diffy
 
-import com.spotify.ratatool.avro.specific.TestRecord
-import com.spotify.ratatool.scalacheck.AvroGen
+import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
+import com.spotify.ratatool.scalacheck._
 import com.spotify.scio.testing.PipelineSpec
+import org.apache.avro.util.Utf8
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Gen
+import org.scalacheck.rng.Seed
 
 class BigDiffyTest extends PipelineSpec {
 
   val keys = (1 to 1000).map("key" + _)
   val coder = AvroCoder.of(classOf[TestRecord])
-  val lhs = Gen.listOfN(1000, AvroGen.avroOf[TestRecord]).sample.get.zip(1 to 1000)
+
+  /** Fixed to a small range so that Std. Dev. & Variance calculations are easier to predict */
+  val rnr = specificRecordOf[RequiredNestedRecord]
+    .amend(Gen.choose[Double](0.0, 1.0))(_.setDoubleField)
+  val specificGen = specificRecordOf[TestRecord]
+    .amend(rnr)(_.setRequiredFields)
+  val lhs = Gen.listOfN(1000, specificGen)
+    .pureApply(Gen.Parameters.default.withSize(10), Seed.random()).zip(1 to 1000)
     .map { case (r, i) =>
       r.getRequiredFields.setIntField(i)
-      r.getRequiredFields.setStringField("key" + i)
+      r.getRequiredFields.setStringField(new Utf8("key" + i))
       r
     }
   val field = "required_fields.double_field"

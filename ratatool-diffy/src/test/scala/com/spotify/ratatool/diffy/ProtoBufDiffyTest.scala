@@ -17,7 +17,7 @@
 
 package com.spotify.ratatool.diffy
 
-import com.spotify.ratatool.generators.ProtoBufGenerator
+import com.spotify.ratatool.scalacheck._
 import com.spotify.ratatool.proto.Schemas.{OptionalNestedRecord, RepeatedNestedRecord, TestRecord}
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -39,9 +39,9 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
   }
 
   it should "support nested fields" in {
-    val base = ProtoBufGenerator.protoBufOf[TestRecord]
+    val base = protoBufOf[TestRecord].sample.get
 
-    val onr = ProtoBufGenerator.protoBufOf[OptionalNestedRecord].toBuilder
+    val onr = protoBufOf[OptionalNestedRecord].sample.get.toBuilder
       .setInt32Field(10)
       .setInt64Field(20L)
       .setStringField("hello")
@@ -71,7 +71,7 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
   }
 
   it should "support repeated fields" in {
-    val base = ProtoBufGenerator.protoBufOf[TestRecord]
+    val base = protoBufOf[TestRecord].sample.get
     val x = TestRecord.newBuilder(base)
       .setRepeatedFields(
         RepeatedNestedRecord.newBuilder(base.getRepeatedFields)
@@ -119,7 +119,7 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
     val b = OptionalNestedRecord.newBuilder().setInt32Field(20).setInt64Field(200L).build()
     val c = OptionalNestedRecord.newBuilder().setInt32Field(30).setInt64Field(300L).build()
 
-    val base = ProtoBufGenerator.protoBufOf[TestRecord]
+    val base = protoBufOf[TestRecord].sample.get
     val x = TestRecord.newBuilder(base)
       .clearRepeatedNestedField()
       .addAllRepeatedNestedField(jl(a, b, c))

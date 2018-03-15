@@ -21,16 +21,17 @@ import java.io.File
 import java.nio.file.Files
 
 import com.spotify.ratatool.Schemas
-import com.spotify.ratatool.generators.AvroGenerator
+import com.spotify.ratatool.scalacheck._
 import com.spotify.ratatool.io.AvroIO
 import org.apache.hadoop.fs.Path
+import org.scalacheck.Gen
 import org.scalatest._
 
 class AvroSamplerTest extends FlatSpec with Matchers with BeforeAndAfterAllConfigMap {
 
   val schema = Schemas.avroSchema
-  val data1 = (1 to 40000).map(_ => AvroGenerator.avroOf(schema))
-  val data2 = (1 to 10000).map(_ => AvroGenerator.avroOf(schema))
+  val data1 = Gen.listOfN(40000, genericRecordOf(schema)).sample.get
+  val data2 = Gen.listOfN(10000, genericRecordOf(schema)).sample.get
   val dir = Files.createTempDirectory("ratatool-")
   val file1 = new File(dir.toString, "part-00000.avro")
   val file2 = new File(dir.toString, "part-00001.avro")
