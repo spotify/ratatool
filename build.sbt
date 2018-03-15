@@ -77,7 +77,7 @@ lazy val releaseSettings = Seq(
   developers := List(
     Developer(id="sinisa_lyh", name="Neville Li", email="neville.lyh@gmail.com", url=url("https://twitter.com/sinisa_lyh")),
     Developer(id="ravwojdyla", name="Rafal Wojdyla", email="ravwojdyla@gmail.com", url=url("https://twitter.com/ravwojdyla")),
-    Developer(id="idreeskhan", name="Idrees Khan", email="idrees@spotify.com", url=url("https://github.com/idreeskhan"))
+    Developer(id="idreeskhan", name="Idrees Khan", email="me@idreeskhan.com", url=url("https://github.com/idreeskhan"))
   ),
 )
 
