@@ -44,11 +44,6 @@ object Examples {
 
   private val boundedDoubleGen: Gen[Double] = Gen.chooseNum(-1.0, 1.0)
 
-  def proxy(): Gen[Int] = {
-    val proxy2: Gen[Int] = Gen.chooseNum(0, 100)
-    proxy2
-  }
-
   private val intGen: Gen[Int] = Gen.chooseNum(0, 100)
 
   private def dependentIntFunc(i: Int): Int = {
