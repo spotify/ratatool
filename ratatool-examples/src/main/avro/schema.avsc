@@ -1,0 +1,57 @@
+{
+    "type": "record",
+    "name": "ExampleRecord",
+    "namespace": "com.spotify.ratatool.avro.specific",
+    "doc": "Record for Examples",
+    "fields": [
+        {
+            "name": "record_id",
+            "type": "string",
+            "doc": "Unique record UUID"
+        },
+        {
+            "name": "independent_int_field",
+            "type": "int"
+        },
+        {
+            "name": "dependent_int_field",
+            "type": "int",
+            "doc": "If independent_int_field is 0, then Max Int, otherwise half of independent_int_field"
+        },
+        {
+            "name": "independent_string_field",
+            "type": "string",
+            "doc": "Output result field that may sometimes contain error messages"
+        },
+        {
+            "name": "dependent_enum_field",
+            "type": {"name": "EnumField", "type": "enum", "symbols": ["Success", "Failure"]},
+            "doc": "Is Failure if independent_string_field is an Exception instead of an output, otherwise Success"
+        },
+        {
+            "name": "nested_record_field",
+            "type": {
+                "type": "record",
+                "name": "NestedExampleRecord",
+                "namespace": "com.spotify.ratatool.avro.specific",
+                "doc": "Record ",
+                "fields": [
+                    {
+                        "name": "int_field",
+                        "type": "int"
+                    },
+                    {
+                        "name": "map_field",
+                        "type": {"type": "map", "values": "int"},
+                        "doc": "A map that contains 0-5 values"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "bounded_double_field",
+            "type": "double",
+            "doc": "A double between -1.0 and 1.0"
+        }
+    ]
+}
