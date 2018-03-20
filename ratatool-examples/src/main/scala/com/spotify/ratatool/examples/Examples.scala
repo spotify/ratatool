@@ -44,7 +44,7 @@ object Examples {
 
   private val boundedDoubleGen: Gen[Double] = Gen.chooseNum(-1.0, 1.0)
 
-  private val intGen: Gen[Int] = Gen.chooseNum(0, 100)
+  private val intGen: Gen[Int] = Arbitrary.arbInt.arbitrary
 
   private def dependentIntFunc(i: Int): Int = {
     if (i == 0) {
