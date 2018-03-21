@@ -25,15 +25,18 @@ import com.spotify.ratatool.GcsConfiguration
 import com.spotify.ratatool.samplers.AvroSampler
 import com.spotify.scio._
 import com.spotify.scio.bigquery.BigQueryClient
+import com.spotify.scio.io.Tap
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
+import org.apache.beam.sdk.io.TextIO
 import org.apache.hadoop.fs.{FileSystem, Path}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.concurrent.Future
 import scala.reflect.ClassTag
 
 /**
@@ -319,6 +322,20 @@ object BigDiffy {
     (r: TableRow) => get(xs, 0, r)
   }
 
+  def pathWithShards(path: String): String = path.replaceAll("\\/+$", "") + "/part"
+
+  implicit class TextFileHeader(coll: SCollection[String]) {
+    def saveAsTextFileWithHeader(path: String, header: String): Future[Tap[String]] = {
+      val transform = TextIO.write()
+        .to(pathWithShards(path))
+        .withSuffix(".txt")
+        .withNumShards(0)
+        .withHeader(header)
+
+      coll.saveAsCustomOutput("saveAsTextFileWithHeader", transform)
+    }
+  }
+
   /** Scio pipeline for BigDiffy. */
   def main(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
@@ -354,9 +371,14 @@ object BigDiffy {
         throw new IllegalArgumentException(s"mode $m not supported")
     }
 
-    result.keyStats.saveAsTextFile(s"$output/keys")
-    result.fieldStats.saveAsTextFile(s"$output/fields")
-    result.globalStats.saveAsTextFile(s"$output/global")
+    result.keyStats.map(_.toString).saveAsTextFileWithHeader(s"$output/keys",
+        "key\tdifftype")
+
+    result.fieldStats.map(_.toString).saveAsTextFileWithHeader(s"$output/fields",
+        "field\tcount\tfraction\tdeltaStats")
+
+    result.globalStats.map(_.toString).saveAsTextFileWithHeader(s"$output/global",
+        "numTotal\tnumSame\tnumDiff\tnumMissingLhs\tnumMissingRhs")
 
     sc.close().waitUntilDone()
   }
