@@ -375,7 +375,8 @@ object BigDiffy {
         "key\tdifftype")
 
     result.fieldStats.map(_.toString).saveAsTextFileWithHeader(s"$output/fields",
-        "field\tcount\tfraction\tdeltaStats")
+        "field\tcount\tfraction\tdeltaType\tmin" +
+          "\tmax\tcount\tmean\tvariance\tstddev\tskewness\tkurtosis")
 
     result.globalStats.map(_.toString).saveAsTextFileWithHeader(s"$output/global",
         "numTotal\tnumSame\tnumDiff\tnumMissingLhs\tnumMissingRhs")
