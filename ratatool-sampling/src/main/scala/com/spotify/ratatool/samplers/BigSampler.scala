@@ -33,12 +33,10 @@ import com.spotify.scio.{ContextAndArgs, ScioContext}
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
 import org.apache.avro.generic.GenericRecord
-import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers,
                                             BigQueryIO,
                                             BigQueryOptions,
                                             BigQueryServicesImpl}
-import org.apache.beam.sdk.options.PipelineOptions
 import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
@@ -95,7 +93,6 @@ object BigSampler {
 
   def singleInput(argv: Array[String]): Future[Tap[_]] = {
     val (sc, args) = ContextAndArgs(argv)
-    val (opts, _) = ScioContext.parseArguments[PipelineOptions](argv)
     val samplePct = args("sample").toFloat
 
     require(samplePct > 0.0F && samplePct <= 1.0F,
@@ -131,8 +128,6 @@ object BigSampler {
       // right now only support for avro
       require(parseAsURI(output).isDefined,
         s"Input is a URI: `$input`, output should be a URI too, but instead it's `$output`.")
-      // Prompts FileSystems to load service classes, otherwise fetching schema from non-local fails
-      FileSystems.setDefaultPipelineOptions(opts)
       BigSamplerAvro.sampleAvro(sc, input, output, fields, samplePct, seed.map(_.toInt))
     } else {
       throw new UnsupportedOperationException(s"Input `$input not supported.")
