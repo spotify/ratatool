@@ -32,6 +32,7 @@ val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.25"
 val bigqueryVersion = "v2-rev372-1.23.0"
 val beamVersion = "2.2.0"
+val guavaVersion = "21.0"
 
 val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
@@ -79,7 +80,7 @@ lazy val releaseSettings = Seq(
     Developer(id="sinisa_lyh", name="Neville Li", email="neville.lyh@gmail.com", url=url("https://twitter.com/sinisa_lyh")),
     Developer(id="ravwojdyla", name="Rafal Wojdyla", email="ravwojdyla@gmail.com", url=url("https://twitter.com/ravwojdyla")),
     Developer(id="idreeskhan", name="Idrees Khan", email="me@idreeskhan.com", url=url("https://github.com/idreeskhan"))
-  ),
+  )
 )
 
 lazy val assemblySettings = Seq(
@@ -109,12 +110,12 @@ lazy val ratatoolCommon = project
       "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
-      "com.google.guava" % "guava" % "20.0"
+      "com.google.guava" % "guava" % guavaVersion
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
-  .enablePlugins(ProtobufPlugin, PackPlugin)
+  .enablePlugins(ProtobufPlugin)
   .settings(protoBufSettings)
 
 lazy val ratatoolSampling = project
@@ -137,7 +138,7 @@ lazy val ratatoolSampling = project
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
     parallelExecution in Test := false
   )
-  .enablePlugins(ProtobufPlugin, PackPlugin)
+  .enablePlugins(ProtobufPlugin)
   .dependsOn(
     ratatoolCommon % "compile->compile;test->test",
     ratatoolScalacheck % "test"
@@ -160,7 +161,7 @@ lazy val ratatoolDiffy = project
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
     parallelExecution in Test := false
   )
-  .enablePlugins(ProtobufPlugin, PackPlugin)
+  .enablePlugins(ProtobufPlugin)
   .dependsOn(
     ratatoolCommon % "compile->compile;test->test",
     ratatoolSampling,
@@ -183,7 +184,8 @@ lazy val ratatoolCli = project
   .enablePlugins(ProtobufPlugin, PackPlugin)
   .dependsOn(
     ratatoolCommon % "compile->compile;test->test",
-    ratatoolSampling
+    ratatoolSampling,
+    ratatoolDiffy
   )
 
 lazy val ratatoolScalacheck = project
@@ -198,7 +200,7 @@ lazy val ratatoolScalacheck = project
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion
     )
   )
-  .enablePlugins(ProtobufPlugin, PackPlugin)
+  .enablePlugins(ProtobufPlugin)
   .dependsOn(ratatoolCommon % "compile->compile;test->test")
 
 val root = project.in(file("."))
