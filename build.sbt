@@ -27,11 +27,11 @@ val parquetVersion = "1.9.0"
 val protoBufVersion = "3.3.1"
 val scalaCheckVersion = "1.13.5"
 val scalaTestVersion = "3.0.4"
-val scioVersion = "0.5.1"
+val scioVersion = "0.5.0"
 val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.25"
-val bigqueryVersion = "v2-rev377-1.23.0"
-val beamVersion = "2.4.0"
+val bigqueryVersion = "v2-rev372-1.23.0"
+val beamVersion = "2.2.0"
 val guavaVersion = "21.0"
 
 val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSettings ++ Seq(
@@ -39,7 +39,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSet
   name := "ratatool",
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.11.12",
-  crossScalaVersions := Seq("2.11.12", "2.12.5"),
+  crossScalaVersions := Seq("2.11.12", "2.12.4"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   scalacOptions in (Compile,doc) ++= {
     scalaBinaryVersion.value match {
