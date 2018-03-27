@@ -293,6 +293,7 @@ object BigDiffy {
         |  --output=<output>      File path prefix for output
         |  --ignore=<keys>        ',' separated field list to ignore
         |  --unordered=<keys>     ',' separated field list to treat as unordered
+        |  [--with-header]        Output all TSVs with header rows
       """.stripMargin)
     // scalastyle:on regex
     sys.exit(1)
@@ -340,10 +341,11 @@ object BigDiffy {
   def main(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
-    val (mode, key, lhs, rhs, output, ignore, unordered) = {
+    val (mode, key, lhs, rhs, output, header, ignore, unordered) = {
       try {
         (args("mode"), args("key"), args("lhs"), args("rhs"), args("output"),
-          args.list("ignore").toSet, args.list("unordered").toSet)
+          args.boolean("with-header", false), args.list("ignore").toSet,
+          args.list("unordered").toSet)
       } catch {
         case e: Throwable =>
           usage()
@@ -371,15 +373,19 @@ object BigDiffy {
         throw new IllegalArgumentException(s"mode $m not supported")
     }
 
-    result.keyStats.map(_.toString).saveAsTextFileWithHeader(s"$output/keys",
-        "key\tdifftype")
-
-    result.fieldStats.map(_.toString).saveAsTextFileWithHeader(s"$output/fields",
+    if (header) {
+      result.keyStats.map(_.toString).saveAsTextFileWithHeader(s"$output/keys", "key\tdifftype")
+      result.fieldStats.map(_.toString).saveAsTextFileWithHeader(s"$output/fields",
         "field\tcount\tfraction\tdeltaType\tmin" +
           "\tmax\tcount\tmean\tvariance\tstddev\tskewness\tkurtosis")
-
-    result.globalStats.map(_.toString).saveAsTextFileWithHeader(s"$output/global",
+      result.globalStats.map(_.toString).saveAsTextFileWithHeader(s"$output/global",
         "numTotal\tnumSame\tnumDiff\tnumMissingLhs\tnumMissingRhs")
+    }
+    else {
+      result.keyStats.saveAsTextFile(s"$output/keys")
+      result.fieldStats.saveAsTextFile(s"$output/fields")
+      result.globalStats.saveAsTextFile(s"$output/global")
+    }
 
     sc.close().waitUntilDone()
   }
