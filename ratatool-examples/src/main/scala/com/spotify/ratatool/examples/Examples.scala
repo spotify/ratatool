@@ -19,12 +19,17 @@ package com.spotify.ratatool.examples
 
 import java.util
 
+import com.google.api.client.json.JsonObjectParser
+import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.services.bigquery.model.{TableRow, TableSchema}
+import com.google.common.base.Charsets
 import com.spotify.ratatool.avro.specific.{EnumField, ExampleRecord, NestedExampleRecord}
 import com.spotify.ratatool.scalacheck._
 import org.apache.avro.util.Utf8
 import org.scalacheck.{Arbitrary, Gen}
+import scala.collection.JavaConverters._
 
-object Examples {
+object ExampleAvroGen {
   private val utfGen: Gen[Utf8] = Arbitrary.arbString.arbitrary.map(new Utf8(_))
 
   private val kvGen: Gen[(Utf8, Int)] = for {
@@ -88,4 +93,42 @@ object Examples {
         m.setIndependentStringField(s)
         m.setDependentEnumField(dependentEnumFunc(s))
       })
+}
+
+object ExampleTableRowGen {
+  private val tableSchema = new JsonObjectParser(new JacksonFactory)
+    .parseAndClose(
+      this.getClass.getResourceAsStream("/schema.json"),
+      Charsets.UTF_8,
+      classOf[TableSchema])
+
+  private val freqGen: Gen[String] = Gen.frequency(
+    (2, Gen.oneOf("Foo", "Bar")),
+    (1, Gen.oneOf("Fizz", "Buzz"))
+  )
+
+  private val intListGen: Gen[java.util.List[Int]] = Gen.listOfN(
+    3,
+    Arbitrary.arbInt.arbitrary
+  ).map(_.asJava)
+
+  private val  rrGen: Gen[TableRow] = Arbitrary.arbString.arbitrary.map {
+    s =>
+      val bytes = s.getBytes(Charsets.UTF_8)
+      val t = new TableRow()
+      t.set("independent_string_field", s)
+      t.set("dependent_bytes_field", bytes)
+      t
+  }
+
+  /**
+   * An example of generating BigQuery table row with specific requirements.
+   *
+   * See `resources/schema.json` for schema and documentation on requirements.
+   */
+  val tableRowGen: Gen[TableRow] =
+    tableRowOf(tableSchema)
+      .tryAmend(Gen.const(""))(_.getRecord("nullable_record").set("repeated_int_field"))
+      .tryAmend(freqGen)(_.getRecord("nullable_record").set("frequency_string_field"))
+      .amend(rrGen)(_.set("required_record"))
 }

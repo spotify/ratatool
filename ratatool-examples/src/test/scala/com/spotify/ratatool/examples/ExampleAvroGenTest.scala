@@ -25,8 +25,8 @@ import org.scalacheck.Prop.{AnyOperators, BooleanOperators, forAll}
 
 import scala.collection.JavaConverters._
 
-object ExampleGenTest extends Properties("AvroGenerator") {
-  val gen: Gen[ExampleRecord] = Examples.exampleRecordGen
+object ExampleAvroGenTest extends Properties("ExampleAvroGenerator") {
+  val gen: Gen[ExampleRecord] = ExampleAvroGen.exampleRecordGen
 
   property("round trips UUID") = forAll(gen) { m =>
     UUID.fromString(m.getRecordId.toString).toString ?= m.getRecordId.toString

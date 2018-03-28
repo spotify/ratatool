@@ -1,0 +1,41 @@
+{
+    "fields": [
+        {
+            "mode": "NULLABLE",
+            "name": "nullable_record",
+            "type": "RECORD",
+            "fields": [
+                {
+                    "mode": "REPEATED",
+                    "name": "repeated_int_field",
+                    "type": "INTEGER",
+                    "description": "List of 3 Integers"
+                },
+                {
+                    "mode": "REQUIRED",
+                    "name": "frequency_string_field",
+                    "type": "STRING",
+                    "description": "One of (Foo, Bar, Fizz, Buzz), twice as likely to be Foo or Bar"
+                }
+            ]
+        },
+        {
+            "mode": "REQUIRED",
+            "name": "required_record",
+            "type": "RECORD",
+            "fields": [
+                {
+                    "mode": "REQUIRED",
+                    "name": "independent_string_field",
+                    "type": "STRING"
+                },
+                {
+                    "mode": "REQUIRED",
+                    "name": "dependent_bytes_field",
+                    "type": "BYTES",
+                    "description": "Byte representation of independent_string_field"
+                }
+            ]
+        }
+    ]
+}
