@@ -37,6 +37,9 @@ object ExampleAvroGen {
     v <- Arbitrary.arbInt.arbitrary
   } yield (k, v)
 
+  /**
+   * Generates a map of size 1-5
+   */
   private val sizedMapGen: Gen[util.Map[CharSequence, java.lang.Integer]] =
     Gen.mapOfN(5, kvGen).map { m =>
       val map = new util.HashMap[Utf8, java.lang.Integer]()
@@ -51,6 +54,16 @@ object ExampleAvroGen {
 
   private val intGen: Gen[Int] = Arbitrary.arbInt.arbitrary
 
+  private val errorGen: Gen[String] = for {
+    e <- Gen.const("Exception: Ratatool Exception. ")
+    m <- Gen.alphaNumStr
+  } yield e + m
+
+  private val stringGen: Gen[String] = Gen.oneOf(Gen.alphaNumStr, errorGen)
+
+  /**
+   * This and dependentEnumFunc are used to produce fields based on critera
+   */
   private def dependentIntFunc(i: Int): Int = {
     if (i == 0) {
       Int.MaxValue
@@ -58,13 +71,6 @@ object ExampleAvroGen {
       i / 2
     }
   }
-
-  private val errorGen: Gen[String] = for {
-    e <- Gen.const("Exception: Ratatool Exception. ")
-    m <- Gen.alphaNumStr
-  } yield e + m
-
-  private val stringGen: Gen[String] = Gen.oneOf(Gen.alphaNumStr, errorGen)
 
   private def dependentEnumFunc(s: String): EnumField = {
     if (s.length > 0 && s.startsWith("Exception")) {
@@ -85,6 +91,11 @@ object ExampleAvroGen {
       .amend(nestedRecordGen)(_.setNestedRecordField)
       .amend(boundedDoubleGen)(_.setBoundedDoubleField)
       .amend(Gen.uuid.map(_.toString))(_.setRecordId)
+
+      /**
+       * Set dependent fields based on Schema criteria. This is done in a single amend with
+       * a single gen to ensure values are consistent per record
+       */
       .amend(intGen)(m => i => {
         m.setIndependentIntField(i)
         m.setDependentIntField(dependentIntFunc(i))
@@ -112,6 +123,10 @@ object ExampleTableRowGen {
     Arbitrary.arbInt.arbitrary
   ).map(_.asJava)
 
+  /**
+   * Nested record Generator where one field depends on another (therefore have to have the same gen
+   * and be set in the same fn)
+   */
   private val  rrGen: Gen[TableRow] = Arbitrary.arbString.arbitrary.map {
     s =>
       val bytes = s.getBytes(Charsets.UTF_8)
@@ -128,7 +143,12 @@ object ExampleTableRowGen {
    */
   val tableRowGen: Gen[TableRow] =
     tableRowOf(tableSchema)
-      .tryAmend(Gen.const(""))(_.getRecord("nullable_record").set("repeated_int_field"))
-      .tryAmend(freqGen)(_.getRecord("nullable_record").set("frequency_string_field"))
       .amend(rrGen)(_.set("required_record"))
+
+      /**
+       * Since nullable_record may not exist, we use tryAmend so that it fails
+       * silently if it does not exist
+       */
+      .tryAmend(intListGen)(_.getRecord("nullable_record").set("repeated_int_field"))
+      .tryAmend(freqGen)(_.getRecord("nullable_record").set("frequency_string_field"))
 }
