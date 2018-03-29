@@ -21,8 +21,13 @@ A tool for random data sampling and generation
 
 If you use [sbt](http://www.scala-sbt.org/) add the following dependency to your build file:
 ```scala
-libraryDependencies += "com.spotify" %% "ratatool" % "0.2.5" % "test"
+libraryDependencies += "com.spotify" %% "ratatool-scalacheck" % "0.3.0-beta1" % "test"
 ```
+
+If needed, the following other libraries are published:
+* `ratatool-diffy`
+* `ratatool-sampling`
+* `ratatool-cli`
 
 Or install via our [Homebrew tap](https://github.com/spotify/homebrew-public) if you're on a Mac:
 
@@ -34,38 +39,38 @@ brew install ratatool
 Or download the [release](https://github.com/spotify/ratatool/releases) jar and run it.
 
 ```bash
-wget https://github.com/spotify/ratatool/releases/download/v0.2.5/ratatool-0.2.5.jar
-java -jar ratatool-0.2.5.jar
+wget https://github.com/spotify/ratatool/releases/download/v0.3.0-beta1/ratatool-0.3.0-beta1.jar
+java -jar ratatool-0.3.0-beta1.jar
 ```
 
 The command line tool can be used to sample from local file system or Google Cloud Storage directly if [Google Cloud SDK](https://cloud.google.com/sdk/) is installed and authenticated.
 
 ```bash
-java -jar ratatool-0.2.5.jar avro --head -n 1000 --in gs://path/to/dataset --out out.avro
-java -jar ratatool-0.2.5.jar parquet --head -n 1000 --in gs://path/to/dataset --out out.parquet
+java -jar ratatool-0.3.0-beta1.jar avro --head -n 1000 --in gs://path/to/dataset --out out.avro
+java -jar ratatool-0.3.0-beta1.jar parquet --head -n 1000 --in gs://path/to/dataset --out out.parquet
 
 # write output to both JSON file and BigQuery table
-java -jar ratatool-0.2.5.jar bigquery --head -n 1000 --in project_id:dataset_id.table_id \
+java -jar ratatool-0.3.0-beta1.jar bigquery --head -n 1000 --in project_id:dataset_id.table_id \
     --out out.json--tableOut project_id:dataset_id.table_id
 ```
 
 It can also be used to sample from HDFS with if `core-site.xml` and `hdfs-site.xml` are available.
 
 ```bash
-java -cp ratatool-0.2.5.jar:/path/to/hadoop/conf com.spotify.ratatool.tool.Tool avro \
+java -cp ratatool-0.3.0-beta1.jar:/path/to/hadoop/conf com.spotify.ratatool.tool.Tool avro \
     --head -n 10 --in hdfs://namenode/path/to/dataset --out file:///path/to/out.avro
 ```
 
 Or execute BigDiffy directly
 
 ```bash
-java -cp ratatool-0.2.5.jar com.spotify.ratatool.diffy.BigDiffy --mode avro --key record.key \
+java -cp ratatool-0.3.0-beta1.jar com.spotify.ratatool.diffy.BigDiffy --mode avro --key record.key \
     --lhs gs://path/to/left --rhs gs://path/to/right --output gs://path/to/output \
     --runner DataflowRunner ....
 ```
 
 # License
 
-Copyright 2016-2017 Spotify AB.
+Copyright 2016-2018 Spotify AB.
 
 Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
