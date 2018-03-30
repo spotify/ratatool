@@ -82,7 +82,7 @@ object BigSampler {
   }
 
   private def usage(): Unit = {
-    // scalastyle:off regex
+    // scalastyle:off regex line.size.limit
     println(
       """BigSampler
         |Usage: BigSampler [dataflow_options] [options]
@@ -93,7 +93,7 @@ object BigSampler {
         |  [--fields=<field1,field2,...>]    An optional list of fields to include in hashing for sampling cohort selection
         |  [--seed=<seed]                    An optional seed using in hashing for sampling cohort selection
       """.stripMargin)
-    // scalastyle:on regex
+    // scalastyle:on regex line.size.limit
     sys.exit(1)
   }
 
