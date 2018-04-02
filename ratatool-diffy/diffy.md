@@ -12,7 +12,9 @@ BigDiffy will run a [Scio](https://github.com/spotify/scio) pipeline diffing a L
  * `fields` - Field level statistics including, but not limited to, the number of records with different values per field, min, max, standard deviation 
  * `keys` - All unique keys found in the two datasets and their Diff types by key
 
-For full details see [BigDiffy.scala](https://github.com/spotify/ratatool/blob/master/ratatool-diffy/src/main/scala/com/spotify/ratatool/diffy/BigDiffy.scala)
+For full details on Statistics and output see [BigDiffy.scala](https://github.com/spotify/ratatool/blob/master/ratatool-diffy/src/main/scala/com/spotify/ratatool/diffy/BigDiffy.scala)
+
+Supported filesystems include Local, GCS (`gs://`), and HDFS (`hdfs://`)
 
 ## Usage
 
