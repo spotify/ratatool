@@ -81,6 +81,23 @@ object BigSampler {
     Try(new URI(uri)).toOption
   }
 
+  private def usage(): Unit = {
+    // scalastyle:off regex line.size.limit
+    println(
+      """BigSampler
+        |Usage: BigSampler [dataflow_options] [options]
+        |
+        |  --sample=<percentage>             Percentage of records to take in sample, a decimal between 0.0 and 1.0
+        |  --input=<path>                    Input file path or BigQuery table
+        |  --output=<path>                   Output file path or BigQuery table
+        |  [--fields=<field1,field2,...>]    An optional list of fields to include in hashing for sampling cohort selection
+        |  [--seed=<seed]                    An optional seed using in hashing for sampling cohort selection
+      """.stripMargin)
+    // scalastyle:on regex line.size.limit
+    sys.exit(1)
+  }
+
+
   private[samplers] def hashTableRow(r: TableRow,
                                      f: String,
                                      tblSchemaFields: Seq[TableFieldSchema],
@@ -96,15 +113,17 @@ object BigSampler {
   def singleInput(argv: Array[String]): Future[Tap[_]] = {
     val (sc, args) = ContextAndArgs(argv)
     val (opts, _) = ScioContext.parseArguments[PipelineOptions](argv)
-    val samplePct = args("sample").toFloat
 
-    require(samplePct > 0.0F && samplePct <= 1.0F,
-      "Sample percentage should be between (0.0, 1.0]")
-
-    val input = args("input")
-    val output = args("output")
-    val fields = args.list("fields")
-    val seed = args.optional("seed")
+    val (samplePct, input, output, fields, seed) = try {
+      val pct = args("sample").toFloat
+      require(pct > 0.0F && pct <= 1.0F)
+      (pct, args("input"), args("output"), args.list("fields"),
+        args.optional("seed"))
+    } catch {
+      case e: Throwable =>
+        usage()
+        throw e
+    }
 
     if (fields.isEmpty) {
       log.warn("No fields to hash on specified, won't guarantee cohorts between datasets.")

@@ -75,7 +75,19 @@ case class GlobalStats(numTotal: Long, numSame: Long, numDiff: Long,
   override def toString: String = s"$numTotal\t$numSame\t$numDiff\t$numMissingLhs\t$numMissingRhs"
 }
 
-/** Delta level statistics. */
+/**
+ * Delta level statistics, mean, and the four standardized moments.
+ *
+ * deltaType - one of NUMERIC, STRING, VECTOR
+ * min - minimum distance seen
+ * max - maximum distance seen
+ * count - number of differences seen
+ * mean - mean of all differences
+ * variance - squared deviation from the mean
+ * stddev - standard deviation from the mean
+ * skewness - measure of data asymmetry in all deltas
+ * kurtosis - measure of distribution sharpness and tail thickness in deltas
+ */
 case class DeltaStats(deltaType: DeltaType.Value,
                       min: Double, max: Double, count: Long,
                       mean: Double, variance: Double, stddev: Double,
