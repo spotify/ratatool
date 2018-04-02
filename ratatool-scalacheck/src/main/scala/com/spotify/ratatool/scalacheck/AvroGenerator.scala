@@ -76,6 +76,10 @@ trait AvroGeneratorOps {
     })
   }
 
+  /** Aliases for API consistency across formats */
+  def avroOf[A <: SpecificRecord: ClassTag]: Gen[A] = specificRecordOf[A]
+  def avroOf(schema: Schema): Gen[GenericRecord] = genericRecordOf(schema)
+
   /**
    *  Arbitrary [0-39] range and directly creating Utf-8 chosen to mimic [[RandomData]].
    *  Also avoids some ser/de issues with IndexOutOfBounds decoding with CoderUtils & Kryo
