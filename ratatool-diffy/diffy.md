@@ -1,7 +1,7 @@
 Diffy
 =======
 
-Diffy contains record diff-ing classes that can be utilized by BigDiffy to perform Diffs over large datasets.
+Diffy contains record diff-ing classes that can be utilized by BigDiffy to perform Diffs over large datasets. Supported filesystems include Local, GCS (`gs://`), and HDFS (`hdfs://`)
 
 # BigDiffy
 
@@ -10,11 +10,10 @@ BigDiffy will run a [Scio](https://github.com/spotify/scio) pipeline diffing a L
 
  * `global` - Global counts of Diff types (`SAME`, `DIFFERENT`, `MISSING_LHS`, `MISSING_RHS`) seen in the entire dataset
  * `fields` - Field level statistics including, but not limited to, the number of records with different values per field, min, max, standard deviation 
- * `keys` - All unique keys found in the two datasets and their Diff types by key
+ * `keys` - All unique keys found in the two datasets and their Diff types by key in pairs of `<key>\t<diffType>`
 
 For full details on Statistics and output see [BigDiffy.scala](https://github.com/spotify/ratatool/blob/master/ratatool-diffy/src/main/scala/com/spotify/ratatool/diffy/BigDiffy.scala)
 
-Supported filesystems include Local, GCS (`gs://`), and HDFS (`hdfs://`)
 
 ## Usage
 

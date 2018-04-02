@@ -1,7 +1,7 @@
 Sampler
 =======
 
-Diffy contains record sampling classes for Avro, BigQuery, Parquet.
+Diffy contains record sampling classes for Avro, BigQuery, Parquet. Supported filesystems include Local, GCS (`gs://`), and HDFS (`hdfs://`).
 
 # BigSampler
 
@@ -9,8 +9,6 @@ BigSampler will run a [Scio](https://github.com/spotify/scio) pipeline sampling 
  It also allows specifying a seed and fields to hash for deterministic cohort selection.
 
 For full details see [BigSample.scala](https://github.com/spotify/ratatool/blob/master/ratatool-sampling/src/main/scala/com/spotify/ratatool/samplers/BigSampler.scala)
-
-Supported filesystems include Local, GCS (`gs://`), and HDFS (`hdfs://`).
 
 ## Usage
 
