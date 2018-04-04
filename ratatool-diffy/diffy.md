@@ -10,7 +10,7 @@ BigDiffy will run a [Scio](https://github.com/spotify/scio) pipeline diffing a L
 
  * `global` - Global counts of Diff types (`SAME`, `DIFFERENT`, `MISSING_LHS`, `MISSING_RHS`) seen in the entire dataset (See `GlobalStats`)
  * `fields` - Field level statistics including, but not limited to, the number of records with different values per field, min, max, standard deviation (See `FieldStats` and `DeltaStats`)
- * `keys` - All unique keys found in the two datasets and their Diff types by key in pairs of `<key>\t<diffType>` (See `KeyStats`)
+ * `keys` - All unique keys found in the two datasets and their Diff types by key in pairs of `<key>\t<diffType>` (See `KeyStats`). If fields are different it will output stats for every field which is different, including left and right, as well as distance if the field is `NUMERIC`, `STRING`, or `VECTOR`
 
 For full details on Statistics and output see [BigDiffy.scala](https://github.com/spotify/ratatool/blob/master/ratatool-diffy/src/main/scala/com/spotify/ratatool/diffy/BigDiffy.scala)
 
