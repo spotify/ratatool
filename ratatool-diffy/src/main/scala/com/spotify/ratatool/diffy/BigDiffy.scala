@@ -52,13 +52,21 @@ object DiffType extends Enumeration {
 }
 
 /**
- * Key level statistics.
+ * Key-field level [[DiffType]] and delta.
+ *
+ * If DiffType are SAME, MISSING_LHS, or MISSING_RHS they will appear once with no Delta
+ * If DiffType is DIFFERENT, there is one KeyStats for every field that is different for that key
+ *  with that field's Delta
  *
  * key - primary being compared.
  * diffType - how the two records of the given key compares.
+ * delta - a single field's difference including field name, values, and distance
  */
-case class KeyStats(key: String, diffType: DiffType.Value) {
-  override def toString: String = s"$key\t$diffType"
+case class KeyStats(key: String, diffType: DiffType.Value, delta: Option[Delta]) {
+  override def toString: String = {
+    val deltaStr = delta.map(_.toString).getOrElse("")
+    s"$key\t$diffType\t$deltaStr"
+  }
 }
 
 /**
@@ -136,7 +144,13 @@ class BigDiffy[T](lhs: SCollection[T], rhs: SCollection[T],
   lazy val globalStats: SCollection[GlobalStats] = globalAndFieldStats.keys
 
   /** Key level statistics. */
-  lazy val keyStats: SCollection[KeyStats] = _deltas.map { case (k, (_, dt)) => KeyStats(k, dt) }
+  lazy val keyStats: SCollection[KeyStats] = _deltas.flatMap {
+    case (k, (dfs, dt)) =>
+      dfs match {
+        case Nil => Seq(KeyStats(k, dt, None))
+        case _ => dfs.map(d => KeyStats(k, dt, Some(d)))
+      }
+  }
 
   /** Field level statistics. */
   lazy val fieldStats: SCollection[FieldStats] = globalAndFieldStats.flatMap(_._2)

@@ -36,10 +36,14 @@ object DeltaType extends Enumeration {
 sealed trait DeltaValue
 
 /** Delta value of unknown type. */
-case object UnknownDelta extends DeltaValue
+case object UnknownDelta extends DeltaValue {
+  override def toString: String = "UNKNOWN"
+}
 
 /** Delta value with a known type and computed difference. */
-case class TypedDelta(deltaType: DeltaType.Value, value: Double) extends DeltaValue
+case class TypedDelta(deltaType: DeltaType.Value, value: Double) extends DeltaValue {
+  override def toString: String = s"$deltaType\t$value}"
+}
 
 /** Companion objects for `TypedDelta`. */
 object NumericDelta {
@@ -60,7 +64,9 @@ object VectorDelta {
  * @param right right hand side value
  * @param delta delta of numerical values
  */
-case class Delta(field: String, left: Any, right: Any, delta: DeltaValue)
+case class Delta(field: String, left: Any, right: Any, delta: DeltaValue) {
+  override def toString: String = s"$field\t$delta\t$left\t$right"
+}
 
 /**
  * Field level diff tool.

@@ -53,13 +53,15 @@ class BigDiffyTest extends PipelineSpec {
         new AvroDiffy[TestRecord](), _.getRequiredFields.getStringField.toString)
       result.globalStats should containSingleValue (GlobalStats(1000L, 1000L, 0L, 0L, 0L))
       result.deltas should beEmpty
-      result.keyStats should containInAnyOrder (keys.map(KeyStats(_, DiffType.SAME)))
+      result.keyStats should containInAnyOrder (keys.map(KeyStats(_, DiffType.SAME, None)))
       result.fieldStats should beEmpty
     }
   }
 
   it should "work with deltas" in {
     runWithContext { sc =>
+      val keyedDoubles = lhs.map(i =>
+        (i.getRequiredFields.getStringField.toString , i.getRequiredFields.getDoubleField))
       val rhs = lhs.map(CoderUtils.clone(coder, _)).map { r =>
         r.getRequiredFields.setDoubleField(r.getRequiredFields.getDoubleField + 10.0)
         r
@@ -70,7 +72,9 @@ class BigDiffyTest extends PipelineSpec {
       result.globalStats should containSingleValue (GlobalStats(1000L, 0L, 1000L, 0L, 0L))
       result.deltas.map(d => (d._1, d._2)) should containInAnyOrder (
         keys.map((_, field)))
-      result.keyStats should containInAnyOrder (keys.map(KeyStats(_, DiffType.DIFFERENT)))
+      result.keyStats should containInAnyOrder (keyedDoubles.map{case (k, d) =>
+        KeyStats(k, DiffType.DIFFERENT, Option(Delta("required_fields.double_field", d, d + 10.0,
+          TypedDelta(DeltaType.NUMERIC, 10.0))))})
       result.fieldStats.map(f => (f.field, f.count, f.fraction)) should containSingleValue (
         (field, 1000L, 1.0))
       // Double.NaN comparison is always false
@@ -91,8 +95,8 @@ class BigDiffyTest extends PipelineSpec {
       result.globalStats should containSingleValue (GlobalStats(1000L, 500L, 0L, 500L, 0L))
       result.deltas should beEmpty
       result.keyStats should containInAnyOrder (
-        (1 to 500).map(i => KeyStats("key" + i, DiffType.SAME)) ++
-          (501 to 1000).map(i => KeyStats("key" + i, DiffType.MISSING_LHS)))
+        (1 to 500).map(i => KeyStats("key" + i, DiffType.SAME, None)) ++
+          (501 to 1000).map(i => KeyStats("key" + i, DiffType.MISSING_LHS, None)))
       result.fieldStats should beEmpty
     }
   }
@@ -106,8 +110,8 @@ class BigDiffyTest extends PipelineSpec {
       result.globalStats should containSingleValue (GlobalStats(1000L, 500L, 0L, 0L, 500L))
       result.deltas should beEmpty
       result.keyStats should containInAnyOrder (
-        (1 to 500).map(i => KeyStats("key" + i, DiffType.SAME)) ++
-          (501 to 1000).map(i => KeyStats("key" + i, DiffType.MISSING_RHS)))
+        (1 to 500).map(i => KeyStats("key" + i, DiffType.SAME, None)) ++
+          (501 to 1000).map(i => KeyStats("key" + i, DiffType.MISSING_RHS, None)))
       result.fieldStats should beEmpty
     }
   }
