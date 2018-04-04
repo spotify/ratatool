@@ -42,7 +42,7 @@ case object UnknownDelta extends DeltaValue {
 
 /** Delta value with a known type and computed difference. */
 case class TypedDelta(deltaType: DeltaType.Value, value: Double) extends DeltaValue {
-  override def toString: String = s"$deltaType\t$value}"
+  override def toString: String = s"$deltaType\t$value"
 }
 
 /** Companion objects for `TypedDelta`. */
