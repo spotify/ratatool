@@ -32,7 +32,7 @@ val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.25"
 val bigqueryVersion = "v2-rev372-1.23.0"
 val beamVersion = "2.2.0"
-val guavaVersion = "20.0"
+val guavaVersion = "21.0"
 
 val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
