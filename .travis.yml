@@ -23,13 +23,13 @@ notifications:
   email:
     - idrees@spotify.com
 
-before_deploy: sbt ++$TRAVIS_SCALA_VERSION clean ratatool/assembly
+before_deploy: sbt ++$TRAVIS_SCALA_VERSION clean packArchive
 deploy:
   provider: releases
   api_key:
     secure: r3M0l90KsnAs2JH6dMcrZnARff5anem8PDlgqtnzgCEr/pWNYauD/Z7wiPSSPJQhe2ov43e2IZaiGKCXKGTx++5LskYWDH1AbnepcgWqshH91L2zIggtuEbFEnk5hVJ0saUj6zmQ0OFJcM3v483FcHTKaDfyNyNPaaUd1ab+snhnpxA38T1BacywaFTN2dieQ0Q30llidDYonSt2xvbElS4Riff0oqtR+VQXtXxnN4Wu1akQEiZRhVAzfV0eNidxkTHYMmItMvXBWEpeBvrBEd3lbUZXscruRPrlFjgffoSItOqO6jc0c1cSKz8bIAKpylsJs/M0oEGsvlpj3po73VBt+n13OHkqm22L++IaunqgfVgO0HYcUj0KDNXyEVxBa7bS0FsQT4fMdtTprwRcdaVUnJqB6i2cy35djpCHorBBWmvhiDhxvr/JV9fd1S2sptQHOaXTnKv7OEtv16R2lScTHCXdw420UlH0hpT1S/vteBOKYxUx4WKxNItGI1kv8boeKYX1u4bDlC75NSdBGGJKjKkmsOnpRJhQ3eJHbNrMzA59e0n8xCCBy/GXee5hba32rjjnocOm9HdhgkvAcmtyMRuFBpJJJZkIqxR/eIKO2ojxjB8P2hi2Accte1CY4ZQUpyfmZMme7PYJAKJWzRK7klmJLDQTGuORiSsAOgo=
   file_glob: true
-  file: "ratatool/target/scala-*/ratatool-*.jar"
+  file: "ratatool-cli/target/scala-*/ratatool-*.tar.gz"
   skip_cleanup: true
   on:
     scala: 2.11.12
