@@ -17,29 +17,32 @@
 
 package com.spotify.ratatool.tool
 
+import com.spotify.ratatool.Command
 import com.spotify.ratatool.diffy.BigDiffy
 import com.spotify.ratatool.io.{AvroIO, BigQueryIO, ParquetIO, TableRowJsonIO}
 import com.spotify.ratatool.samplers.{AvroSampler, BigQuerySampler, BigSampler, ParquetSampler}
 import org.apache.hadoop.fs.Path
 
 object Ratatool {
+  private def commandSet[T <: Command](xs: T*): Set[String] = xs.map(_.command).toSet
+  private val commands = commandSet(DirectSamplerParser, BigDiffy, BigSampler)
 
   //scalastyle:off cyclomatic.complexity
   def main(args: Array[String]): Unit = {
     val usage = """
-      | Ratatool - a tool for random data generation and sampling
+      | Ratatool - a tool for random data generation, sampling, and diff-ing
       | Usage: ratatool [bigDiffy|bigSampler|directSampler] [args]
     """.stripMargin
 
-    if (args.isEmpty || !Set("bigDiffy", "bigSampler", "directSampler").contains(args.head)) {
+    if (args.isEmpty || !commands.contains(args.head)) {
       print(usage)
       sys.exit(1)
     }
     else {
       args.head match {
-        case "bigDiffy" => BigDiffy.run(args.tail)
-        case "bigSampler" => BigSampler.run(args.tail)
-        case "directSampler" =>
+        case BigDiffy.command => BigDiffy.run(args.tail)
+        case BigSampler.command => BigSampler.run(args.tail)
+        case DirectSamplerParser.command =>
           val opts = DirectSamplerParser.parse(args.tail)
           if (opts.isEmpty) {
             sys.exit(-1)
@@ -70,5 +73,4 @@ object Ratatool {
     }
   }
   //scalastyle:on cyclomatic.complexity
-
 }

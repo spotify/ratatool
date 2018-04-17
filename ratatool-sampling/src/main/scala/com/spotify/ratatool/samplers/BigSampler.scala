@@ -24,6 +24,7 @@ import java.util.{List => JList}
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableReference, TableSchema}
 import com.google.common.hash.{HashCode, HashFunction, Hasher, Hashing}
 import com.google.common.io.BaseEncoding
+import com.spotify.ratatool.Command
 import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.io.{AvroIO, FileStorage}
 import com.spotify.ratatool.serde.JsonSerDe
@@ -34,10 +35,7 @@ import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.io.FileSystems
-import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers,
-                                            BigQueryIO,
-                                            BigQueryOptions,
-                                            BigQueryServicesImpl}
+import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers, BigQueryIO, BigQueryOptions, BigQueryServicesImpl}
 import org.apache.beam.sdk.options.PipelineOptions
 import org.slf4j.LoggerFactory
 
@@ -47,7 +45,9 @@ import scala.concurrent.Future
 import scala.language.existentials
 import scala.util.Try
 
-object BigSampler {
+object BigSampler extends Command {
+  val command: String = "bigSampler"
+
   private val log = LoggerFactory.getLogger(BigSampler.getClass)
   private[samplers] val utf8Charset = Charset.forName("UTF-8")
   private[samplers] val fieldSep = '.'
@@ -84,8 +84,8 @@ object BigSampler {
   private def usage(): Unit = {
     // scalastyle:off regex line.size.limit
     println(
-      """BigSampler - a tool for big data sampling
-        |Usage: ratatool bigSampler [dataflow_options] [options]
+      s"""BigSampler - a tool for big data sampling
+        |Usage: ratatool $command [dataflow_options] [options]
         |
         |  --sample=<percentage>             Percentage of records to take in sample, a decimal between 0.0 and 1.0
         |  --input=<path>                    Input file path or BigQuery table
