@@ -242,22 +242,22 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
       i + AvroIO.readFromFile[GenericRecord](m.resourceId.toString).size)
 
   "BigSampler" should "work for 50%" in withOutFile { outDir =>
-    BigSampler.main(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.5"))
+    BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.5"))
     getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 1000
   }
 
   it should "work for 1%" in withOutFile { outDir =>
-    BigSampler.main(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.01"))
+    BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.01"))
     getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.01 +- 100
   }
 
   it should "work for 100%" in withOutFile { outDir =>
-    BigSampler.main(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=1.0"))
+    BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=1.0"))
     getNumOfAvroRecords(s"$outDir/*.avro") shouldBe totalElements
   }
 
   it should "work for 50% with hash field and seed" in withOutFile { outDir =>
-    BigSampler.main(Array(
+    BigSampler.run(Array(
       s"--input=$dir/*.avro",
       s"--output=$outDir",
       "--sample=0.5",

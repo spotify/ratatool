@@ -19,10 +19,10 @@ package com.spotify.ratatool.tool
 
 import org.scalatest.{FlatSpec, Matchers}
 
-class ToolParserTest extends FlatSpec with Matchers {
+class DirectSamplerParserTest extends FlatSpec with Matchers {
 
-  private def parse(cmd: String) = ToolParser.parse(cmd.split(" "))
-  private val config = ToolConfig(in = "in", out = "out", n = 1000)
+  private def parse(cmd: String) = DirectSamplerParser.parse(cmd.split(" "))
+  private val config = DirectSamplerConfig(in = "in", out = "out", n = 1000)
 
   "ToolParser" should "parse avro command" in {
     val c = config.copy(mode = "avro")

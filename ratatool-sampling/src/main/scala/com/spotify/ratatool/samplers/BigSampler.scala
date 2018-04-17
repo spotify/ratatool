@@ -84,8 +84,8 @@ object BigSampler {
   private def usage(): Unit = {
     // scalastyle:off regex line.size.limit
     println(
-      """BigSampler
-        |Usage: BigSampler [dataflow_options] [options]
+      """BigSampler - a tool for big data sampling
+        |Usage: ratatool bigSampler [dataflow_options] [options]
         |
         |  --sample=<percentage>             Percentage of records to take in sample, a decimal between 0.0 and 1.0
         |  --input=<path>                    Input file path or BigQuery table
@@ -158,7 +158,7 @@ object BigSampler {
     }
   }
 
-  def main(argv: Array[String]): Unit = {
+  def run(argv: Array[String]): Unit = {
     this.singleInput(argv)
   }
 }

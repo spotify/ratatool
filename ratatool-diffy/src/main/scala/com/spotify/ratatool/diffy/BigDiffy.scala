@@ -310,7 +310,7 @@ object BigDiffy {
     // scalastyle:off regex
     println(
       """BigDiffy - pair-wise field-level statistical diff
-        |Usage: BigDiffy [dataflow_options] [options]
+        |Usage: ratatool bigDiffy [dataflow_options] [options]
         |
         |  --mode=[avro|bigquery]
         |  --key=<key>            '.' separated key field
@@ -364,7 +364,7 @@ object BigDiffy {
   }
 
   /** Scio pipeline for BigDiffy. */
-  def main(cmdlineArgs: Array[String]): Unit = {
+  def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
     val (mode, key, lhs, rhs, output, header, ignore, unordered) = {
