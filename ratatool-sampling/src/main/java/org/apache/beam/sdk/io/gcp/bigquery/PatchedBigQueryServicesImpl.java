@@ -76,12 +76,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An implementation of {@link BigQueryServices} that actually communicates with the cloud BigQuery
+ * An implementation of {@link PatchedBigQueryServices} that actually communicates with the cloud BigQuery
  * service.
  */
-public class BigQueryServicesImpl implements BigQueryServices {
+public class PatchedBigQueryServicesImpl implements PatchedBigQueryServices {
 
-  private static final Logger LOG = LoggerFactory.getLogger(BigQueryServicesImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(PatchedBigQueryServicesImpl.class);
 
   // How frequently to log while polling.
   private static final Duration POLLING_LOG_GAP = Duration.standardMinutes(10);
@@ -124,7 +124,7 @@ public class BigQueryServicesImpl implements BigQueryServices {
   }
 
   @VisibleForTesting
-  static class JobServiceImpl implements BigQueryServices.JobService {
+  static class JobServiceImpl implements PatchedBigQueryServices.JobService {
     private final ApiErrorExtractor errorExtractor;
     private final Bigquery client;
 

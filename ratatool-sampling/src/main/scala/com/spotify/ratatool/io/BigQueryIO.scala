@@ -24,7 +24,7 @@ import com.google.api.client.googleapis.util.Utils
 import com.google.api.services.bigquery.model.{Table, TableReference, TableRow, TableSchema}
 import com.google.api.services.bigquery.{Bigquery, BigqueryScopes}
 import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryOptions,
-                                            BigQueryServicesImpl,
+                                            PatchedBigQueryServicesImpl,
                                             InsertRetryPolicy,
                                             PatchedBigQueryTableRowIterator}
 import org.apache.beam.sdk.options.PipelineOptionsFactory
@@ -65,7 +65,7 @@ object BigQueryIO {
 
   /** Write records to a BigQuery table. */
   def writeToTable(data: Seq[TableRow], schema: TableSchema, tableRef: TableReference): Unit = {
-    val ds = new BigQueryServicesImpl()
+    val ds = new PatchedBigQueryServicesImpl()
       .getDatasetService(PipelineOptionsFactory.create().as(classOf[BigQueryOptions]))
     val rows = data.map(e =>
       ValueInSingleWindow.of(e, Instant.now(), GlobalWindow.INSTANCE, PaneInfo.NO_FIRING))
