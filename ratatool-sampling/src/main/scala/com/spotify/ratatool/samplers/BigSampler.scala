@@ -36,7 +36,7 @@ import org.apache.avro.Schema.Type
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers, BigQueryIO,
-  BigQueryOptions, BigQueryServicesImpl}
+  BigQueryOptions, PatchedBigQueryServicesImpl}
 import org.apache.beam.sdk.options.PipelineOptions
 import org.slf4j.LoggerFactory
 
@@ -425,7 +425,7 @@ private[samplers] object BigSamplerBigQuery {
     import BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED
     import BigQueryIO.Write.WriteDisposition.WRITE_EMPTY
 
-    val patchedBigQueryService = new BigQueryServicesImpl()
+    val patchedBigQueryService = new PatchedBigQueryServicesImpl()
       .getDatasetService(sc.optionsAs[BigQueryOptions])
     if (patchedBigQueryService.getTable(outputTbl) != null) {
       log.info(s"Reuse previous sample at $outputTbl")
