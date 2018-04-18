@@ -155,7 +155,7 @@ lazy val ratatoolDiffy = project
 
 lazy val ratatoolCli = project
   .in(file("ratatool-cli"))
-  .settings(commonSettings)
+  .settings(commonSettings ++ noPublishSettings)
   .settings(
     name := "ratatool-cli",
     libraryDependencies ++= Seq(
