@@ -17,11 +17,14 @@
 
 package com.spotify.ratatool.tool
 
-object ToolParser {
+import com.spotify.ratatool.Command
+
+object DirectSamplerParser extends Command {
+  val command: String = "directSampler"
 
   // scalastyle:off if.brace
-  val parser = new scopt.OptionParser[ToolConfig]("ratatool") {
-    head("ratatool - a tool for random data sampling and generation")
+  val parser = new scopt.OptionParser[DirectSamplerConfig](s"ratatool $command") {
+    head("Direct Sampler - a tool for random data sampling")
 
     cmd("avro")
       .action((_, c) => c.copy(mode = "avro"))
@@ -107,6 +110,7 @@ object ToolParser {
   }
   // scalastyle:on if.brace
 
-  def parse(args: Array[String]): Option[ToolConfig] = parser.parse(args, ToolConfig())
+  def parse(args: Array[String]): Option[DirectSamplerConfig] =
+    parser.parse(args, DirectSamplerConfig())
 
 }

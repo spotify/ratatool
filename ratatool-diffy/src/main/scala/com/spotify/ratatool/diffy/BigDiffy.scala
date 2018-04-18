@@ -21,7 +21,7 @@ import java.net.URI
 
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.protobuf.AbstractMessage
-import com.spotify.ratatool.GcsConfiguration
+import com.spotify.ratatool.{Command, GcsConfiguration}
 import com.spotify.ratatool.samplers.AvroSampler
 import com.spotify.scio._
 import com.spotify.scio.bigquery.BigQueryClient
@@ -158,7 +158,8 @@ class BigDiffy[T](lhs: SCollection[T], rhs: SCollection[T],
 }
 
 /** Big diff between two data sets given a primary key. */
-object BigDiffy {
+object BigDiffy extends Command {
+  val command: String = "bigDiffy"
 
   // (field, deltas, diff type)
   type DeltaSCollection = SCollection[(String, (Seq[Delta], DiffType.Value))]
@@ -309,8 +310,8 @@ object BigDiffy {
   private def usage(): Unit = {
     // scalastyle:off regex
     println(
-      """BigDiffy - pair-wise field-level statistical diff
-        |Usage: BigDiffy [dataflow_options] [options]
+      s"""BigDiffy - pair-wise field-level statistical diff
+        |Usage: ratatool $command [dataflow_options] [options]
         |
         |  --mode=[avro|bigquery]
         |  --key=<key>            '.' separated key field
@@ -364,7 +365,7 @@ object BigDiffy {
   }
 
   /** Scio pipeline for BigDiffy. */
-  def main(cmdlineArgs: Array[String]): Unit = {
+  def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
     val (mode, key, lhs, rhs, output, header, ignore, unordered) = {

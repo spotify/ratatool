@@ -34,7 +34,7 @@ val bigqueryVersion = "v2-rev372-1.23.0"
 val beamVersion = "2.2.0"
 val guavaVersion = "20.0"
 
-val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ releaseSettings ++ Seq(
+val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
   name := "ratatool",
   description := "A tool for random data sampling and generation",
@@ -81,20 +81,6 @@ lazy val releaseSettings = Seq(
     Developer(id="ravwojdyla", name="Rafal Wojdyla", email="ravwojdyla@gmail.com", url=url("https://twitter.com/ravwojdyla")),
     Developer(id="idreeskhan", name="Idrees Khan", email="me@idreeskhan.com", url=url("https://github.com/idreeskhan"))
   )
-)
-
-lazy val assemblySettings = Seq(
-  mainClass in assembly := Some("com.spotify.ratatool.tool.Tool"),
-  assemblyMergeStrategy in assembly ~= { old => {
-    case s if s.endsWith(".class") => MergeStrategy.last
-    case s if s.endsWith(".proto") => MergeStrategy.last
-    case s if s.endsWith(".dtd") => MergeStrategy.rename
-    case s if s.endsWith(".properties") => MergeStrategy.filterDistinctLines
-    case s if s.endsWith(".xsd") => MergeStrategy.rename
-    case PathList("META-INF", "services", "org.apache.hadoop.fs.FileSystem") => MergeStrategy.filterDistinctLines
-    case s => old(s)
-  }},
-  assemblyJarName in assembly := s"ratatool-${version.value}.jar"
 )
 
 lazy val ratatoolCommon = project
@@ -174,7 +160,6 @@ lazy val ratatoolCli = project
     name := "ratatool-cli",
     libraryDependencies ++= Seq(
       "com.github.scopt" %% "scopt" % scoptVersion,
-      "org.apache.parquet" % "parquet-avro" % parquetVersion,
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     ),
     // In case of scalacheck failures print more info
