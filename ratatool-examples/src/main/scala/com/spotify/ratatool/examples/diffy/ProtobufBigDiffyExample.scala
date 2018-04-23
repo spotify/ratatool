@@ -25,7 +25,7 @@ import com.spotify.ratatool.proto.Schemas.TestRecord
 import org.apache.hadoop.fs.{FileSystem, Path}
 import com.spotify.scio._
 
-object ProtobufDiffyExample {
+object ProtobufBigDiffyExample {
   def recordKeyFn(t: TestRecord): String = {
     t.getRequiredFields.getStringField
   }
@@ -33,16 +33,10 @@ object ProtobufDiffyExample {
   def main(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
-    val (lhs, rhs, output, header, ignore, unordered) = {
-      try {
+    val (lhs, rhs, output, header, ignore, unordered) =
         (args("lhs"), args("rhs"), args("output"),
           args.boolean("with-header", false), args.list("ignore").toSet,
           args.list("unordered").toSet)
-      } catch {
-        case e: Throwable =>
-          throw e
-      }
-    }
 
     val fs = FileSystem.get(new URI(rhs), GcsConfiguration.get())
     val path = fs.globStatus(new Path(rhs)).head.getPath

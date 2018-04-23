@@ -282,7 +282,7 @@ object BigDiffy extends Command {
     r.setFields(mergeFields(x.getFields.asScala, y.getFields.asScala).asJava)
   }
 
-  def saveStats[T](bigDiffy: BigDiffy[T], output: String, withHeader: Boolean = false): Any = {
+  def saveStats[T](bigDiffy: BigDiffy[T], output: String, withHeader: Boolean = false): Unit = {
     if (withHeader) {
       bigDiffy.keyStats.map(_.toString).saveAsTextFileWithHeader(s"$output/keys", "key\tdifftype")
       bigDiffy.fieldStats.map(_.toString).saveAsTextFileWithHeader(s"$output/fields",

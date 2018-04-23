@@ -27,7 +27,6 @@ import com.spotify.ratatool.avro.specific.{EnumField, ExampleRecord, NestedExamp
 import com.spotify.ratatool.scalacheck._
 import org.apache.avro.util.Utf8
 import org.scalacheck.{Arbitrary, Gen}
-
 import scala.collection.JavaConverters._
 
 object ExampleAvroGen {
