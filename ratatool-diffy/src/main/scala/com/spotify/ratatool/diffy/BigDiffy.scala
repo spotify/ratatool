@@ -282,6 +282,22 @@ object BigDiffy extends Command {
     r.setFields(mergeFields(x.getFields.asScala, y.getFields.asScala).asJava)
   }
 
+  def saveStats[T](bigDiffy: BigDiffy[T], output: String, withHeader: Boolean = false): Any = {
+    if (withHeader) {
+      bigDiffy.keyStats.map(_.toString).saveAsTextFileWithHeader(s"$output/keys", "key\tdifftype")
+      bigDiffy.fieldStats.map(_.toString).saveAsTextFileWithHeader(s"$output/fields",
+        "field\tcount\tfraction\tdeltaType\tmin" +
+          "\tmax\tcount\tmean\tvariance\tstddev\tskewness\tkurtosis")
+      bigDiffy.globalStats.map(_.toString).saveAsTextFileWithHeader(s"$output/global",
+        "numTotal\tnumSame\tnumDiff\tnumMissingLhs\tnumMissingRhs")
+    }
+    else {
+      bigDiffy.keyStats.saveAsTextFile(s"$output/keys")
+      bigDiffy.fieldStats.saveAsTextFile(s"$output/fields")
+      bigDiffy.globalStats.saveAsTextFile(s"$output/global")
+    }
+  }
+
   private def mergeFields(x: Seq[TableFieldSchema],
                           y: Seq[TableFieldSchema]): Seq[TableFieldSchema] = {
     val xMap = x.map(f => (f.getName, f)).toMap
@@ -399,20 +415,7 @@ object BigDiffy extends Command {
       case m =>
         throw new IllegalArgumentException(s"mode $m not supported")
     }
-
-    if (header) {
-      result.keyStats.map(_.toString).saveAsTextFileWithHeader(s"$output/keys", "key\tdifftype")
-      result.fieldStats.map(_.toString).saveAsTextFileWithHeader(s"$output/fields",
-        "field\tcount\tfraction\tdeltaType\tmin" +
-          "\tmax\tcount\tmean\tvariance\tstddev\tskewness\tkurtosis")
-      result.globalStats.map(_.toString).saveAsTextFileWithHeader(s"$output/global",
-        "numTotal\tnumSame\tnumDiff\tnumMissingLhs\tnumMissingRhs")
-    }
-    else {
-      result.keyStats.saveAsTextFile(s"$output/keys")
-      result.fieldStats.saveAsTextFile(s"$output/fields")
-      result.globalStats.saveAsTextFile(s"$output/global")
-    }
+    saveStats(result, output, header)
 
     sc.close().waitUntilDone()
   }

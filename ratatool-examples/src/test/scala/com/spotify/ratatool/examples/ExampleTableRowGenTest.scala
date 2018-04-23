@@ -18,6 +18,7 @@
 package com.spotify.ratatool.examples
 
 import com.google.api.services.bigquery.model.TableRow
+import com.spotify.ratatool.examples.scalacheck.ExampleTableRowGen
 import com.spotify.ratatool.scalacheck._
 import org.scalacheck.{Gen, Properties}
 import org.scalacheck.Prop.{AnyOperators, forAll}

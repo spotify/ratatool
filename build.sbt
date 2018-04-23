@@ -199,7 +199,8 @@ lazy val ratatoolExamples = project
   .enablePlugins(ProtobufPlugin, PackPlugin)
   .dependsOn(
     ratatoolCommon,
-    ratatoolScalacheck
+    ratatoolScalacheck,
+    ratatoolDiffy
   )
 
 val root = project.in(file("."))

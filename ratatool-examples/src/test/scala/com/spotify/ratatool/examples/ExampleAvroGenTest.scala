@@ -20,6 +20,7 @@ package com.spotify.ratatool.examples
 import java.util.UUID
 
 import com.spotify.ratatool.avro.specific.{EnumField, ExampleRecord}
+import com.spotify.ratatool.examples.scalacheck.ExampleAvroGen
 import org.scalacheck.{Gen, Prop, Properties}
 import org.scalacheck.Prop.{AnyOperators, BooleanOperators, forAll}
 

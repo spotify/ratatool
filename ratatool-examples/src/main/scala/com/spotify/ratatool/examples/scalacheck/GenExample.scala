@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package com.spotify.ratatool.examples
+package com.spotify.ratatool.examples.scalacheck
 
 import java.util
 
@@ -27,6 +27,7 @@ import com.spotify.ratatool.avro.specific.{EnumField, ExampleRecord, NestedExamp
 import com.spotify.ratatool.scalacheck._
 import org.apache.avro.util.Utf8
 import org.scalacheck.{Arbitrary, Gen}
+
 import scala.collection.JavaConverters._
 
 object ExampleAvroGen {
