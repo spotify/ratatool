@@ -21,13 +21,13 @@ import java.net.URI
 
 import com.spotify.ratatool.GcsConfiguration
 import com.spotify.ratatool.diffy.{BigDiffy, ProtoBufDiffy}
-import com.spotify.ratatool.proto.Schemas.TestRecord
+import com.spotify.ratatool.examples.proto.Schemas.ExampleRecord
 import org.apache.hadoop.fs.{FileSystem, Path}
 import com.spotify.scio._
 
 object ProtobufBigDiffyExample {
-  def recordKeyFn(t: TestRecord): String = {
-    t.getRequiredFields.getStringField
+  def recordKeyFn(t: ExampleRecord): String = {
+    t.getStringField
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
@@ -40,8 +40,8 @@ object ProtobufBigDiffyExample {
 
     val fs = FileSystem.get(new URI(rhs), GcsConfiguration.get())
     val path = fs.globStatus(new Path(rhs)).head.getPath
-    val diffy = new ProtoBufDiffy[TestRecord](ignore, unordered)
-    val result = BigDiffy.diffProtoBuf[TestRecord](sc, lhs, rhs, recordKeyFn, diffy)
+    val diffy = new ProtoBufDiffy[ExampleRecord](ignore, unordered)
+    val result = BigDiffy.diffProtoBuf[ExampleRecord](sc, lhs, rhs, recordKeyFn, diffy)
 
     BigDiffy.saveStats(result, output, header)
 

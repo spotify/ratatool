@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+option java_package = "com.spotify.ratatool.examples.proto";
+option optimize_for = SPEED;
+
+message ExampleRecord {
+    required string string_field = 1;
+    required int64 int64_field = 2;
+}

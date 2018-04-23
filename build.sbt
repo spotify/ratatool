@@ -196,12 +196,13 @@ lazy val ratatoolExamples = project
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion
     )
   )
-  .enablePlugins(ProtobufPlugin, PackPlugin)
+  .enablePlugins(ProtobufPlugin)
   .dependsOn(
     ratatoolCommon,
     ratatoolScalacheck,
     ratatoolDiffy
   )
+  .settings(protoBufSettings)
 
 val root = project.in(file("."))
   .settings(commonSettings ++ noPublishSettings)
@@ -210,5 +211,6 @@ val root = project.in(file("."))
     ratatoolScalacheck,
     ratatoolDiffy,
     ratatoolSampling,
-    ratatoolCli
+    ratatoolCli,
+    ratatoolExamples
   )
