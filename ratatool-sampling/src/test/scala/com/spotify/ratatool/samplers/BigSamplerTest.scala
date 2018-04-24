@@ -211,11 +211,11 @@ object BigSamplerTest extends Properties("BigSampler") {
 class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllConfigMap {
 
   val schema = Schemas.avroSchema
-  val data1 = Gen.listOfN(40000, genericRecordOf(schema))
+  val data1 = Gen.listOfN(20000, genericRecordOf(schema))
     .pureApply(Gen.Parameters.default.withSize(5), Seed.random())
-  val data2 = Gen.listOfN(10000, genericRecordOf(schema))
+  val data2 = Gen.listOfN(5000, genericRecordOf(schema))
     .pureApply(Gen.Parameters.default.withSize(5), Seed.random())
-  val totalElements = 50000
+  val totalElements = 25000
   val dir = Files.createTempDirectory("ratatool-big-sampler-input")
   val file1 = new File(dir.toString, "part-00000.avro")
   val file2 = new File(dir.toString, "part-00001.avro")
@@ -243,12 +243,12 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
 
   "BigSampler" should "work for 50%" in withOutFile { outDir =>
     BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.5"))
-    getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 1000
+    getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 500
   }
 
   it should "work for 1%" in withOutFile { outDir =>
     BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.01"))
-    getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.01 +- 100
+    getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.01 +- 50
   }
 
   it should "work for 100%" in withOutFile { outDir =>
@@ -263,6 +263,6 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
       "--sample=0.5",
       "--seed=42",
       "--fields=required_fields.int_field"))
-    getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 10000
+    getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 5000
   }
 }
