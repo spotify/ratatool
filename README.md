@@ -15,7 +15,7 @@ A tool for random data sampling and generation
 - [Samplers](https://github.com/spotify/ratatool/tree/master/ratatool-sampling/src/main/scala/com/spotify/ratatool/samplers) - random data samplers for Avro, BigQuery and Parquet. True random sampling is supported for Avro only while head mode (sampling from the start) is supported for all sources.
 - [Diffy](https://github.com/spotify/ratatool/tree/master/ratatool-diffy/src/main/scala/com/spotify/ratatool/diffy) - field-level record diff tool for Avro, Protobuf and BigQuery TableRow.
 - [BigDiffy](https://github.com/spotify/ratatool/blob/master/ratatool-diffy/src/main/scala/com/spotify/ratatool/diffy/BigDiffy.scala) - [Scio](https://github.com/spotify/scio) library for pairwise field-level statistical diff of data sets. See [slides](http://www.lyh.me/slides/bigdiffy.html) for more.
-- [Command line tool](https://github.com/spotify/ratatool/tree/master/ratatool-cli/src/main/scala/com/spotify/ratatool/tool) - command line tool for sampling from various sources.
+- [Command line tool](https://github.com/spotify/ratatool/tree/master/ratatool-cli/src/main/scala/com/spotify/ratatool/tool) - command line tool for local sampler, or executing BigDiffy and BigSampler.
 
 # Usage
 

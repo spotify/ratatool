@@ -128,6 +128,7 @@ lazy val ratatoolSampling = project
     ratatoolCommon % "compile->compile;test->test",
     ratatoolScalacheck % "test"
   )
+  .settings(protoBufSettings)
 
 lazy val ratatoolDiffy = project
   .in(file("ratatool-diffy"))
@@ -152,6 +153,7 @@ lazy val ratatoolDiffy = project
     ratatoolSampling,
     ratatoolScalacheck % "test"
   )
+  .settings(protoBufSettings)
 
 lazy val ratatoolCli = project
   .in(file("ratatool-cli"))
@@ -171,6 +173,7 @@ lazy val ratatoolCli = project
     ratatoolSampling,
     ratatoolDiffy
   )
+  .settings(protoBufSettings)
 
 lazy val ratatoolScalacheck = project
   .in(file("ratatool-scalacheck"))
@@ -186,6 +189,7 @@ lazy val ratatoolScalacheck = project
   )
   .enablePlugins(ProtobufPlugin)
   .dependsOn(ratatoolCommon % "compile->compile;test->test")
+  .settings(protoBufSettings)
 
 lazy val ratatoolExamples = project
   .in(file("ratatool-examples"))
@@ -196,11 +200,13 @@ lazy val ratatoolExamples = project
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion
     )
   )
-  .enablePlugins(ProtobufPlugin, PackPlugin)
+  .enablePlugins(ProtobufPlugin)
   .dependsOn(
     ratatoolCommon,
-    ratatoolScalacheck
+    ratatoolScalacheck,
+    ratatoolDiffy
   )
+  .settings(protoBufSettings)
 
 val root = project.in(file("."))
   .settings(commonSettings ++ noPublishSettings)
@@ -209,5 +215,6 @@ val root = project.in(file("."))
     ratatoolScalacheck,
     ratatoolDiffy,
     ratatoolSampling,
-    ratatoolCli
+    ratatoolCli,
+    ratatoolExamples
   )

@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package com.spotify.ratatool.examples
+package com.spotify.ratatool.examples.scalacheck
 
 import java.util
 
