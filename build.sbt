@@ -173,6 +173,7 @@ lazy val ratatoolCli = project
     ratatoolSampling,
     ratatoolDiffy
   )
+  .settings(protoBufSettings)
 
 lazy val ratatoolScalacheck = project
   .in(file("ratatool-scalacheck"))
