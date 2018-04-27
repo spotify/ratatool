@@ -17,9 +17,9 @@
 
 package com.spotify.ratatool.scalacheck
 
-import com.spotify.ratatool.proto.Schemas.TestRecord
-import org.scalacheck.Properties
-import org.scalacheck.Prop._
+import com.spotify.ratatool.proto.Schemas.{OptionalNestedRecord, TestRecord}
+import org.scalacheck.{Gen, Properties}
+import org.scalacheck.Prop.{all, forAll, BooleanOperators, AnyOperators}
 
 
 object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
@@ -27,4 +27,34 @@ object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
     m == TestRecord.parseFrom(m.toByteArray)
   }
 
+  val optionalNestedRecordGen: Gen[OptionalNestedRecord] = protoBufOf[OptionalNestedRecord]
+    .map(_.toBuilder)
+    .amend(Gen.choose(10, 20))(_.setInt32Field)
+    .amend(Gen.choose(10L, 20L))(_.setInt64Field)
+    .amend(Gen.choose(10.0f, 20.0f))(_.setFloatField)
+    .amend(Gen.choose(10.0, 20.0))(_.setDoubleField)
+    .amend(Gen.const(true))(_.setBoolField)
+    .amend(Gen.const("hello"))(_.setStringField)
+    .map(_.build())
+
+
+  val richGen: Gen[TestRecord] = protoBufOf[TestRecord].map(_.toBuilder)
+    .amend(optionalNestedRecordGen)(_.setOptionalFields)
+    .map(_.build())
+
+
+  property("support RichProtoGen") = forAll (richGen) { r =>
+    all(
+      "Int" |:
+        (r.getOptionalFields.getInt32Field >= 10 && r.getOptionalFields.getInt32Field <= 20),
+      "Long" |:
+        r.getOptionalFields.getInt64Field >= 10L && r.getOptionalFields.getInt64Field <= 20L,
+      "Float" |:
+        r.getOptionalFields.getFloatField >= 10.0f && r.getOptionalFields.getFloatField <= 20.0f,
+      "Double" |:
+        r.getOptionalFields.getDoubleField >= 10.0 && r.getOptionalFields.getDoubleField <= 20.0,
+      "Boolean" |: r.getOptionalFields.getBoolField,
+      "String" |: r.getOptionalFields.getStringField == "hello"
+    )
+  }
 }

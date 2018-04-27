@@ -18,6 +18,7 @@
 package com.spotify.ratatool
 
 import com.google.api.services.bigquery.model.TableRow
+import com.google.protobuf.{AbstractMessage, Message, MessageOrBuilder}
 import org.apache.avro.specific.SpecificRecord
 import org.scalacheck.Gen
 
@@ -29,7 +30,6 @@ package object scalacheck extends AvroGeneratorOps
   with TableRowGeneratorOps {
 
   implicit class RichAvroGen[T <: SpecificRecord](gen: Gen[T]) {
-
     def amend[U](g: Gen[U])(f: T => (U => Unit)): Gen[T] = {
       for (r <- gen; v <- g) yield {
         f(r)(v)
@@ -43,7 +43,6 @@ package object scalacheck extends AvroGeneratorOps
         r
       }
     }
-
   }
 
   implicit def scalaIntSetter(fn: (java.lang.Integer => Unit)): Int => Unit =
@@ -67,7 +66,6 @@ package object scalacheck extends AvroGeneratorOps
   private type Record = java.util.Map[String, AnyRef]
 
   implicit class RichTableRowGen(gen: Gen[TableRow]) {
-
     def amend[U](g: Gen[U])(f: TableRow => (AnyRef => Record)): Gen[TableRow] = {
       for (r <- gen; v <- g) yield {
         f(r)(v.asInstanceOf[AnyRef])
@@ -90,6 +88,20 @@ package object scalacheck extends AvroGeneratorOps
     def set(fieldName: String): AnyRef => Record = { v =>
       r.put(fieldName, v)
       r
+    }
+  }
+
+  implicit class RichProtobufBuilder[T <: Message.Builder](gen: Gen[T]) {
+    def amend[U](g: Gen[U])(f: T => (U => T)): Gen[T] = {
+      for (r <- gen; v <- g) yield {
+        f(r)(v)
+      }
+    }
+
+    def tryAmend[U](g: Gen[U])(f: T => (U => T)): Gen[T] = {
+      for (r <- gen; v <- g) yield {
+        Try(f(r)(v)).getOrElse(r)
+      }
     }
   }
 }
