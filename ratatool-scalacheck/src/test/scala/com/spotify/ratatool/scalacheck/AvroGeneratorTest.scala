@@ -17,11 +17,11 @@
 
 package com.spotify.ratatool.scalacheck
 
-import com.spotify.ratatool.avro.specific.TestRecord
+import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck._
-import org.scalacheck.Prop.{all, forAll, BooleanOperators, AnyOperators}
+import org.scalacheck.Prop.{AnyOperators, BooleanOperators, all, forAll}
 
 object AvroGeneratorTest extends Properties("AvroGenerator") {
   property("round trips") = forAll (specificRecordOf[TestRecord]) { m =>
@@ -40,6 +40,10 @@ object AvroGeneratorTest extends Properties("AvroGenerator") {
     .amend(Gen.const(true))(_.getNullableFields.setBooleanField)
     .amend(Gen.const("hello"))(_.getNullableFields.setStringField)
 
+  val richTupGen = (specificRecordOf[TestRecord], specificRecordOf[TestRecord]).tupled
+    .amend2(specificRecordOf[RequiredNestedRecord])(_.setRequiredFields,
+      _.setRequiredFields)
+
   property("support RichAvroGen") = forAll (richGen) { r =>
     all(
       "Int" |:
@@ -54,4 +58,12 @@ object AvroGeneratorTest extends Properties("AvroGenerator") {
       "String" |: r.getNullableFields.getStringField == "hello"
     )
   }
+
+  property("support RichAvroTupGen") = forAll (richTupGen) { case (a, b) =>
+    (a.getRequiredFields.getBooleanField == b.getRequiredFields.getBooleanField
+      && a.getRequiredFields.getIntField == b.getRequiredFields.getIntField
+      && a.getRequiredFields.getStringField.toString == b.getRequiredFields.getStringField.toString
+      && a.getRequiredFields.getLongField == b.getRequiredFields.getLongField)
+  }
+
 }

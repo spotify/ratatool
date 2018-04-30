@@ -29,6 +29,13 @@ package object scalacheck extends AvroGeneratorOps
   with ProtoBufGeneratorOps
   with TableRowGeneratorOps {
 
+  implicit class TupGen[A, B](tup: (Gen[A], Gen[B])) {
+    def tupled: Gen[(A, B)] = {
+      val (l, r) = tup
+      l.flatMap(a => r.map(b => (a, b)))
+    }
+  }
+
   implicit class RichAvroGen[T <: SpecificRecord](gen: Gen[T]) {
     def amend[U](g: Gen[U])(f: T => (U => Unit)): Gen[T] = {
       for (r <- gen; v <- g) yield {
@@ -104,4 +111,58 @@ package object scalacheck extends AvroGeneratorOps
       }
     }
   }
+
+  implicit class RichAvroTupGen[A <: SpecificRecord, B <: SpecificRecord](gen: Gen[(A, B)]) {
+    def amend2[U](a: Gen[U])(f: A => (U => Unit), g: B => (U => Unit)): Gen[(A, B)] = {
+      for ((r1, r2) <- gen; v <- a) yield {
+        f(r1)(v)
+        g(r2)(v)
+        (r1, r2)
+      }
+    }
+
+    def tryAmend2[U](a: Gen[U])(f: A => (U => Unit), g: B => (U => Unit)): Gen[(A, B)] = {
+      for ((r1, r2) <- gen; v <- a) yield {
+        Try(f(r1)(v))
+        Try(g(r2)(v))
+        (r1, r2)
+      }
+    }
+  }
+
+  implicit class RichTableRowTupGen(gen: Gen[(TableRow, TableRow)]) {
+    def amend2[U](a: Gen[U])(f: TableRow => (AnyRef => Record),
+                            g: TableRow => (AnyRef => Record)): Gen[(TableRow, TableRow)] = {
+      for ((r1, r2) <- gen; v <- a) yield {
+        f(r1)(v.asInstanceOf[AnyRef])
+        g(r2)(v.asInstanceOf[AnyRef])
+        (r1, r2)
+      }
+    }
+
+    def tryAmend2[U](a: Gen[U])(f: TableRow => (AnyRef => Record),
+                               g: TableRow => (AnyRef => Record)): Gen[(TableRow, TableRow)] = {
+      for ((r1, r2) <- gen; v <- a) yield {
+        Try(f(r1)(v.asInstanceOf[AnyRef]))
+        Try(g(r2)(v.asInstanceOf[AnyRef]))
+        (r1, r2)
+      }
+    }
+  }
+
+  implicit class RichProtobufBuilderTup[A <: Message.Builder, B <: Message.Builder]
+  (gen: Gen[(A, B)]) {
+    def amend2[U](a: Gen[U])(f: A => (U => A), g: B => (U => B)): Gen[(A, B)] = {
+      for ((r1, r2) <- gen; v <- a) yield {
+        (f(r1)(v), g(r2)(v))
+      }
+    }
+
+    def tryAmend2[U](a: Gen[U])(f: A => (U => A), g: B => (U => B)): Gen[(A, B)] = {
+      for ((r1, r2) <- gen; v <- a) yield {
+        (Try(f(r1)(v)).getOrElse(r1), Try(g(r2)(v)).getOrElse(r2))
+      }
+    }
+  }
+
 }

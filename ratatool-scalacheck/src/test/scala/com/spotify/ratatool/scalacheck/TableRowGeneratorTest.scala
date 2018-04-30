@@ -19,8 +19,8 @@ package com.spotify.ratatool.scalacheck
 
 import com.google.api.services.bigquery.model.TableRow
 import com.spotify.ratatool.Schemas
-import org.scalacheck.{Gen, Properties}
-import org.scalacheck.Prop.{all, forAll, BooleanOperators}
+import org.scalacheck.{Arbitrary, Gen, Properties}
+import org.scalacheck.Prop.{BooleanOperators, all, forAll}
 
 object TableRowGeneratorTest extends Properties("TableRowGenerator") {
   property("round trip") = forAll(tableRowOf(Schemas.tableSchema)) { m =>
@@ -28,11 +28,20 @@ object TableRowGeneratorTest extends Properties("TableRowGenerator") {
   }
 
   val n = "nullable_fields"
+  val r = "required_fields"
   val richGen = tableRowOf(Schemas.tableSchema)
     .amend(Gen.choose(10L, 20L))(_.getRecord(n).set("int_field"))
     .amend(Gen.choose(10.0, 20.0))(_.getRecord(n).set("float_field"))
     .amend(Gen.const(true))(_.getRecord(n).set("boolean_field"))
     .amend(Gen.const("hello"))(_.getRecord(n).set("string_field"))
+
+  val richTupGen = (tableRowOf(Schemas.tableSchema), tableRowOf(Schemas.tableSchema)).tupled
+    .amend2(Gen.choose(10L, 20L))(_.getRecord(r).set("int_field"),
+      a => a.getRecord(r).set("int_field"))
+    .amend2(Arbitrary.arbString.arbitrary)(_.getRecord(r).set("string_field"),
+      a => a.getRecord(r).set("string_field"))
+    .amend2(Arbitrary.arbBool.arbitrary)(_.getRecord(r).set("boolean_field"),
+      _.getRecord(r).set("boolean_field"))
 
   property("support RichTableRowGen") = forAll (richGen) { r =>
     val fields = r.get(n).asInstanceOf[TableRow]
@@ -46,6 +55,14 @@ object TableRowGeneratorTest extends Properties("TableRowGenerator") {
       "Boolean" |: b == true,
       "String"  |: s == "hello"
     )
+  }
+
+  property("support RichTableRowTupGen") = forAll(richTupGen) { case (a, b) =>
+    val ar = a.get(r).asInstanceOf[TableRow]
+    val br = b.get(r).asInstanceOf[TableRow]
+    (a.get("int_field").asInstanceOf[Long] == b.get("int_field").asInstanceOf[Long]
+      && a.get("string_field").asInstanceOf[String] == b.get("string_field").asInstanceOf[String] &&
+      a.get("boolean_field").asInstanceOf[Boolean] == b.get("boolean_field").asInstanceOf[Boolean])
   }
 
 }
