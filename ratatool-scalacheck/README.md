@@ -2,7 +2,7 @@ Generators
 =======
 
 Ratatool-Scalacheck contains classes and functions which help with using Scalacheck generators with
- Avro, Protobuf, and BigQuery.
+ Avro, Protobuf, and BigQuery. For examples of using Generators see [ratatool-examples](https://github.com/spotify/ratatool/tree/master/ratatool-examples).
 
 ## Usage
 ```scala
