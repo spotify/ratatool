@@ -17,9 +17,9 @@
 
 package com.spotify.ratatool.scalacheck
 
-import com.spotify.ratatool.proto.Schemas.{OptionalNestedRecord, TestRecord}
+import com.spotify.ratatool.proto.Schemas.{OptionalNestedRecord, RequiredNestedRecord, TestRecord}
 import org.scalacheck.{Gen, Properties}
-import org.scalacheck.Prop.{all, forAll, BooleanOperators, AnyOperators}
+import org.scalacheck.Prop.{AnyOperators, BooleanOperators, all, forAll}
 
 
 object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
@@ -42,6 +42,11 @@ object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
     .amend(optionalNestedRecordGen)(_.setOptionalFields)
     .map(_.build())
 
+  val richTupGen =
+    (protoBufOf[TestRecord].map(_.toBuilder), protoBufOf[TestRecord].map(_.toBuilder)).tupled
+    .amend2(protoBufOf[RequiredNestedRecord])(_.setRequiredFields, _.setRequiredFields)
+    .map{ case (a, b) => (a.build(), b.build()) }
+
 
   property("support RichProtoGen") = forAll (richGen) { r =>
     all(
@@ -56,5 +61,13 @@ object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
       "Boolean" |: r.getOptionalFields.getBoolField,
       "String" |: r.getOptionalFields.getStringField == "hello"
     )
+  }
+
+  property("support RichProtoTupGen") = forAll (richTupGen) { case (a, b) =>
+    (a.getRequiredFields.getBoolField == b.getRequiredFields.getBoolField
+      && a.getRequiredFields.getInt32Field == b.getRequiredFields.getInt32Field
+      && a.getRequiredFields.getFixed64Field == b.getRequiredFields.getFixed64Field
+      && a.getRequiredFields.getStringField == b.getRequiredFields.getStringField
+      && a.getRequiredFields.getUint32Field == b.getRequiredFields.getUint32Field)
   }
 }
