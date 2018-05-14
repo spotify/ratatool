@@ -19,7 +19,6 @@ package com.spotify.ratatool.samplers
 import java.io.File
 import java.nio.file.Files
 
-import com.google.common.hash.HashCode
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.scalacheck._
@@ -35,9 +34,9 @@ import scala.collection.JavaConverters._
 object BigSamplerTest extends Properties("BigSampler") {
 
   private val testSeed = Some(42)
-  private def newTestFarmHasher() = BigSampler.hashFun().newHasher()
+  private def newTestFarmHasher() = BigSampler.hashFun()
   private def newTestKissHasher(testSeed: Option[Int] = testSeed) =
-    BigSampler.hashFun(hashAlgorithm = BigSampler.MurmurHash, murmurSeed = testSeed).newHasher()
+    BigSampler.hashFun(hashAlgorithm = BigSampler.MurmurHash, seed = testSeed)
 
   property("dice on the same element should match") = forAll { i: Int =>
     val hasher1 = newTestFarmHasher()
@@ -50,15 +49,17 @@ object BigSamplerTest extends Properties("BigSampler") {
   }
 
   private val negativeHashCodeStringGen: Gen[String] = Gen.alphaStr
-    .suchThat(str => { newTestFarmHasher().putString(str, BigSampler.utf8Charset).hash().asLong < 0} )
+    .suchThat(str => newTestFarmHasher().putString(str, BigSampler.utf8Charset).hash().asLong < 0)
+
   property("dice on hash values that return negative Long representations should still bucket so " +
     "that all values are returned at 100% and none are at 0% " +
     "(should respect modular arithmetic to split when the Long is negative, the same as it would " +
     "if it was positive)") =
+
     forAll(negativeHashCodeStringGen){ s =>
       val hash = newTestFarmHasher().putString(s, BigSampler.utf8Charset).hash()
       BigSampler.diceElement(s, hash, 100).contains(s)
-      BigSampler.diceElement(s, hash, 0) == None
+      BigSampler.diceElement(s, hash, 0).isEmpty
     }
 
   property("farm hasher should return the same hash all the time - no seed in FarmHash") =
@@ -282,6 +283,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
       s"--input=$dir/*.avro",
       s"--output=$outDir",
       "--sample=0.5",
+      "--seed=42",
       "--fields=required_fields.int_field"))
     getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 5000
   }
