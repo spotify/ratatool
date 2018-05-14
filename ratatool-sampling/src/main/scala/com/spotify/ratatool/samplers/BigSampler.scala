@@ -53,11 +53,8 @@ object BigSampler extends Command {
   private[samplers] val utf8Charset = Charset.forName("UTF-8")
   private[samplers] val fieldSep = '.'
 
-  private[samplers] def kissHashFun(seed: Option[Int] = None): HashFunction = {
-    seed match {
-      case Some(s) => Hashing.murmur3_128(s)
-      case None => Hashing.murmur3_128(System.currentTimeMillis.toInt)
-    }
+  private[samplers] def kissHashFun(): HashFunction = {
+    Hashing.farmHashFingerprint64() // doesn't require seed, returns same fingerprint each time
   }
 
   /**
@@ -92,7 +89,6 @@ object BigSampler extends Command {
         |  --input=<path>                    Input file path or BigQuery table
         |  --output=<path>                   Output file path or BigQuery table
         |  [--fields=<field1,field2,...>]    An optional list of fields to include in hashing for sampling cohort selection
-        |  [--seed=<seed]                    An optional seed using in hashing for sampling cohort selection
       """.stripMargin)
     // scalastyle:on regex line.size.limit
     sys.exit(1)
@@ -115,11 +111,10 @@ object BigSampler extends Command {
     val (sc, args) = ContextAndArgs(argv)
     val (opts, _) = ScioContext.parseArguments[PipelineOptions](argv)
 
-    val (samplePct, input, output, fields, seed) = try {
+    val (samplePct, input, output, fields) = try {
       val pct = args("sample").toFloat
       require(pct > 0.0F && pct <= 1.0F)
-      (pct, args("input"), args("output"), args.list("fields"),
-        args.optional("seed"))
+      (pct, args("input"), args("output"), args.list("fields"))
     } catch {
       case e: Throwable =>
         usage()
@@ -128,10 +123,6 @@ object BigSampler extends Command {
 
     if (fields.isEmpty) {
       log.warn("No fields to hash on specified, won't guarantee cohorts between datasets.")
-    }
-
-    if (seed.isEmpty) {
-      log.warn("No seed specified, won't guarantee cohorts between datasets.")
     }
 
     if (parseAsBigQueryTable(input).isDefined) {
@@ -145,15 +136,14 @@ object BigSampler extends Command {
         inputTbl,
         outputTbl,
         fields,
-        samplePct,
-        seed.map(_.toInt))
+        samplePct)
     } else if (parseAsURI(input).isDefined) {
       // right now only support for avro
       require(parseAsURI(output).isDefined,
         s"Input is a URI: `$input`, output should be a URI too, but instead it's `$output`.")
       // Prompts FileSystems to load service classes, otherwise fetching schema from non-local fails
       FileSystems.setDefaultPipelineOptions(opts)
-      BigSamplerAvro.sampleAvro(sc, input, output, fields, samplePct, seed.map(_.toInt))
+      BigSamplerAvro.sampleAvro(sc, input, output, fields, samplePct)
     } else {
       throw new UnsupportedOperationException(s"Input `$input not supported.")
     }
@@ -298,8 +288,7 @@ private[samplers] object BigSamplerAvro {
                          input: String,
                          output: String,
                          fields: Seq[String],
-                         samplePct: Float,
-                         seed: Option[Int]): Future[Tap[GenericRecord]] = {
+                         samplePct: Float): Future[Tap[GenericRecord]] = {
     val schema = AvroIO.getAvroSchemaFromFile(input)
     val outputParts =
       if (output.endsWith("/")) output + "part*" else output + "/part*"
@@ -326,7 +315,8 @@ private[samplers] object BigSamplerAvro {
         val samplePct100 = samplePct * 100.0
         val r = sc.avroFile[GenericRecord](input, schema)
           .flatMap { e =>
-            val hasher = BigSampler.kissHashFun(seed).newHasher(fields.size)
+            val hasher = BigSampler.kissHashFun()
+              .newHasher(fields.size)
             val hash = fields.foldLeft(hasher)((h, f) => hashAvroField(e, f, schemaSerDe, h)).hash
             BigSampler.diceElement(e, hash, samplePct100)
           }
@@ -420,8 +410,7 @@ private[samplers] object BigSamplerBigQuery {
                           inputTbl: TableReference,
                           outputTbl: TableReference,
                           fields: List[String],
-                          samplePct: Float,
-                          seed: Option[Int]): Future[Tap[TableRow]] = {
+                          samplePct: Float): Future[Tap[TableRow]] = {
     import BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED
     import BigQueryIO.Write.WriteDisposition.WRITE_EMPTY
 
@@ -454,7 +443,7 @@ private[samplers] object BigSamplerBigQuery {
         val samplePct100 = samplePct * 100.0
         val r = sc.bigQueryTable(inputTbl)
           .flatMap { e =>
-            val hasher = BigSampler.kissHashFun(seed).newHasher(fields.size)
+            val hasher = BigSampler.kissHashFun().newHasher(fields.size)
             val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(e, f, schemaFields, h)).hash()
             BigSampler.diceElement(e, hash, samplePct100)
           }
