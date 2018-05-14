@@ -34,32 +34,43 @@ import scala.collection.JavaConverters._
 
 object BigSamplerTest extends Properties("BigSampler") {
 
-  private def newTestHasher() = BigSampler.kissHashFun().newHasher()
+  private val testSeed = Some(42)
+  private def newTestFarmHasher() = BigSampler.hashFun().newHasher()
+  private def newTestKissHasher(testSeed: Option[Int] = testSeed) =
+    BigSampler.hashFun(hashAlgorithm = BigSampler.MurmurHash, murmurSeed = testSeed).newHasher()
 
   property("dice on the same element should match") = forAll { i: Int =>
-    val hasher1 = newTestHasher()
+    val hasher1 = newTestFarmHasher()
     hasher1.putInt(i)
     val dice1 = BigSampler.diceElement(i, hasher1.hash(), 1.0)
-    val hasher2 = newTestHasher()
+    val hasher2 = newTestFarmHasher()
     hasher2.putInt(i)
     val dice2 = BigSampler.diceElement(i, hasher2.hash(), 1.0)
     dice1 == dice2
   }
-`
+
   private val negativeHashCodeStringGen: Gen[String] = Gen.alphaStr
-    .suchThat(str => { newTestHasher().putString(str, BigSampler.utf8Charset).hash().asLong < 0} )
-  property("dice on hash values that return negative Long representations should still bucket OK") =
+    .suchThat(str => { newTestFarmHasher().putString(str, BigSampler.utf8Charset).hash().asLong < 0} )
+  property("dice on hash values that return negative Long representations should still bucket so " +
+    "that all values are returned at 100% and none are at 0% " +
+    "(should respect modular arithmetic to split when the Long is negative, the same as it would " +
+    "if it was positive)") =
     forAll(negativeHashCodeStringGen){ s =>
-      val hash = newTestHasher().putString(s, BigSampler.utf8Charset).hash()
+      val hash = newTestFarmHasher().putString(s, BigSampler.utf8Charset).hash()
       BigSampler.diceElement(s, hash, 100).contains(s)
       BigSampler.diceElement(s, hash, 0) == None
     }
 
-  property("kiss hasher should return the same hash all the time - no seed in FarmHash") =
+  property("farm hasher should return the same hash all the time - no seed in FarmHash") =
     forAll { i: Int =>
-      val hasher1 = newTestHasher()
-      val hasher2 = newTestHasher()
+      val hasher1 = newTestFarmHasher()
+      val hasher2 = newTestFarmHasher()
       hasher1.putInt(i).hash() == hasher2.putInt(i).hash()
+  }
+  property("kiss hasher should returns different hash on different seed") = forAll { i: Int =>
+    val hasher1 = newTestKissHasher()
+    val hasher2 = newTestKissHasher(testSeed.map(_ + 1))
+    hasher1.putInt(i).hash() != hasher2.putInt(i).hash()
   }
 
   private val tblSchemaFields = Schemas.tableSchema.getFields.asScala
@@ -75,7 +86,7 @@ object BigSamplerTest extends Properties("BigSampler") {
     "datetime_field")
 
   property("should hash on supported types in TableRow") = forAll(richTableRowGen) { r =>
-    val hasher = newTestHasher()
+    val hasher = newTestFarmHasher()
     all(
       supportedTableRowTypes.map(t => s"required_fields.$t").map( f =>
         {
@@ -88,7 +99,7 @@ object BigSamplerTest extends Properties("BigSampler") {
   }
 
   property("should hash on supported nullable types in TableRow") = forAll(richTableRowGen) { r =>
-    val hasher = newTestHasher()
+    val hasher = newTestFarmHasher()
     all(
       supportedTableRowTypes.map(t => s"nullable_fields.$t").map( f =>
         {
@@ -101,7 +112,7 @@ object BigSamplerTest extends Properties("BigSampler") {
   }
 
   property("should hash on supported repeated types in TableRow") = forAll(richTableRowGen) { r =>
-    val hasher = newTestHasher()
+    val hasher = newTestFarmHasher()
     all(
       supportedTableRowTypes.map(t => s"repeated_fields.$t").map( f =>
         {
@@ -124,7 +135,7 @@ object BigSamplerTest extends Properties("BigSampler") {
     "double_field")
 
   property("should hash on supported required types in Avro") = forAll(richAvroGen) { r =>
-    val hasher = newTestHasher()
+    val hasher = newTestFarmHasher()
     all(
       supportedAvroTypes.map(t => s"required_fields.$t").map( f =>
         {
@@ -137,7 +148,7 @@ object BigSamplerTest extends Properties("BigSampler") {
   }
 
   property("should hash on supported nullable types in Avro") = forAll(richAvroGen) { r =>
-    val hasher = newTestHasher()
+    val hasher = newTestFarmHasher()
     all(
       supportedAvroTypes.map(t => s"nullable_fields.$t").map( f =>
         {
@@ -150,7 +161,7 @@ object BigSamplerTest extends Properties("BigSampler") {
   }
 
   property("should hash on supported repeated types in Avro") = forAll(richAvroGen) { r =>
-    val hasher = newTestHasher()
+    val hasher = newTestFarmHasher()
     all(
       supportedAvroTypes.map(t => s"repeated_fields.$t").map( f =>
         {
@@ -179,8 +190,8 @@ object BigSamplerTest extends Properties("BigSampler") {
             )(_.getRecord(r).set(f))
         (i, tbGen.sample.get, s"$r.$f")
     }) { case (avro, tblRow, f) =>
-      val tblHash = BigSampler.hashTableRow(tblRow, f, tblSchemaFields, newTestHasher()).hash()
-      val avroHash = BigSampler.hashAvroField(avro, f, avroSchema, newTestHasher()).hash()
+      val tblHash = BigSampler.hashTableRow(tblRow, f, tblSchemaFields, newTestFarmHasher()).hash()
+      val avroHash = BigSampler.hashAvroField(avro, f, avroSchema, newTestFarmHasher()).hash()
       tblHash == avroHash
     }
 
@@ -191,7 +202,7 @@ object BigSamplerTest extends Properties("BigSampler") {
           Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f)))
         (i, tbGen.sample.get, fs.map(f => s"$r.$f"))
     }) { case (avro, tblRow, fs) =>
-    val hashes = fs.foldLeft((newTestHasher(), newTestHasher())){ case ((h1, h2), f) =>
+    val hashes = fs.foldLeft((newTestFarmHasher(), newTestFarmHasher())){ case ((h1, h2), f) =>
       (BigSampler.hashTableRow(tblRow, f, tblSchemaFields, h1),
         BigSampler.hashAvroField(avro, f, avroSchema, h2))
     }
@@ -209,7 +220,7 @@ object BigSamplerTest extends Properties("BigSampler") {
           gen.amend(Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f))}
         (i, tbGen.sample.get, crossFieldToRecord.map{ case (f,r) => s"$r.$f" })
     }) { case (avro, tblRow, fields) =>
-    val hashes = fields.foldLeft((newTestHasher(), newTestHasher())){ case ((h1, h2), f) =>
+    val hashes = fields.foldLeft((newTestFarmHasher(), newTestFarmHasher())){ case ((h1, h2), f) =>
       (BigSampler.hashTableRow(tblRow, f, tblSchemaFields, h1),
         BigSampler.hashAvroField(avro, f, avroSchema, h2))
     }

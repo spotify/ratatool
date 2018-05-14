@@ -53,8 +53,24 @@ object BigSampler extends Command {
   private[samplers] val utf8Charset = Charset.forName("UTF-8")
   private[samplers] val fieldSep = '.'
 
-  private[samplers] def kissHashFun(): HashFunction = {
-    Hashing.farmHashFingerprint64() // doesn't require seed, returns same fingerprint each time
+  private[samplers] sealed trait HashAlgorithm
+  private[samplers] case object MurmurHash extends HashAlgorithm
+  private[samplers] case object FarmHash extends HashAlgorithm
+
+  /**
+    * @param hashAlgorithm either MurmurHash (for backwards compatibility) or FarmHash
+    * @param murmurSeed only used with MurmurHash. we use System.currentTimeMillis as int if using
+    *                   Murmur and this is not specified
+    * @return a hash function to use when sampling
+    */
+  private[samplers] def hashFun(hashAlgorithm: HashAlgorithm = FarmHash,
+                                murmurSeed: Option[Int] = None): HashFunction = {
+    hashAlgorithm match {
+      case FarmHash =>
+        Hashing.farmHashFingerprint64 () // doesn't require seed, returns same fingerprint each time
+      case MurmurHash =>
+        Hashing.murmur3_128(murmurSeed.getOrElse(System.currentTimeMillis().toInt))
+    }
   }
 
   /**
@@ -315,7 +331,7 @@ private[samplers] object BigSamplerAvro {
         val samplePct100 = samplePct * 100.0
         val r = sc.avroFile[GenericRecord](input, schema)
           .flatMap { e =>
-            val hasher = BigSampler.kissHashFun()
+            val hasher = BigSampler.hashFun()
               .newHasher(fields.size)
             val hash = fields.foldLeft(hasher)((h, f) => hashAvroField(e, f, schemaSerDe, h)).hash
             BigSampler.diceElement(e, hash, samplePct100)
@@ -443,7 +459,7 @@ private[samplers] object BigSamplerBigQuery {
         val samplePct100 = samplePct * 100.0
         val r = sc.bigQueryTable(inputTbl)
           .flatMap { e =>
-            val hasher = BigSampler.kissHashFun().newHasher(fields.size)
+            val hasher = BigSampler.hashFun().newHasher(fields.size)
             val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(e, f, schemaFields, h)).hash()
             BigSampler.diceElement(e, hash, samplePct100)
           }
