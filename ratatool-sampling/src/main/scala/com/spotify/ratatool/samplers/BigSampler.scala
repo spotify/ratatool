@@ -53,11 +53,29 @@ object BigSampler extends Command {
   private[samplers] val utf8Charset = Charset.forName("UTF-8")
   private[samplers] val fieldSep = '.'
 
-  private[samplers] def kissHashFun(seed: Option[Int] = None): HashFunction = {
-    seed match {
-      case Some(s) => Hashing.murmur3_128(s)
-      case None => Hashing.murmur3_128(System.currentTimeMillis.toInt)
+  private[samplers] sealed trait HashAlgorithm {
+    def hashFn(seed: Option[Int]): Hasher
+  }
+  private[samplers] case object MurmurHash extends HashAlgorithm {
+    def hashFn(seed:Option[Int]): Hasher = {
+      Hashing.murmur3_128(seed.getOrElse(System.currentTimeMillis().toInt)).newHasher()
     }
+  }
+  private[samplers] case object FarmHash extends HashAlgorithm {
+    def hashFn(seed: Option[Int]): Hasher = seed match {
+      case Some(s) => Hashing.farmHashFingerprint64().newHasher().putInt(s)
+      case _ => Hashing.farmHashFingerprint64().newHasher()
+    }
+  }
+
+  /**
+    * @param hashAlgorithm either MurmurHash (for backwards compatibility) or FarmHash
+    * @param seed optional start value to ensure the same result every time if same seed passed in
+    * @return a hasher to use when sampling
+    */
+  private[samplers] def hashFun(hashAlgorithm: HashAlgorithm = FarmHash,
+                                seed: Option[Int] = None): Hasher = {
+    hashAlgorithm.hashFn(seed)
   }
 
   /**
@@ -92,7 +110,7 @@ object BigSampler extends Command {
         |  --input=<path>                    Input file path or BigQuery table
         |  --output=<path>                   Output file path or BigQuery table
         |  [--fields=<field1,field2,...>]    An optional list of fields to include in hashing for sampling cohort selection
-        |  [--seed=<seed]                    An optional seed using in hashing for sampling cohort selection
+        |  [--seed=<seed>]                   An optional seed used in hashing for sampling cohort selection
       """.stripMargin)
     // scalastyle:on regex line.size.limit
     sys.exit(1)
@@ -118,8 +136,7 @@ object BigSampler extends Command {
     val (samplePct, input, output, fields, seed) = try {
       val pct = args("sample").toFloat
       require(pct > 0.0F && pct <= 1.0F)
-      (pct, args("input"), args("output"), args.list("fields"),
-        args.optional("seed"))
+      (pct, args("input"), args("output"), args.list("fields"), args.optional("seed"))
     } catch {
       case e: Throwable =>
         usage()
@@ -326,7 +343,7 @@ private[samplers] object BigSamplerAvro {
         val samplePct100 = samplePct * 100.0
         val r = sc.avroFile[GenericRecord](input, schema)
           .flatMap { e =>
-            val hasher = BigSampler.kissHashFun(seed).newHasher(fields.size)
+            val hasher = BigSampler.hashFun(seed=seed)
             val hash = fields.foldLeft(hasher)((h, f) => hashAvroField(e, f, schemaSerDe, h)).hash
             BigSampler.diceElement(e, hash, samplePct100)
           }
@@ -454,7 +471,7 @@ private[samplers] object BigSamplerBigQuery {
         val samplePct100 = samplePct * 100.0
         val r = sc.bigQueryTable(inputTbl)
           .flatMap { e =>
-            val hasher = BigSampler.kissHashFun(seed).newHasher(fields.size)
+            val hasher = BigSampler.hashFun(seed=seed)
             val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(e, f, schemaFields, h)).hash()
             BigSampler.diceElement(e, hash, samplePct100)
           }
