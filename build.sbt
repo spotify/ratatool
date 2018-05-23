@@ -89,11 +89,9 @@ lazy val ratatoolCommon = project
   .settings(
     name := "ratatool-common",
     libraryDependencies ++= Seq(
-      "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
       "org.apache.avro" % "avro" % avroVersion,
       "org.apache.avro" % "avro" % avroVersion classifier("tests"),
       "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
-      "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided"
     ),
@@ -117,7 +115,9 @@ lazy val ratatoolSampling = project
       "joda-time" % "joda-time" % jodaTimeVersion,
       "org.apache.parquet" % "parquet-avro" % parquetVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+      "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
+      "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12")
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
