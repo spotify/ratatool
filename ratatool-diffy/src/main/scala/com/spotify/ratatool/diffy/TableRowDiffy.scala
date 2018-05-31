@@ -29,18 +29,19 @@ import scala.collection.JavaConverters._
 /** Field level diff tool for TableRow records. */
 class TableRowDiffy(tableSchema: TableSchema,
                     ignore: Set[String] = Set.empty,
-                    unordered: Set[String] = Set.empty)
-  extends Diffy[TableRow](ignore, unordered) {
+                    unordered: Set[String] = Set.empty,
+                    unorderedFieldKeys: Map[String, String] = Map())
+  extends Diffy[TableRow](ignore, unordered, unorderedFieldKeys) {
 
   override def apply(x: TableRow, y: TableRow): Seq[Delta] =
     diff(x, y, schema.getFields.asScala, "")
 
-  type Record = java.util.Map[String, AnyRef]
+  private type Record = java.util.Map[String, AnyRef]
 
   // TableSchema is not serializable
   private val schemaString: String =
-  new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-    .writeValueAsString(tableSchema)
+    new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+      .writeValueAsString(tableSchema)
   private lazy val schema: TableSchema =
     new JsonObjectParser(new JacksonFactory)
       .parseAndClose(new StringReader(schemaString), classOf[TableSchema])
@@ -48,6 +49,10 @@ class TableRowDiffy(tableSchema: TableSchema,
   // scalastyle:off cyclomatic.complexity
   private def diff(x: Record, y: Record,
                    fields: Seq[TableFieldSchema], root: String): Seq[Delta] = {
+    def getField(f: String)(x: Record): AnyRef = {
+      x.get(f)
+    }
+
     fields.flatMap { f =>
       val name = f.getName
       val fullName = if (root.isEmpty) name else root + "." + name
@@ -62,9 +67,21 @@ class TableRowDiffy(tableSchema: TableSchema,
           diff(a, b, f.getFields.asScala, fullName)
         }
       } else if (f.getMode == "REPEATED" && unordered.contains(fullName)) {
-        val a = sortList(x.get(name).asInstanceOf[java.util.List[AnyRef]])
-        val b = sortList(y.get(name).asInstanceOf[java.util.List[AnyRef]])
-        if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+        if (f.getType == "RECORD" && unorderedFieldKeys.contains(fullName) &&
+            unordered.exists(_.startsWith(s"$fullName."))) {
+          val a = sortList(x.get(name).asInstanceOf[java.util.List[Record]],
+            unorderedFieldKeys.get(fullName).map(getField))
+          val b = sortList(y.get(name).asInstanceOf[java.util.List[Record]],
+            unorderedFieldKeys.get(fullName).map(getField))
+          a.asScala.zip(b.asScala).flatMap{case (l, r) =>
+            diff(l, r, f.getFields.asScala, fullName)
+          }
+        }
+        else {
+          val a = sortList(x.get(name).asInstanceOf[java.util.List[AnyRef]])
+          val b = sortList(y.get(name).asInstanceOf[java.util.List[AnyRef]])
+          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+        }
       } else {
         val a = x.get(name)
         val b = y.get(name)
@@ -74,5 +91,4 @@ class TableRowDiffy(tableSchema: TableSchema,
     .filter(d => !ignore.contains(d.field))
   }
   // scalastyle:on cyclomatic.complexity
-
 }

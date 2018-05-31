@@ -24,8 +24,9 @@ import scala.collection.JavaConverters._
 
 /** Field level diff tool for Avro records. */
 class AvroDiffy[T <: GenericRecord](ignore: Set[String] = Set.empty,
-                                    unordered: Set[String] = Set.empty)
-  extends Diffy[T](ignore, unordered) {
+                                    unordered: Set[String] = Set.empty,
+                                    unorderedFieldKeys: Map[String, String] = Map())
+  extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
 
   override def apply(x: T, y: T): Seq[Delta] = {
     require(x.getSchema == y.getSchema)
@@ -34,6 +35,10 @@ class AvroDiffy[T <: GenericRecord](ignore: Set[String] = Set.empty,
 
   // scalastyle:off cyclomatic.complexity
   private def diff(x: GenericRecord, y: GenericRecord, root: String): Seq[Delta] = {
+    def getField(f: String)(x: GenericRecord): AnyRef = {
+      x.get(f)
+    }
+
     x.getSchema.getFields.asScala.flatMap { f =>
       val name = f.name()
       val fullName = if (root.isEmpty) name else root + "." + name
@@ -49,9 +54,22 @@ class AvroDiffy[T <: GenericRecord](ignore: Set[String] = Set.empty,
             diff(a, b, fullName)
           }
         case Schema.Type.ARRAY if unordered.contains(fullName) =>
-          val a = sortList(x.get(name).asInstanceOf[java.util.List[AnyRef]])
-          val b = sortList(y.get(name).asInstanceOf[java.util.List[AnyRef]])
-          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+          if (f.schema().getElementType.getType == Schema.Type.RECORD
+              && unordered.exists(_.startsWith(s"$fullName."))
+              && unorderedFieldKeys.contains(fullName)) {
+            val a = sortList(x.get(name).asInstanceOf[java.util.List[GenericRecord]],
+              unorderedFieldKeys.get(fullName).map(getField))
+            val b = sortList(y.get(name).asInstanceOf[java.util.List[GenericRecord]],
+              unorderedFieldKeys.get(fullName).map(getField))
+            a.asScala.zip(b.asScala).flatMap{case (l, r) =>
+              diff(l.asInstanceOf[GenericRecord], r.asInstanceOf[GenericRecord], fullName)
+            }.toList
+          }
+          else {
+            val a = sortList(x.get(name).asInstanceOf[java.util.List[GenericRecord]])
+            val b = sortList(y.get(name).asInstanceOf[java.util.List[GenericRecord]])
+            if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+          }
         case _ =>
           val a = x.get(name)
           val b = y.get(name)
