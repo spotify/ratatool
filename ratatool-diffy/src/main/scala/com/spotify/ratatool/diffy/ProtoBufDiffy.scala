@@ -59,10 +59,10 @@ extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
       val name = f.getName
       val fullName = if (root.isEmpty) name else root + "." + name
       if (f.isRepeated && unordered.contains(fullName)) {
-        val a = sortList(x.getField(f).asInstanceOf[java.util.List[AbstractMessage]],
-          unorderedFieldKeys.get(fullName).map(s => getField(getFieldDescriptor(f, s)) _))
-        val b = sortList(y.getField(f).asInstanceOf[java.util.List[AbstractMessage]],
-          unorderedFieldKeys.get(fullName).map(s => getField(getFieldDescriptor(f, s)) _))
+        val getFieldFn: Option[AbstractMessage => AnyRef] =
+          unorderedFieldKeys.get(fullName).map(s => getField(getFieldDescriptor(f, s)) _)
+        val a = sortList(x.getField(f).asInstanceOf[java.util.List[AbstractMessage]], getFieldFn)
+        val b = sortList(y.getField(f).asInstanceOf[java.util.List[AbstractMessage]], getFieldFn)
         if (f.getJavaType == JavaType.MESSAGE && unordered.exists(_.startsWith(s"$fullName."))
             && unorderedFieldKeys.contains(fullName)) {
           a.asInstanceOf[java.util.List[AbstractMessage]].asScala.zip(
