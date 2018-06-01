@@ -18,7 +18,7 @@
 package com.spotify.ratatool.diffy
 
 import com.spotify.ratatool.scalacheck._
-import com.spotify.ratatool.proto.Schemas.{OptionalNestedRecord, RepeatedNestedRecord, TestRecord}
+import com.spotify.ratatool.proto.Schemas._
 import org.scalatest.{FlatSpec, Matchers}
 
 import scala.collection.JavaConverters._
@@ -32,7 +32,7 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
     val y = OptionalNestedRecord.newBuilder().setInt32Field(10).setInt64Field(20L).build()
     val z = OptionalNestedRecord.newBuilder().setInt32Field(10).setInt64Field(200L).build()
 
-    val d = new ProtoBufDiffy[OptionalNestedRecord]
+    val d = new ProtoBufDiffy[OptionalNestedRecord]()
     d(x, y) should equal (Nil)
     d(x, z) should equal (Seq(
       Delta("int64_field", 20L, 200L, NumericDelta(180.0))))
@@ -60,7 +60,7 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
     val z2 = TestRecord.newBuilder(x).clearOptionalNestedField().build()
     val z3 = TestRecord.newBuilder(x).clearOptionalNestedField().build()
 
-    val d = new ProtoBufDiffy[TestRecord]
+    val d = new ProtoBufDiffy[TestRecord]()
     d(x, y) should equal (Nil)
     d(x, z1) should equal (Seq(
       Delta("optional_nested_field.int64_field", 20L, 200L, NumericDelta(180.0)),
@@ -94,7 +94,7 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
           .build()
       ).build()
 
-    val d = new ProtoBufDiffy[TestRecord]
+    val d = new ProtoBufDiffy[TestRecord]()
     d(x, y) should equal (Nil)
     d(x, z) should equal (Seq(
       Delta("repeated_fields.int64_field",
@@ -141,4 +141,33 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
       Delta("repeated_nested_field", jl(a, b, c), jl(a, c, b), UnknownDelta)))
   }
 
+  it should "support unordered nested" in {
+    val a = RepeatedRecord.newBuilder().setStringField("hello")
+      .clearNestedRepeatedField().addAllNestedRepeatedField(jl(10, 20, 30)).build
+    val b = RepeatedRecord.newBuilder().setStringField("world")
+      .clearNestedRepeatedField().addAllNestedRepeatedField(jl(10, 20, 30)).build
+    val c = RepeatedRecord.newBuilder().setStringField("!")
+      .clearNestedRepeatedField().addAllNestedRepeatedField(jl(10, 30, 20)).build
+
+    val x = DeeplyRepeatedRecord.newBuilder().clearRepeatedRecord()
+      .addAllRepeatedRecord(jl(a, b, c)).build
+    val y = DeeplyRepeatedRecord.newBuilder().clearRepeatedRecord()
+      .addAllRepeatedRecord(jl(a, b, c)).build
+    val z = DeeplyRepeatedRecord.newBuilder().clearRepeatedRecord()
+      .addAllRepeatedRecord(jl(a, c, b)).build
+
+    val du = new ProtoBufDiffy[DeeplyRepeatedRecord](
+      unordered = Set("repeated_record", "repeated_record.nested_repeated_field"),
+      unorderedFieldKeys = Map("repeated_record" -> "string_field"))
+    val d = new ProtoBufDiffy[DeeplyRepeatedRecord]()
+
+    du(x, y) should equal (Nil)
+    du(x, z) should equal (Nil)
+    d(x, z) should equal (Seq(
+      Delta(
+        "repeated_record",
+        jl(a, b, c),
+        jl(a, c, b),
+        UnknownDelta)))
+  }
 }

@@ -17,7 +17,7 @@
 
 package com.spotify.ratatool.diffy
 
-import com.spotify.ratatool.avro.specific.{NullableNestedRecord, TestRecord}
+import com.spotify.ratatool.avro.specific._
 import com.spotify.ratatool.scalacheck._
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.coders.AvroCoder
@@ -30,7 +30,7 @@ class AvroDiffyTest extends FlatSpec with Matchers {
 
   def jl[T](x: T*): java.util.List[T] = List(x: _*).asJava
 
-  val d = new AvroDiffy[GenericRecord]
+  val d = new AvroDiffy[GenericRecord]()
 
   "AvroDiffy" should "support primitive fields" in {
     val x = NullableNestedRecord.newBuilder().setIntField(10).setLongField(20L).build()
@@ -123,4 +123,35 @@ class AvroDiffyTest extends FlatSpec with Matchers {
       Delta("repeated_nested_field", jl(a, b, c), jl(a, c, b), UnknownDelta)))
   }
 
+  it should "support unordered nested" in {
+    val drnrCoder = AvroCoder.of(classOf[RepeatedRecord])
+    val drrCoder = AvroCoder.of(classOf[DeeplyRepeatedRecord])
+
+    val a = avroOf[RepeatedRecord].sample.get
+    a.setNestedRepeatedField(jl(10, 20, 30))
+    val b = CoderUtils.clone(drnrCoder, a)
+    b.setNestedRepeatedField(jl(10, 20, 30))
+    val c = CoderUtils.clone(drnrCoder, a)
+    c.setNestedRepeatedField(jl(10, 30, 20))
+
+    val x = avroOf[DeeplyRepeatedRecord].sample.get
+    x.setRepeatedRecord(jl(a, b, c))
+    val y = CoderUtils.clone(drrCoder, x)
+    y.setRepeatedRecord(jl(a, b, c))
+    val z = CoderUtils.clone(drrCoder, x)
+    z.setRepeatedRecord(jl(a, c, b))
+
+    val du = new AvroDiffy[DeeplyRepeatedRecord](
+      unordered = Set("repeated_record", "repeated_nested_field.nested_repeated_field"),
+      unorderedFieldKeys = Map("repeated_record" -> "string_field"))
+
+    du(x, y) should equal (Nil)
+    du(x, z) should equal (Nil)
+    d(x, z) should equal (Seq(
+      Delta(
+        "repeated_record",
+        jl(a, b, c),
+        jl(a, c, b),
+        UnknownDelta)))
+  }
 }

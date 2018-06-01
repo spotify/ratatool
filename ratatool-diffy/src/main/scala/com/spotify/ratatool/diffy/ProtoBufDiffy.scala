@@ -26,8 +26,9 @@ import scala.reflect.ClassTag
 
 /** Field level diff tool for ProtoBuf records. */
 class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.empty,
-                                                      unordered: Set[String] = Set.empty)
-  extends Diffy[T](ignore, unordered) {
+                                                     unordered: Set[String] = Set.empty,
+                                                     unorderedFieldKeys: Map[String, String]= Map())
+extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
 
   override def apply(x: T, y: T): Seq[Delta] = diff(x, y, descriptor.getFields.asScala, "")
 
@@ -37,28 +38,45 @@ class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.e
       .getMethod("getDescriptor")
       .invoke(null).asInstanceOf[Descriptor]
 
-  // scalastyle:off cyclomatic.complexity
+  // scalastyle:off cyclomatic.complexity method.length
   private def diff(x: AbstractMessage, y: AbstractMessage,
                    fields: Seq[FieldDescriptor], root: String): Seq[Delta] = {
-    def getField(m: AbstractMessage, f: FieldDescriptor): AnyRef =
+    def getField(f: FieldDescriptor)(m: AbstractMessage): AnyRef =
       if (f.isRepeated) {
         m.getField(f)
       } else {
         if (m.hasField(f)) m.getField(f) else null
       }
 
+    def getFieldDescriptor(f: FieldDescriptor, s: String): FieldDescriptor = {
+      f.getMessageType.getFields.asScala.find(field => field.getName == s) match {
+        case Some(d) => d
+        case None => throw new Exception(s"Field $s not found in ${f.getFullName}")
+      }
+    }
+
     fields.flatMap { f =>
       val name = f.getName
       val fullName = if (root.isEmpty) name else root + "." + name
       if (f.isRepeated && unordered.contains(fullName)) {
-        val a = sortList(x.getField(f).asInstanceOf[java.util.List[AnyRef]])
-        val b = sortList(y.getField(f).asInstanceOf[java.util.List[AnyRef]])
-        if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+        val getFieldFn: Option[AbstractMessage => AnyRef] =
+          unorderedFieldKeys.get(fullName).map(s => getField(getFieldDescriptor(f, s)) _)
+        val a = sortList(x.getField(f).asInstanceOf[java.util.List[AbstractMessage]], getFieldFn)
+        val b = sortList(y.getField(f).asInstanceOf[java.util.List[AbstractMessage]], getFieldFn)
+        if (f.getJavaType == JavaType.MESSAGE && unordered.exists(_.startsWith(s"$fullName."))
+            && unorderedFieldKeys.contains(fullName)) {
+          a.asInstanceOf[java.util.List[AbstractMessage]].asScala.zip(
+            b.asInstanceOf[java.util.List[AbstractMessage]].asScala).flatMap {
+              case (l, r) => diff(l, r, f.getMessageType.getFields.asScala, fullName)}
+        }
+        else {
+          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+        }
       } else {
         f.getJavaType match {
           case JavaType.MESSAGE if !f.isRepeated =>
-            val a = getField(x, f).asInstanceOf[AbstractMessage]
-            val b = getField(y, f).asInstanceOf[AbstractMessage]
+            val a = getField(f)(x).asInstanceOf[AbstractMessage]
+            val b = getField(f)(y).asInstanceOf[AbstractMessage]
             if (a == null && b == null) {
               Nil
             } else if (a == null || b == null) {

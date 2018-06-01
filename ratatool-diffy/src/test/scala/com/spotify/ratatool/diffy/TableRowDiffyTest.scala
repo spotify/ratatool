@@ -19,6 +19,7 @@ package com.spotify.ratatool.diffy
 
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import org.scalatest.{FlatSpec, Matchers}
+import com.spotify.ratatool.scalacheck._
 
 import scala.collection.JavaConverters._
 
@@ -125,4 +126,51 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
       Delta("field1", jl(a, b, c), jl(a, c, b), UnknownDelta)))
   }
 
+  it should "support unordered nested" in {
+    val schema = new TableSchema().setFields(jl(
+      new TableFieldSchema()
+        .setName("repeated_record")
+        .setType("RECORD")
+        .setMode("REPEATED")
+        .setFields(jl(
+          new TableFieldSchema()
+            .setName("nested_repeated_field")
+            .setType("INTEGER")
+            .setMode("REPEATED"),
+          new TableFieldSchema()
+            .setName("string_field")
+            .setType("STRING")
+            .setMode("REQUIRED")))))
+
+    val a = new TableRow()
+      .set("nested_repeated_field", jl(10, 20, 30))
+      .set("string_field", "hello")
+
+    val b = new TableRow()
+      .set("nested_repeated_field", jl(10, 20, 30))
+      .set("string_field", "world")
+
+    val c = new TableRow()
+      .set("nested_repeated_field", jl(10, 30, 20))
+      .set("string_field", "!")
+
+    val x = new TableRow().set("repeated_record", jl(a, b, c))
+    val y = new TableRow().set("repeated_record", jl(a, b, c))
+    val z = new TableRow().set("repeated_record", jl(a, c, b))
+
+    val du = new TableRowDiffy(schema,
+      unordered = Set("repeated_record", "repeated_record.nested_repeated_field"),
+      unorderedFieldKeys = Map("repeated_record" -> "string_field"))
+    val d = new TableRowDiffy(schema)
+
+
+    du(x, y) should equal (Nil)
+    du(x, z) should equal (Nil)
+    d(x, z) should equal (Seq(
+      Delta(
+        "repeated_record",
+        jl(a, b, c),
+        jl(a, c, b),
+        UnknownDelta)))
+  }
 }

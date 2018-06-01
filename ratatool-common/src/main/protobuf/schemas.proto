@@ -64,3 +64,12 @@ message RepeatedNestedRecord {
     repeated string string_field = 14;
     repeated bytes bytes_field = 15;
 }
+
+message DeeplyRepeatedRecord {
+    repeated RepeatedRecord repeated_record = 1;
+}
+
+message RepeatedRecord {
+    repeated int32 nested_repeated_field = 1;
+    required string string_field = 2;
+}

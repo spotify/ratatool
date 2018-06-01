@@ -71,11 +71,15 @@ case class Delta(field: String, left: Any, right: Any, delta: DeltaValue) {
 /**
  * Field level diff tool.
  *
- * Use `ignore` to specify set of fields to ignore during comparison.
- * Use `unordered` to specify set of fields to be treated as unordered, i.e. sort before comparison.
+ * @param ignore specify set of fields to ignore during comparison.
+ * @param unordered specify set of fields to be treated as unordered, i.e. sort before comparison.
+ * @param unorderedFieldKeys specify keys to sort by for a nested record, only necessary if
+ *                           an unordered field contains nested unordered fields
+ *                           (currently not support in CLI)
  */
 abstract class Diffy[T](val ignore: Set[String],
-                        val unordered: Set[String]) extends Serializable {
+                        val unordered: Set[String],
+                        val unorderedFieldKeys: Map[String, String] = Map()) extends Serializable {
 
   def apply(x: T, y: T): Seq[Delta]
 
@@ -112,11 +116,15 @@ abstract class Diffy[T](val ignore: Set[String],
   /**
    * Sort a repeated field.
    *
-   * Elements are sorted by `_.toString` since most types we deal with are not comparable.
+   * Elements are default sorted by `_.toString` since most types we deal with are not comparable.
+   * @param keyFn - provides a field which can be reliably sorted against
    */
-  def sortList(l: java.util.List[AnyRef]): java.util.List[AnyRef] =
-    if (l == null) null else l.asScala.sortBy(_.toString).asJava
-
+  def sortList[U](l: java.util.List[U], keyFn: Option[U => Any] = None): java.util.List[U] =
+    if (l == null) {
+      null
+    } else {
+      l.asScala.sortBy(u => keyFn.map(f => f(u)).getOrElse(u).toString).asJava
+    }
 }
 
 /**

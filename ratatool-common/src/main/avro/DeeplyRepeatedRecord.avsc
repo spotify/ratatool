@@ -1,0 +1,23 @@
+{
+    "type": "record",
+    "name": "DeeplyRepeatedRecord",
+    "namespace": "com.spotify.ratatool.avro.specific",
+    "doc": "Record for testing",
+    "fields": [
+        {
+            "name": "repeated_record",
+            "type": {
+                "type": "array", "items": [{
+                    "type": "record",
+                    "name": "RepeatedRecord",
+                    "namespace": "com.spotify.ratatool.avro.specific",
+                    "doc": "Record for testing",
+                    "fields": [
+                        {"name": "nested_repeated_field", "type": {"type": "array", "items": "int"}},
+                        {"name": "string_field", "type": "string"}
+                    ]
+                }]
+            }
+        }
+    ]
+}
