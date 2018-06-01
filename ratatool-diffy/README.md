@@ -1,7 +1,7 @@
 Diffy
 =======
 
-Diffy contains record diff-ing classes that can be utilized by BigDiffy to perform Diffs over large datasets. Supported filesystems include Local, GCS (`gs://`), and HDFS (`hdfs://`)
+Diffy contains record diff-ing classes that can be utilized by BigDiffy to perform Diffs over large datasets. Supported filesystems include Local, GCS (`gs://`), HDFS (`hdfs://`). There is also support for diff-ing directly from BigQuery tables. Currently supported formats are Avro, Protobuf, or BigQuery TableRow.
 
 # BigDiffy
 
@@ -16,7 +16,7 @@ For full details on Statistics and output see [BigDiffy.scala](https://github.co
 
 
 ## Usage
-
+From the CLI
 ```
 BigDiffy - pair-wise field-level statistical diff
 Usage: BigDiffy [dataflow_options] [options]
@@ -30,3 +30,10 @@ Usage: BigDiffy [dataflow_options] [options]
   --unordered=<keys>     ',' separated field list to treat as unordered
   [--with-header]        Output all TSVs with header rows
 ```
+
+Or from SBT
+```
+libraryDependencies += "com.spotify" %% "ratatool-diffy" % ratatoolVersion
+
+```
+The latest version can be found in the main [README](https://github.com/spotify/ratatool/blob/master/README.md).
