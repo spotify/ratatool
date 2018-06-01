@@ -74,7 +74,8 @@ case class Delta(field: String, left: Any, right: Any, delta: DeltaValue) {
  * @param ignore specify set of fields to ignore during comparison.
  * @param unordered specify set of fields to be treated as unordered, i.e. sort before comparison.
  * @param unorderedFieldKeys specify keys to sort by for a nested record, only necessary if
- *                           an unordered record contains nested unordered fields
+ *                           an unordered field contains nested unordered fields
+ *                           (currently not support in CLI)
  */
 abstract class Diffy[T](val ignore: Set[String],
                         val unordered: Set[String],
