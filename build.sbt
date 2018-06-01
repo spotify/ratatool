@@ -162,14 +162,17 @@ lazy val ratatoolShapeless = project
   .settings(
     name := "ratatool-shapeless",
     libraryDependencies ++= Seq(
-      "com.chuusai" %% "shapeless" % shapelessVersion
+      "com.chuusai" %% "shapeless" % shapelessVersion,
+      "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
     parallelExecution in Test := false
   )
   .dependsOn(
-    ratatoolDiffy
+    ratatoolDiffy,
+    ratatoolSampling
   )
 
 lazy val ratatoolCli = project
