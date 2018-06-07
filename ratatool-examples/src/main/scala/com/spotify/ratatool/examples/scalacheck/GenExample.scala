@@ -110,15 +110,20 @@ object ExampleAvroGen {
   private val exampleRecordGenDup: Gen[ExampleRecord] =
     specificRecordOf[ExampleRecord]
 
-  val exampleRecordGen2: Gen[(ExampleRecord, ExampleRecord)] =
+  val exampleRecordAmend2Gen: Gen[(ExampleRecord, ExampleRecord)] =
     (exampleRecordGen, exampleRecordGenDup)
       .tupled
       .amend2(recordIdGen)(_.setRecordId, _.setRecordId)
 
-  val correlatedRecordGen: Gen[(ExampleRecord, NestedExampleRecord)] =
+  val correlatedRecordGen: Gen[ExampleRecord] =
     (exampleRecordGen, specificRecordOf[NestedExampleRecord])
       .tupled
       .amend2(recordIdGen)(_.setRecordId, _.setParentRecordId)
+      .map({
+        case (exampleRecord, nestedExampleRecord) =>
+          exampleRecord.setNestedRecordField(nestedExampleRecord)
+          exampleRecord
+      })
 
 }
 
@@ -179,14 +184,15 @@ object ExampleTableRowGen {
   private val tableRowGenDup: Gen[TableRow] =
     tableRowOf(tableSchema)
 
-  val exampleRecordGen2: Gen[(TableRow, TableRow)] =
+  val exampleRecordAmend2Gen: Gen[(TableRow, TableRow)] =
     (tableRowGen, tableRowGenDup)
       .tupled
       .amend2(recordIdGen)(_.set("record_id"), _.set("record_id"))
 
-  val correlatedRecordGen: Gen[(TableRow, TableRow)] =
+  val correlatedRecordGen: Gen[TableRow] =
     (tableRowGen, tableRowOf(childSchema))
     .tupled
     .amend2(recordIdGen)(_.set("record_id"), _.set("parent_record_id"))
+    .map({case (record, child) => record.set("parent_record_id", child.get("parent_record_id"))})
 
 }

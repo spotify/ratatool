@@ -57,12 +57,13 @@ object ExampleAvroGenTest extends Properties("ExampleAvroGenerator") {
   }
 
   property("the record id is the same when using amend2 generators") =
-    forAll(ExampleAvroGen.exampleRecordGen2) {
+    forAll(ExampleAvroGen.exampleRecordAmend2Gen) {
       case (gen1, gen2) => gen1.getRecordId == gen2.getRecordId
     }
 
   property("the record id is the same when using amend2 for correlated fields") =
     forAll(ExampleAvroGen.correlatedRecordGen) {
-      case (gen1, gen2) => gen1.getRecordId == gen2.getParentRecordId
+      correlatedGen =>
+        correlatedGen.getRecordId == correlatedGen.getNestedRecordField.getParentRecordId
     }
 }
