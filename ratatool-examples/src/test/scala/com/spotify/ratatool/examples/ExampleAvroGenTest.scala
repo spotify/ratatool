@@ -55,4 +55,15 @@ object ExampleAvroGenTest extends Properties("ExampleAvroGenerator") {
     val size = m.getNestedRecordField.getMapField.asScala.size
     size <= 5 && size >= 0
   }
+
+  property("the record id is the same when using amend2 generators") =
+    forAll(ExampleAvroGen.exampleRecordAmend2Gen) {
+      case (gen1, gen2) => gen1.getRecordId == gen2.getRecordId
+    }
+
+  property("the record id is the same when using amend2 for correlated fields") =
+    forAll(ExampleAvroGen.correlatedRecordGen) {
+      correlatedGen =>
+        correlatedGen.getRecordId == correlatedGen.getNestedRecordField.getParentRecordId
+    }
 }

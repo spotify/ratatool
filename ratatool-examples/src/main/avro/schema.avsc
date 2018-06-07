@@ -37,6 +37,11 @@
                 "doc": "Record ",
                 "fields": [
                     {
+                        "name": "parent_record_id",
+                        "type": "string",
+                        "doc": "Unique record UUID"
+                    },
+                    {
                         "name": "int_field",
                         "type": "int"
                     },

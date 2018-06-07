@@ -1,0 +1,9 @@
+{
+  "fields": [
+    {
+      "mode": "REQUIRED",
+      "name": "parent_record_id",
+      "type": "STRING"
+    }
+  ]
+}
