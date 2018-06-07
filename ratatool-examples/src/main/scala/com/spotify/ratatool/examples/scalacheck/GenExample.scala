@@ -104,12 +104,34 @@ object ExampleAvroGen {
         m.setIndependentStringField(s)
         m.setDependentEnumField(dependentEnumFunc(s))
       })
+
+  private val recordIdGen: Gen[String] = Gen.alphaUpperStr
+
+  private val exampleRecordGenDup: Gen[ExampleRecord] =
+    specificRecordOf[ExampleRecord]
+
+  val exampleRecordGen2: Gen[(ExampleRecord, ExampleRecord)] =
+    (exampleRecordGen, exampleRecordGenDup)
+      .tupled
+      .amend2(recordIdGen)(_.setRecordId, _.setRecordId)
+
+  val correlatedRecordGen: Gen[(ExampleRecord, NestedExampleRecord)] =
+    (exampleRecordGen, specificRecordOf[NestedExampleRecord])
+      .tupled
+      .amend2(recordIdGen)(_.setRecordId, _.setParentRecordId)
+
 }
 
 object ExampleTableRowGen {
   private val tableSchema = new JsonObjectParser(new JacksonFactory)
     .parseAndClose(
       this.getClass.getResourceAsStream("/schema.json"),
+      Charsets.UTF_8,
+      classOf[TableSchema])
+
+  private val childSchema = new JsonObjectParser(new JacksonFactory)
+    .parseAndClose(
+      this.getClass.getResourceAsStream("/child.json"),
       Charsets.UTF_8,
       classOf[TableSchema])
 
@@ -151,4 +173,20 @@ object ExampleTableRowGen {
        */
       .tryAmend(intListGen)(_.getRecord("nullable_record").set("repeated_int_field"))
       .tryAmend(freqGen)(_.getRecord("nullable_record").set("frequency_string_field"))
+
+  private val recordIdGen: Gen[String] = Gen.alphaUpperStr
+
+  private val tableRowGenDup: Gen[TableRow] =
+    tableRowOf(tableSchema)
+
+  val exampleRecordGen2: Gen[(TableRow, TableRow)] =
+    (tableRowGen, tableRowGenDup)
+      .tupled
+      .amend2(recordIdGen)(_.set("record_id"), _.set("record_id"))
+
+  val correlatedRecordGen: Gen[(TableRow, TableRow)] =
+    (tableRowGen, tableRowOf(childSchema))
+    .tupled
+    .amend2(recordIdGen)(_.set("record_id"), _.set("parent_record_id"))
+
 }

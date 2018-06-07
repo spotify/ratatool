@@ -1,6 +1,11 @@
 {
     "fields": [
         {
+          "mode": "REQUIRED",
+          "name": "record_id",
+          "type": "STRING"
+        },
+        {
             "mode": "NULLABLE",
             "name": "nullable_record",
             "type": "RECORD",
