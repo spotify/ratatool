@@ -96,9 +96,11 @@ object ExampleAvroGen {
        * Set dependent fields based on Schema criteria. This is done in a single amend with
        * a single gen to ensure values are consistent per record
        */
-      .amend(intGen)(_.setIndependentIntField,
+      .amend(intGen)(
+        _.setIndependentIntField,
         m => i => m.setDependentIntField(dependentIntFunc(i)))
-      .amend(stringGen)(_.setIndependentStringField,
+      .amend(stringGen)(
+        _.setIndependentStringField,
         m => s => m.setDependentEnumField(dependentEnumFunc(s)))
 
   private val recordIdGen: Gen[String] = Gen.alphaUpperStr
