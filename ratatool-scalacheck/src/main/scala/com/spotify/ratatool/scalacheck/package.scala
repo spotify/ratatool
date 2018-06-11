@@ -37,9 +37,9 @@ package object scalacheck extends AvroGeneratorOps
   }
 
   implicit class RichAvroGen[T <: SpecificRecord](gen: Gen[T]) {
-    def amend[U](g: Gen[U])(f: T => (U => Unit)): Gen[T] = {
+    def amend[U](g: Gen[U])(fns: (T => (U => Unit))*): Gen[T] = {
       for (r <- gen; v <- g) yield {
-        f(r)(v)
+        fns.foreach(f => f(r)(v))
         r
       }
     }
@@ -73,9 +73,9 @@ package object scalacheck extends AvroGeneratorOps
   private type Record = java.util.Map[String, AnyRef]
 
   implicit class RichTableRowGen(gen: Gen[TableRow]) {
-    def amend[U](g: Gen[U])(f: TableRow => (AnyRef => Record)): Gen[TableRow] = {
+    def amend[U](g: Gen[U])(fns: (TableRow => (AnyRef => Record))*): Gen[TableRow] = {
       for (r <- gen; v <- g) yield {
-        f(r)(v.asInstanceOf[AnyRef])
+        fns.foreach(f => f(r)(v.asInstanceOf[AnyRef]))
         r
       }
     }
@@ -99,9 +99,9 @@ package object scalacheck extends AvroGeneratorOps
   }
 
   implicit class RichProtobufBuilder[T <: Message.Builder](gen: Gen[T]) {
-    def amend[U](g: Gen[U])(f: T => (U => T)): Gen[T] = {
+    def amend[U](g: Gen[U])(fns: (T => (U => T))*): Gen[T] = {
       for (r <- gen; v <- g) yield {
-        f(r)(v)
+        fns.foldLeft(r)((r, f) => f(r)(v))
       }
     }
 

@@ -27,6 +27,7 @@ message OptionalNestedRecord {
     optional bool bool_field = 13;
     optional string string_field = 14;
     optional bytes bytes_field = 15;
+    optional string upper_string_field = 16;
 }
 
 message RequiredNestedRecord {

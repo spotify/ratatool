@@ -38,7 +38,8 @@ object AvroGeneratorTest extends Properties("AvroGenerator") {
     .amend(Gen.choose(10.0f, 20.0f))(_.getNullableFields.setFloatField)
     .amend(Gen.choose(10.0, 20.0))(_.getNullableFields.setDoubleField)
     .amend(Gen.const(true))(_.getNullableFields.setBooleanField)
-    .amend(Gen.const("hello"))(_.getNullableFields.setStringField)
+    .amend(Gen.const("hello"))(_.getNullableFields.setStringField,
+      m => s => m.getNullableFields.setUpperStringField(s.toUpperCase))
 
   val richTupGen = (specificRecordOf[TestRecord], specificRecordOf[TestRecord]).tupled
     .amend2(specificRecordOf[RequiredNestedRecord])(_.setRequiredFields,
@@ -55,7 +56,8 @@ object AvroGeneratorTest extends Properties("AvroGenerator") {
       "Double" |:
         r.getNullableFields.getDoubleField >= 10.0 && r.getNullableFields.getDoubleField <= 20.0,
       "Boolean" |: r.getNullableFields.getBooleanField == true,
-      "String" |: r.getNullableFields.getStringField == "hello"
+      "String" |: r.getNullableFields.getStringField == "hello",
+      "String" |: r.getNullableFields.getUpperStringField == "HELLO"
     )
   }
 
