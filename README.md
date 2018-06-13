@@ -39,7 +39,7 @@ ratatool
 Or download the [release](https://github.com/spotify/ratatool/releases) jar and run it.
 
 ```bash
-wget https://github.com/spotify/ratatool/releases/download/v0.3.2/ratatool-0.3.2.tar.gz
+wget https://github.com/spotify/ratatool/releases/download/v0.3.3/ratatool-cli-0.3.3.tar.gz
 bin/ratatool directSampler
 ```
 
