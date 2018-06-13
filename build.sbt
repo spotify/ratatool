@@ -142,7 +142,8 @@ lazy val ratatoolDiffy = project
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "com.twitter" %% "algebird-core" % algebirdVersion,
-      "joda-time" % "joda-time" % jodaTimeVersion
+      "joda-time" % "joda-time" % jodaTimeVersion,
+      "com.chuusai" %% "shapeless" % shapelessVersion
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),

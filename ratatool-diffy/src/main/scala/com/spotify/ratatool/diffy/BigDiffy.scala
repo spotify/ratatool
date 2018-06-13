@@ -276,6 +276,13 @@ object BigDiffy extends Command {
                    diffy: TableRowDiffy): BigDiffy[TableRow] =
     diff(sc.bigQueryTable(lhs), sc.bigQueryTable(rhs), diffy, keyFn)
 
+  /** Diff two SCollection[T] **/
+  def diffCaseClass[T : ClassTag : MapEncoder](lhs: SCollection[T],
+                       rhs: SCollection[T],
+                    keyFn: T => String,
+                    diffy: CaseClassDiffy[T]) : BigDiffy[T] =
+    diff(lhs, rhs, diffy, keyFn)
+
   /** Merge two BigQuery TableSchemas. */
   def mergeTableSchema(x: TableSchema, y: TableSchema): TableSchema = {
     val r = new TableSchema
