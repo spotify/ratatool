@@ -31,6 +31,7 @@ import org.scalacheck.{Arbitrary, Gen, Properties}
 import org.scalatest.{BeforeAndAfterAllConfigMap, ConfigMap, FlatSpec, Matchers}
 
 import scala.collection.JavaConverters._
+import scala.language.postfixOps
 
 object BigSamplerTest extends Properties("BigSampler") {
 
@@ -299,13 +300,26 @@ object BigSamplerTest extends Properties("BigSampler") {
 }
 
 class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllConfigMap {
-
   val schema = Schemas.avroSchema
-  val data1 = Gen.listOfN(20000, genericRecordOf(schema))
+  val data1Size = 20000
+  val data2Size = 5000
+  val data1 = Gen.listOfN(data1Size, genericRecordOf(schema))
     .pureApply(Gen.Parameters.default.withSize(5), Seed.random())
-  val data2 = Gen.listOfN(5000, genericRecordOf(schema))
+    .map{ gr =>
+      val req = gr.get("required_fields").asInstanceOf[GenericRecord]
+      req.put("string_field", "large_strata")
+      gr.put("required_fields", req)
+      gr
+    }
+  val data2 = Gen.listOfN(data2Size, genericRecordOf(schema))
     .pureApply(Gen.Parameters.default.withSize(5), Seed.random())
-  val totalElements = 25000
+    .map{ gr =>
+      val req = gr.get("required_fields").asInstanceOf[GenericRecord]
+      req.put("string_field", "small_strata")
+      gr.put("required_fields", req)
+      gr
+    }
+  val totalElements = data1Size + data2Size
   val dir = Files.createTempDirectory("ratatool-big-sampler-input")
   val file1 = new File(dir.toString, "part-00000.avro")
   val file2 = new File(dir.toString, "part-00001.avro")
@@ -327,23 +341,24 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
       outDir.delete()
     }
   }
-  private def getNumOfAvroRecords(p: String): Long =
+
+  private def countAvroRecords(p: String, f: GenericRecord => Boolean = _ => true): Long =
     FileStorage(p).listFiles.foldLeft(0)((i, m) =>
-      i + AvroIO.readFromFile[GenericRecord](m.resourceId.toString).size)
+      i + AvroIO.readFromFile[GenericRecord](m.resourceId().toString).count(f))
 
   "BigSampler" should "work for 50%" in withOutFile { outDir =>
     BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.5"))
-    getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 500
+    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 500
   }
 
   it should "work for 1%" in withOutFile { outDir =>
     BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.01"))
-    getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.01 +- 50
+    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.01 +- 50
   }
 
   it should "work for 100%" in withOutFile { outDir =>
     BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=1.0"))
-    getNumOfAvroRecords(s"$outDir/*.avro") shouldBe totalElements
+    countAvroRecords(s"$outDir/*.avro") shouldBe totalElements
   }
 
   it should "work for 50% with hash field and seed" in withOutFile { outDir =>
@@ -353,6 +368,47 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
       "--sample=0.5",
       "--seed=42",
       "--fields=required_fields.int_field"))
-    getNumOfAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 5000
+    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 5000
+  }
+
+  it should "stratify across a single field" in withOutFile { outDir =>
+    BigSampler.run(Array(
+      s"--input=$dir/*.avro",
+      s"--output=$outDir",
+      "--sample=0.1",
+      "--distribution=stratified",
+      "--distributionFields=required_fields.string_field"
+    ))
+    countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "large_strata")
+      .toDouble shouldBe 0.1 * data1Size +- 250
+    countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "small_strata")
+      .toDouble shouldBe 0.1 * data2Size +- 50
+  }
+
+  it should "stratify across a single field with hash field" in withOutFile { outDir =>
+    BigSampler.run(Array(
+      s"--input=$dir/*.avro",
+      s"--output=$outDir",
+      "--sample=0.1",
+      "--distribution=stratified",
+      "--distributionFields=required_fields.string_field",
+      "--fields=required_fields.int_field"
+    ))
+    countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "large_strata")
+      .toDouble shouldBe 0.1 * data1Size +- 250
+    countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "small_strata")
+      .toDouble shouldBe 0.1 * data2Size +- 50
   }
 }
