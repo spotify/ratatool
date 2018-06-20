@@ -18,7 +18,7 @@
 import sbt._
 import Keys._
 
-val algebirdVersion = "0.13.2"
+val algebirdVersion = "0.13.4"
 val avroVersion = "1.8.2"
 val gcsVersion = "1.6.3-hadoop2"
 val hadoopVersion = "2.7.3"
@@ -27,7 +27,7 @@ val parquetVersion = "1.9.0"
 val protoBufVersion = "3.3.1"
 val scalaCheckVersion = "1.14.0"
 val scalaTestVersion = "3.0.4"
-val scioVersion = "0.5.2"
+val scioVersion = "0.5.5"
 val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.25"
 val bigqueryVersion = "v2-rev372-1.23.0"
