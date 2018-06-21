@@ -21,7 +21,7 @@ A tool for random data sampling and generation
 
 If you use [sbt](http://www.scala-sbt.org/) add the following dependency to your build file:
 ```scala
-libraryDependencies += "com.spotify" %% "ratatool-scalacheck" % "0.3.2" % "test"
+libraryDependencies += "com.spotify" %% "ratatool-scalacheck" % "0.3.4" % "test"
 ```
 
 If needed, the following other libraries are published:
@@ -39,7 +39,7 @@ ratatool
 Or download the [release](https://github.com/spotify/ratatool/releases) jar and run it.
 
 ```bash
-wget https://github.com/spotify/ratatool/releases/download/v0.3.3/ratatool-cli-0.3.3.tar.gz
+wget https://github.com/spotify/ratatool/releases/download/v0.3.4/ratatool-cli-0.3.4.tar.gz
 bin/ratatool directSampler
 ```
 
