@@ -15,10 +15,10 @@
  * under the License.
  */
 
-package com.spotify.ratatool.diffy
+package com.spotify.ratatool.shapeless
 
+import com.spotify.ratatool.diffy.{Delta, NumericDelta, StringDelta, UnknownDelta}
 import org.scalatest.{FlatSpec, Matchers}
-import scala.collection.JavaConverters._
 
 class CaseClassDiffyTest extends FlatSpec with Matchers {
   case class Foo(f1: String, f2: Int, f3: Long, f4: Seq[Double], f5: Seq[String])
@@ -43,7 +43,7 @@ class CaseClassDiffyTest extends FlatSpec with Matchers {
     result should contain (Delta("f1", "foo1", "foo2", StringDelta(1.0)))
     result should contain (Delta("f2", 1, 1, NumericDelta(0.0)))
     result should contain (Delta("f3", 3,3, NumericDelta(0.0)))
-    result should contain (Delta("f5", List("foo1").asJava, Vector("foo2").asJava, UnknownDelta))
+    result should contain (Delta("f5", Vector("foo1"), Vector("foo2"), UnknownDelta))
   }
 
   "CaseClassDiffy" should "support nested fields" in {
@@ -53,16 +53,27 @@ class CaseClassDiffyTest extends FlatSpec with Matchers {
     result should contain (Delta("b2.f1", "foo1", "foo2", StringDelta(1.0)))
     result should contain (Delta("b2.f2", 1, 1, NumericDelta(0.0)))
     result should contain (Delta("b2.f3", 3,3, NumericDelta(0.0)))
-    result should contain (Delta("b2.f5", List("foo1").asJava, Vector("foo2").asJava, UnknownDelta))
+    result should contain
+      (Delta("b2.f5", Vector("foo1"), Vector("foo2"), UnknownDelta))
   }
 
   "CaseClassDiffy" should "support ignore with exact match case" in {
     val result = dFooWithIgnore.apply(f1, f2)
     result.map(_.field) shouldNot contain ("f2")
+
+    result should contain (Delta("f1", "foo1", "foo2", StringDelta(1.0)))
+    result should contain (Delta("f3", 3,3, NumericDelta(0.0)))
+    result should contain (Delta("f5", Vector("foo1"), Vector("foo2"), UnknownDelta))
   }
 
   "CaseClassDiffy" should "support ignore with nested field case" in {
     val result = dBarWithIgnore.apply(b1, b2)
     result.map(_.field) shouldNot contain ("f2")
+
+    result should contain (Delta("b1", 1, 2, NumericDelta(1.0)))
+    result should contain (Delta("b2.f1", "foo1", "foo2", StringDelta(1.0)))
+    result should contain (Delta("b2.f3", 3,3, NumericDelta(0.0)))
+    result should contain
+    (Delta("b2.f5", Vector("foo1"), Vector("foo2"), UnknownDelta))
   }
 }
