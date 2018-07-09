@@ -284,7 +284,9 @@ object BigDiffy extends Command {
   }
 
   @BigQueryType.toTable
-  case class KeyStatsBigQuery(key: String, diffType: String, deltaString: Option[String])
+  case class KeyStatsBigQuery(key: String, diffType: String, delta: Option[DeltaBigQuery])
+  case class DeltaBigQuery(field: String, left: String, right: String, delta: DeltaValueBigQuery)
+  case class DeltaValueBigQuery(deltaType: String, deltaValue: Option[Double])
   @BigQueryType.toTable
   case class GlobalStatsBigQuery(numTotal: Long, numSame: Long, numDiff: Long,
                                  numMissingLhs: Long, numMissingRhs: Long)
@@ -323,7 +325,15 @@ object BigDiffy extends Command {
       // saving to BQ, header irrelevant
 
       bigDiffy.keyStats.map(stat =>
-        KeyStatsBigQuery(stat.key, stat.diffType.toString, stat.delta.map(_.toString)))
+        KeyStatsBigQuery(stat.key, stat.diffType.toString, stat.delta.map(d => {
+          val dv = if(d.delta.isInstanceOf[TypedDelta]) {
+            val typedDelta = d.delta.asInstanceOf[TypedDelta]
+            DeltaValueBigQuery(typedDelta.deltaType.toString, Option(typedDelta.value))
+          } else {
+            DeltaValueBigQuery("UNKNOWN", None)
+          }
+          DeltaBigQuery(d.field, d.left.toString, d.right.toString, dv)})
+        ))
         .saveAsTypedBigQuery(s"${output}_keys")
       bigDiffy.fieldStats.map(stat =>
         FieldStatsBigQuery(stat.field, stat.count, stat.fraction, stat.deltaStats.map(ds =>
