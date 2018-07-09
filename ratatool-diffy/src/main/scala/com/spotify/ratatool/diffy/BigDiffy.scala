@@ -25,6 +25,7 @@ import com.spotify.ratatool.{Command, GcsConfiguration}
 import com.spotify.ratatool.samplers.AvroSampler
 import com.spotify.scio._
 import com.spotify.scio.bigquery.BigQueryClient
+import com.spotify.scio.bigquery.types.BigQueryType
 import com.spotify.scio.io.Tap
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
@@ -282,19 +283,58 @@ object BigDiffy extends Command {
     r.setFields(mergeFields(x.getFields.asScala, y.getFields.asScala).asJava)
   }
 
-  def saveStats[T](bigDiffy: BigDiffy[T], output: String, withHeader: Boolean = false): Unit = {
-    if (withHeader) {
-      bigDiffy.keyStats.map(_.toString).saveAsTextFileWithHeader(s"$output/keys", "key\tdifftype")
-      bigDiffy.fieldStats.map(_.toString).saveAsTextFileWithHeader(s"$output/fields",
-        "field\tcount\tfraction\tdeltaType\tmin" +
-          "\tmax\tcount\tmean\tvariance\tstddev\tskewness\tkurtosis")
-      bigDiffy.globalStats.map(_.toString).saveAsTextFileWithHeader(s"$output/global",
-        "numTotal\tnumSame\tnumDiff\tnumMissingLhs\tnumMissingRhs")
-    }
-    else {
-      bigDiffy.keyStats.saveAsTextFile(s"$output/keys")
-      bigDiffy.fieldStats.saveAsTextFile(s"$output/fields")
-      bigDiffy.globalStats.saveAsTextFile(s"$output/global")
+  @BigQueryType.toTable
+  case class KeyStatsBigQuery(key: String, diffType: String, deltaString: Option[String])
+  @BigQueryType.toTable
+  case class GlobalStatsBigQuery(numTotal: Long, numSame: Long, numDiff: Long,
+                                 numMissingLhs: Long, numMissingRhs: Long)
+  @BigQueryType.toTable
+  case class FieldStatsBigQuery(field: String,
+                        count: Long,
+                        fraction: Double,
+                        deltaStats: Option[DeltaStatsBigQuery])
+  case class DeltaStatsBigQuery(deltaType: String,
+                        min: Double, max: Double, count: Long,
+                        mean: Double, variance: Double, stddev: Double,
+                        skewness: Double, kurtosis: Double)
+
+  /** saves stats to either GCS as text, or BigQuery */
+  def saveStats[T](bigDiffy: BigDiffy[T], output: String, withHeader: Boolean = false,
+                   saveToBq: Boolean = false): Unit = {
+    val keyStatsPath = s"$output/keys"
+    val fieldStatsPath = s"$output/fields"
+    val globalStatsPath = s"$output/global"
+    if (!saveToBq) {
+      // saving to GCS, either with or without header
+      if (withHeader) {
+        bigDiffy.keyStats.map(_.toString).saveAsTextFileWithHeader(keyStatsPath, "key\tdifftype")
+        bigDiffy.fieldStats.map(_.toString).saveAsTextFileWithHeader(fieldStatsPath,
+          "field\tcount\tfraction\tdeltaType\tmin" +
+            "\tmax\tcount\tmean\tvariance\tstddev\tskewness\tkurtosis")
+        bigDiffy.globalStats.map(_.toString).saveAsTextFileWithHeader(globalStatsPath,
+          "numTotal\tnumSame\tnumDiff\tnumMissingLhs\tnumMissingRhs")
+      }
+      else {
+        bigDiffy.keyStats.saveAsTextFile(keyStatsPath)
+        bigDiffy.fieldStats.saveAsTextFile(fieldStatsPath)
+        bigDiffy.globalStats.saveAsTextFile(globalStatsPath)
+      }
+    } else {
+      // saving to BQ, header irrelevant
+
+      bigDiffy.keyStats.map(stat =>
+        KeyStatsBigQuery(stat.key, stat.diffType.toString, stat.delta.map(_.toString)))
+        .saveAsTypedBigQuery(s"${output}_keys")
+      bigDiffy.fieldStats.map(stat =>
+        FieldStatsBigQuery(stat.field, stat.count, stat.fraction, stat.deltaStats.map(ds =>
+          DeltaStatsBigQuery(ds.deltaType.toString, ds.min, ds.max, ds.count, ds.mean,
+            ds.variance, ds.stddev, ds.skewness, ds.kurtosis)
+        )))
+        .saveAsTypedBigQuery(s"${output}_fields")
+      bigDiffy.globalStats.map( stat =>
+        GlobalStatsBigQuery(stat.numTotal, stat.numSame, stat.numDiff,
+          stat.numMissingLhs, stat.numMissingRhs))
+        .saveAsTypedBigQuery(s"${output}_global")
     }
   }
 
@@ -337,6 +377,7 @@ object BigDiffy extends Command {
         |  --ignore=<keys>        ',' separated field list to ignore
         |  --unordered=<keys>     ',' separated field list to treat as unordered
         |  [--with-header]        Output all TSVs with header rows
+        |  [--save-to-bigquery]   Saves to a BQ table instead of a text file in GCS
       """.stripMargin)
     // scalastyle:on regex
     sys.exit(1)
@@ -380,15 +421,18 @@ object BigDiffy extends Command {
     }
   }
 
+  /** for easier running via sbt */
+  def main(cmdlineArgs: Array[String]): Unit = run(cmdlineArgs)
+
   /** Scio pipeline for BigDiffy. */
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
-    val (mode, key, lhs, rhs, output, header, ignore, unordered) = {
+    val (mode, key, lhs, rhs, output, header, ignore, unordered, saveToBq) = {
       try {
         (args("mode"), args("key"), args("lhs"), args("rhs"), args("output"),
           args.boolean("with-header", false), args.list("ignore").toSet,
-          args.list("unordered").toSet)
+          args.list("unordered").toSet, args.boolean("save-to-bigquery", false))
       } catch {
         case e: Throwable =>
           usage()
@@ -415,7 +459,7 @@ object BigDiffy extends Command {
       case m =>
         throw new IllegalArgumentException(s"mode $m not supported")
     }
-    saveStats(result, output, header)
+    saveStats(result, output, header, saveToBq)
 
     sc.close().waitUntilDone()
   }

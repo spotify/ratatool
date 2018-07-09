@@ -47,7 +47,8 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
       case _ => Nil
     }
   },
-  javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked")
+  javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
+  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
 )
 
 lazy val protoBufSettings = Seq(
