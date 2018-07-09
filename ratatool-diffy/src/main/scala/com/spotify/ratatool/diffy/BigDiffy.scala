@@ -369,7 +369,8 @@ object BigDiffy extends Command {
       s"""BigDiffy - pair-wise field-level statistical diff
         |Usage: ratatool $command [dataflow_options] [options]
         |
-        |  --mode=[avro|bigquery]
+        |  --input-mode=[avro|bigquery]
+        |  --output-mode=[gcs|bigquery]   Saves to a text file in GCS or a BigQuery dataset
         |  --key=<key>            '.' separated key field
         |  --lhs=<path>           LHS File path or BigQuery table
         |  --rhs=<path>           RHS File path or BigQuery table
@@ -377,7 +378,6 @@ object BigDiffy extends Command {
         |  --ignore=<keys>        ',' separated field list to ignore
         |  --unordered=<keys>     ',' separated field list to treat as unordered
         |  [--with-header]        Output all TSVs with header rows
-        |  [--save-to-bigquery]   Saves to a BQ table instead of a text file in GCS
       """.stripMargin)
     // scalastyle:on regex
     sys.exit(1)
@@ -428,11 +428,11 @@ object BigDiffy extends Command {
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
-    val (mode, key, lhs, rhs, output, header, ignore, unordered, saveToBq) = {
+    val (inputMode, key, lhs, rhs, output, header, ignore, unordered, outputMode) = {
       try {
-        (args("mode"), args("key"), args("lhs"), args("rhs"), args("output"),
+        (args("input-mode"), args("key"), args("lhs"), args("rhs"), args("output"),
           args.boolean("with-header", false), args.list("ignore").toSet,
-          args.list("unordered").toSet, args.boolean("save-to-bigquery", false))
+          args.list("unordered").toSet, args("output-mode"))
       } catch {
         case e: Throwable =>
           usage()
@@ -440,7 +440,13 @@ object BigDiffy extends Command {
       }
     }
 
-    val result = mode match {
+    val saveToBq: Boolean = outputMode match {
+      case "gcs" => false
+      case "bigquery" => true
+      case m => throw new IllegalArgumentException(s"output mode $m not supported")
+    }
+
+    val result = inputMode match {
       case "avro" =>
         // TODO: handle schema evolution
         val fs = FileSystem.get(new URI(rhs), GcsConfiguration.get())
@@ -457,7 +463,7 @@ object BigDiffy extends Command {
         val diffy = new TableRowDiffy(schema, ignore, unordered)
         BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(key), diffy)
       case m =>
-        throw new IllegalArgumentException(s"mode $m not supported")
+        throw new IllegalArgumentException(s"input mode $m not supported")
     }
     saveStats(result, output, header, saveToBq)
 
