@@ -368,47 +368,205 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
       "--sample=0.5",
       "--seed=42",
       "--fields=required_fields.int_field"))
-    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 5000
+    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 4000
   }
 
   it should "stratify across a single field" in withOutFile { outDir =>
     BigSampler.run(Array(
       s"--input=$dir/*.avro",
       s"--output=$outDir",
-      "--sample=0.1",
+      "--sample=0.5",
       "--distribution=stratified",
       "--distributionFields=required_fields.string_field"
     ))
-    countAvroRecords(s"$outDir/*.avro",
+    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
       (gr: GenericRecord) =>
         gr.get("required_fields").asInstanceOf[GenericRecord]
           .get("string_field").toString == "large_strata")
-      .toDouble shouldBe 0.1 * data1Size +- 250
-    countAvroRecords(s"$outDir/*.avro",
+      .toDouble
+    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
       (gr: GenericRecord) =>
         gr.get("required_fields").asInstanceOf[GenericRecord]
           .get("string_field").toString == "small_strata")
-      .toDouble shouldBe 0.1 * data2Size +- 50
+      .toDouble
+    val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
+    totalCount shouldBe totalElements * 0.5 +- 500
+    largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.05
+    smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.05
+  }
+
+  it should "stratify across a single field exactly" in withOutFile { outDir =>
+    BigSampler.run(Array(
+      s"--input=$dir/*.avro",
+      s"--output=$outDir",
+      "--sample=0.25",
+      "--distribution=stratified",
+      "--distributionFields=required_fields.string_field"
+    ))
+    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "large_strata")
+      .toDouble
+    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "small_strata")
+      .toDouble
+    val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
+    totalCount shouldBe totalElements * 0.25 +- 200
+    largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.005
+    smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.005
   }
 
   it should "stratify across a single field with hash field" in withOutFile { outDir =>
     BigSampler.run(Array(
       s"--input=$dir/*.avro",
       s"--output=$outDir",
-      "--sample=0.1",
+      "--sample=0.5",
       "--distribution=stratified",
       "--distributionFields=required_fields.string_field",
-      "--fields=required_fields.int_field"
+      "--fields=required_fields.long_field"
     ))
-    countAvroRecords(s"$outDir/*.avro",
+    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
       (gr: GenericRecord) =>
         gr.get("required_fields").asInstanceOf[GenericRecord]
           .get("string_field").toString == "large_strata")
-      .toDouble shouldBe 0.1 * data1Size +- 250
-    countAvroRecords(s"$outDir/*.avro",
+      .toDouble
+    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
       (gr: GenericRecord) =>
         gr.get("required_fields").asInstanceOf[GenericRecord]
           .get("string_field").toString == "small_strata")
-      .toDouble shouldBe 0.1 * data2Size +- 50
+      .toDouble
+    val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
+    totalCount shouldBe totalElements * 0.5 +- 4000
+    largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.05
+    smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.05
+  }
+
+  it should "stratify across a single field with hash field exactly" in withOutFile { outDir =>
+    BigSampler.run(Array(
+      s"--input=$dir/*.avro",
+      s"--output=$outDir",
+      "--sample=0.5",
+      "--distribution=stratified",
+      "--distributionFields=required_fields.string_field",
+      "--fields=required_fields.long_field",
+      "--exact"
+    ))
+    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "large_strata")
+      .toDouble
+    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "small_strata")
+      .toDouble
+    val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
+    totalCount shouldBe totalElements * 0.5 +- 500
+    largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.005
+    smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.005
+  }
+
+  it should "sample uniformly across a single field" in withOutFile { outDir =>
+    BigSampler.run(Array(
+      s"--input=$dir/*.avro",
+      s"--output=$outDir",
+      "--sample=0.1",
+      "--distribution=uniform",
+      "--distributionFields=required_fields.string_field"
+    ))
+    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "large_strata")
+      .toDouble
+    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "small_strata")
+      .toDouble
+    val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
+    totalCount shouldBe totalElements * 0.1 +- 1000
+    largeStrataCount/totalCount shouldBe 0.5 +- 0.05
+    smallStrataCount/totalCount shouldBe 0.5 +- 0.05
+  }
+
+  it should "sample uniformly across a single field exactly" in withOutFile { outDir =>
+    BigSampler.run(Array(
+      s"--input=$dir/*.avro",
+      s"--output=$outDir",
+      "--sample=0.1",
+      "--distribution=uniform",
+      "--distributionFields=required_fields.string_field",
+      "--exact"
+    ))
+    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "large_strata")
+      .toDouble
+    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "small_strata")
+      .toDouble
+    val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
+    totalCount shouldBe totalElements * 0.1 +- 200
+    largeStrataCount/totalCount shouldBe 0.5 +- 0.005
+    smallStrataCount/totalCount shouldBe 0.5 +- 0.005
+  }
+
+  it should "sample uniformly across a single field with hash field" in withOutFile { outDir =>
+    BigSampler.run(Array(
+      s"--input=$dir/*.avro",
+      s"--output=$outDir",
+      "--sample=0.1",
+      "--distribution=uniform",
+      "--distributionFields=required_fields.string_field",
+      "--fields=required_fields.long_field"
+    ))
+    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "large_strata")
+      .toDouble
+    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "small_strata")
+      .toDouble
+    val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
+    totalCount shouldBe totalElements * 0.1 +- 1000
+    largeStrataCount/totalCount shouldBe 0.5 +- 0.1
+    smallStrataCount/totalCount shouldBe 0.5 +- 0.1
+  }
+
+  it should "sample uniformly across a single field with hash exactly" in withOutFile { outDir =>
+    BigSampler.run(Array(
+      s"--input=$dir/*.avro",
+      s"--output=$outDir",
+      "--sample=0.25",
+      "--distribution=uniform",
+      "--distributionFields=required_fields.string_field",
+      "--fields=required_fields.long_field",
+      "--exact"
+    ))
+    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "large_strata")
+      .toDouble
+    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+      (gr: GenericRecord) =>
+        gr.get("required_fields").asInstanceOf[GenericRecord]
+          .get("string_field").toString == "small_strata")
+      .toDouble
+    val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
+    totalCount shouldBe totalElements * 0.25 +- 100
+    largeStrataCount/totalCount shouldBe 0.5 +- 0.005
+    smallStrataCount/totalCount shouldBe 0.5 +- 0.005
   }
 }
