@@ -106,20 +106,19 @@ object BigSampler extends Command {
 
   private def usage(): Unit = {
     // scalastyle:off regex line.size.limit
-    // TODO: Arg comments
     // TODO: Rename --exact to something better
     println(
       s"""BigSampler - a tool for big data sampling
         |Usage: ratatool $command [dataflow_options] [options]
         |
-        |  --sample=<percentage>             Percentage of records to take in sample, a decimal between 0.0 and 1.0
-        |  --input=<path>                    Input file path or BigQuery table
-        |  --output=<path>                   Output file path or BigQuery table
-        |  [--fields=<field1,field2,...>]    An optional list of fields to include in hashing for sampling cohort selection
-        |  [--seed=<seed>]                   An optional seed used in hashing for sampling cohort selection
-        |  [--distribution=(uniform|stratified)]
-        |  [--distributionFields=<field1,field2,...>]
-        |  [--exact]
+        |  --sample=<percentage>                      Percentage of records to take in sample, a decimal between 0.0 and 1.0
+        |  --input=<path>                             Input file path or BigQuery table
+        |  --output=<path>                            Output file path or BigQuery table
+        |  [--fields=<field1,field2,...>]             An optional list of fields to include in hashing for sampling cohort selection
+        |  [--seed=<seed>]                            An optional seed used in hashing for sampling cohort selection
+        |  [--distribution=(uniform|stratified)]      An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
+        |  [--distributionFields=<field1,field2,...>] An optional list of fields to sample for distribution. Must provide `distribution`
+        |  [--exact]                                  An optional arg for higher precision distribution sampling.
       """.stripMargin)
     // scalastyle:on regex line.size.limit
     sys.exit(1)
@@ -386,7 +385,6 @@ private[samplers] object BigSamplerAvro extends BigSampler {
         " for nested values")
       null
     } else {
-      //TODO: How to handle repeated fields
       field.schema.getType match {
         case Type.RECORD if fieldStr.nonEmpty =>
           getAvroField(
@@ -479,16 +477,16 @@ private[samplers] object BigSamplerAvro extends BigSampler {
           sampled.values
 
         case (_, Some(UniformDistribution), false) =>
-          val (ppk, fpk) = uniformParams(coll, buildKey(schemaSerDe), samplePct)
+          val (popPerKey, probPerKey) = uniformParams(coll, buildKey(schemaSerDe), samplePct)
           val sampled = coll.keyBy(buildKey(schemaSerDe)(_))
-            .hashJoin(fpk).flatMap { case (k, (v, fraction)) =>
+            .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
               val hasher = BigSampler.hashFun(seed = seed)
               val hash = fields.foldLeft(hasher)((h, f) => hashAvroField(v, f, schemaSerDe, h)).hash
-              BigSampler.diceElement(v, hash, fraction * 100.0).map(e => (k, e))
+              BigSampler.diceElement(v, hash, prob * 100.0).map(e => (k, e))
             }
 
           val sampledDiffs =
-            buildUniformDiffs(coll, sampled, buildKey(schemaSerDe), samplePct, ppk)
+            buildUniformDiffs(coll, sampled, buildKey(schemaSerDe), samplePct, popPerKey)
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
 
@@ -582,7 +580,6 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
       log.debug(s"Field `${field.getName}` of type ${field.getType} and mode ${field.getMode}" +
         s" is null - won't account for hash")
     } else {
-      //TODO: How to handle repeated fields
       field.getType match {
         case "BOOLEAN" => v.toString.toBoolean
         case "INTEGER" => v.toString.toLong
@@ -665,11 +662,10 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
         case (Seq(), None, false) => coll.sample(withReplacement = false, samplePct)
 
         case (_, None, _) =>
-          val samplePct100 = samplePct * 100.0
           coll.flatMap { e =>
             val hasher = BigSampler.hashFun(seed=seed)
             val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(e, f, schemaFields, h)).hash()
-            BigSampler.diceElement(e, hash, samplePct100)
+            BigSampler.diceElement(e, hash, samplePct * 100.0)
           }
 
         case (Seq(), Some(StratifiedDistribution), false) =>
@@ -679,7 +675,6 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
           coll.stratifiedSample(buildKey(schema), withReplacement = false, samplePct)
 
         case (_, Some(StratifiedDistribution), false) =>
-          // TODO: Breaks down for smaller sample sizes, should provide a way to get exact sizes
           val sampled = coll.flatMap { v =>
             val hasher = BigSampler.hashFun(seed = seed)
             val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(v, f, schemaFields, h)).hash
@@ -699,16 +694,16 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
 
 
         case (_, Some(UniformDistribution), false) =>
-          val (ppk, fpk) = uniformParams(coll, buildKey(schema), samplePct)
+          val (popPerKey, probPerKey) = uniformParams(coll, buildKey(schema), samplePct)
           val sampled = coll.keyBy(buildKey(schema)(_))
-            .hashJoin(fpk).flatMap { case (k, (v, fraction)) =>
+            .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
               val hasher = BigSampler.hashFun(seed = seed)
               val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(v, f, schemaFields, h)).hash
-              BigSampler.diceElement(v, hash, fraction * 100.0).map(e => (k, e))
+              BigSampler.diceElement(v, hash, prob * 100.0).map(e => (k, e))
             }
 
           val sampledDiffs =
-            buildUniformDiffs(coll, sampled, buildKey(schema), samplePct, ppk)
+            buildUniformDiffs(coll, sampled, buildKey(schema), samplePct, popPerKey)
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
 

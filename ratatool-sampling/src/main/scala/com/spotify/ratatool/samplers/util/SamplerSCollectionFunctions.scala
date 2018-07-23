@@ -27,10 +27,9 @@ import scala.math.max
 
 object SamplerSCollectionFunctions {
 
-  private[samplers] def logDistributionDiffs[U: ClassTag](
-                                             coll: SCollection[(Double, Map[U, Double])],
-                                             logger: Logger): Unit = {
-    coll.map{ case (totalDiff, keyDiffs) =>
+  private[samplers] def logDistributionDiffs[U: ClassTag](s: SCollection[(Double, Map[U, Double])],
+                                                           logger: Logger): Unit = {
+    s.map{ case (totalDiff, keyDiffs) =>
       logger.info(s"Total record counts differs from expected target count by: $totalDiff%")
       keyDiffs.foreach{ case (k, diff) =>
         logger.info(s"Count for key $k differs from expected target count by: $diff%")
@@ -46,12 +45,12 @@ object SamplerSCollectionFunctions {
   private[samplers] def buildStratifiedDiffs[T: ClassTag, U: ClassTag](s: SCollection[T],
                                                                        sampled: SCollection[(U, T)],
                                                                        keyFn: T => U,
-                                                                       fraction: Double)
+                                                                       prob: Double)
   : SCollection[(Double, Map[U, Double])] = {
     val targets = s.map(t => (1L, Map[U, Long](keyFn(t) -> 1L))).sum
       .map{case (total, m) =>
-        (total * fraction,
-          m.map{ case (k, v) => (k, v * fraction)})}.asSingletonSideInput
+        (total * prob,
+          m.map{ case (k, v) => (k, v * prob)})}.asSingletonSideInput
 
     sampled.keys.map(k => (1L, Map[U, Long](k -> 1L))).sum
       .withSideInputs(targets).map{case (res, sic) =>
@@ -65,19 +64,19 @@ object SamplerSCollectionFunctions {
     }.toSCollection
   }
 
-  private[samplers] def buildUniformDiffs[T: ClassTag, U: ClassTag](original: SCollection[T],
-                                                sampled: SCollection[(U, T)],
-                                                keyFn: T => U,
-                                                fraction: Double,
-                                                populationPerKey: SideInput[Double])
+  private[samplers] def buildUniformDiffs[T: ClassTag, U: ClassTag](s: SCollection[T],
+                                                                    sampled: SCollection[(U, T)],
+                                                                    keyFn: T => U,
+                                                                    prob: Double,
+                                                                    popPerKey: SideInput[Double])
   : SCollection[(Double, Map[U, Double])] = {
     sampled.keys.map(k => (1L, Map[U, Long](k -> 1L))).sum
-      .withSideInputs(populationPerKey).map{ case (res, sic) =>
-        val ppk = sic(populationPerKey)
+      .withSideInputs(popPerKey).map{ case (res, sic) =>
+        val popPerKey = sic(popPerKey)
         val (totalCount, keyCounts) = res
-        val totalDiff = ((ppk * keyCounts.size) - totalCount)/(ppk * keyCounts.size)
+        val totalDiff = ((popPerKey * keyCounts.size) - totalCount)/(popPerKey * keyCounts.size)
         val keyDiffs = keyCounts.keySet.map(k =>
-          k -> (ppk - keyCounts.getOrElse(k, 0L))/ppk).toMap
+          k -> (popPerKey - keyCounts.getOrElse(k, 0L))/popPerKey).toMap
 
         (totalDiff, keyDiffs)
     }.toSCollection
@@ -85,17 +84,17 @@ object SamplerSCollectionFunctions {
 
   private[samplers] def uniformParams[T: ClassTag, U: ClassTag](s: SCollection[T],
                                                                 keyFn: T => U,
-                                                                fraction: Double)
+                                                                prob: Double)
   : (SideInput[Double], SCollection[(U, Double)]) = {
     val keyed = s.keyBy(keyFn)
     val keys = keyed.keys.distinct
     val keyCount = keys.count.asSingletonSideInput
     val totalRecords = s.count
     val populationPerKey: SideInput[Double] = totalRecords.withSideInputs(keyCount)
-      .map{case (c, sic) => (c * fraction)/sic(keyCount)}.toSCollection.asSingletonSideInput
-    val fractionPerKey = keyed.countByKey.withSideInputs(populationPerKey).map {
+      .map{case (c, sic) => (c * prob)/sic(keyCount)}.toSCollection.asSingletonSideInput
+    val probPerKey = keyed.countByKey.withSideInputs(populationPerKey).map {
       case ((k, c), sic) => (k, sic(populationPerKey)/c) }.toSCollection
-    (populationPerKey, fractionPerKey)
+    (populationPerKey, probPerKey)
   }
 
   private def filterByThreshold[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
@@ -111,20 +110,23 @@ object SamplerSCollectionFunctions {
       countsByKey: SCollection[(U, (Long, Long))],
       targetByKey: SCollection[(U, Long)],
       variance: Double,
-      fraction: Double)
+      prob: Double)
   : SCollection[(U, Double)] = {
     s.map{case (k, (_, d)) => (k, d)}
-      .filter{case (_, d) => d < (fraction + variance) && d > (fraction - variance)}
+      .filter{case (_, d) => d < (prob + variance) && d > (prob - variance)}
       //TODO: Clean up magic number
       .topByKey(1e8.toInt)(Ordering.by(identity[Double]).reverse)
       .hashJoin(countsByKey)
       .hashJoin(targetByKey)
       .map { case (k, ((itr, (lower, upper)), target)) =>
-      if (upper < target) {
-        (k, fraction + variance)
+        if (lower >= target) {
+          (k, prob - variance)
+        }
+        else if (upper < target) {
+        (k, prob + variance)
       }
       else {
-        (k, itr.drop((target - lower).toInt).headOption.getOrElse(fraction + variance))
+        (k, itr.drop((target - lower).toInt).headOption.getOrElse(prob + variance))
       }
     }
   }
@@ -133,75 +135,76 @@ object SamplerSCollectionFunctions {
                                                         s: SCollection[(U, (T, Double))],
                                                         countsByKey: SCollection[(U, (Long, Long))],
                                                         varByKey: SCollection[(U, Double)],
-                                                        fractionByKey: SCollection[(U, Double)],
+                                                        probByKey: SCollection[(U, Double)],
                                                         popPerKey: SideInput[Double])
   : SCollection[(U, Double)] = {
     s.map{case (k, (_, d)) => (k, d)}
       .hashJoin(varByKey)
-      .hashJoin(fractionByKey)
-      .filter{case (_, ((d, variance), fraction)) =>
-        d < (fraction + variance) && d >= (fraction - variance)}
+      .hashJoin(probByKey)
+      .filter{case (_, ((d, variance), prob)) =>
+        d < (prob + variance) && d >= (prob - variance)}
       .map{case (k, ((d, _), _)) => (k, d)}
       //TODO: Clean up magic number
       .topByKey(1e8.toInt)(Ordering.by(identity[Double]).reverse)
       .join(countsByKey)
       .hashJoin(varByKey)
-      .hashJoin(fractionByKey)
+      .hashJoin(probByKey)
       .withSideInputs(popPerKey)
-      .map { case ((k, ((((itr, (lower, upper)), variance)), fraction)), sic) =>
-        //TODO: Check the min here
-        if (upper < sic(popPerKey)) {
-          (k, fraction + variance)
+      .map { case ((k, ((((itr, (lower, upper)), variance)), prob)), sic) =>
+        if (lower >= sic(popPerKey)) {
+          (k, prob - variance)
+        }
+        else if (upper < sic(popPerKey)) {
+          (k, prob + variance)
         }
         else {
           val threshold = itr.drop(max(0, (sic(popPerKey) - lower).toInt)).headOption
-          (k, threshold.getOrElse(fraction + variance))
+          (k, threshold.getOrElse(prob + variance))
         }
       }.toSCollection
   }
 
   implicit class RatatoolKVDSCollection[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))]){
     def exactStratifiedSample(keyFn: T => U,
-                              fraction: Double
-                             ): SCollection[T] = {
+                              prob: Double)
+    : SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
-      val targets = s.countByKey.map{case (k, c) => (k, (c * fraction).toLong)}
-      val variance = fraction * (1 - fraction)
-      //TODO: Find better cutoffs than +/- variance
-      val counts = s.filter{case (_, (_, d)) => d < (fraction + variance)}
-        .map{ case (k, (_, d)) => (k, (if (d < fraction - variance) 1L else 0L, 1L))}
+      val targets = s.countByKey.map{case (k, c) => (k, (c * prob).toLong)}
+      val variance = prob * (1 - prob)
+      val counts = s.filter{case (_, (_, d)) => d < (prob + variance)}
+        .map{ case (k, (_, d)) => (k, (if (d < prob - variance) 1L else 0L, 1L))}
         .sumByKey
 
-      val thresholdByKey = stratifiedThresholdByKey(s, counts, targets, variance, fraction)
+      val thresholdByKey = stratifiedThresholdByKey(s, counts, targets, variance, prob)
 
       val sampled = filterByThreshold(s, thresholdByKey)
-      val sampledDiffs = buildStratifiedDiffs(s, sampled, keyFn, fraction)
+      val sampledDiffs = buildStratifiedDiffs(s, sampled, keyFn, prob)
       logDistributionDiffs(sampledDiffs, logSerDe)
       sampled.values
     }
 
     def exactUniformSample(keyFn: T => U,
-                           fraction: Double
+                           prob: Double
                           ): SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
-      val (ppk, fpk) = uniformParams(s, keyFn, fraction)
+      val (popPerKey, probPerKey) = uniformParams(s, keyFn, prob)
       //TODO: Find better bounds than variance, potentially what Spark uses
-      val variancePerKey = fpk.map{case (k, f) => (k, f * (1 - f))}
+      val variancePerKey = probPerKey.map{case (k, f) => (k, f * (1 - f))}
 
       val counts = s
         .hashJoin(variancePerKey)
-        .hashJoin(fpk)
-        .filter{case (_, (((_, d), variance), keyFraction)) => d < (keyFraction + variance)}
-        .map{ case (k, (((_, d), variance), keyFraction))  =>
-          (k, (if (d < (keyFraction - variance)) 1L else 0L, 1L))}
+        .hashJoin(probPerKey)
+        .filter{case (_, (((_, d), variance), keyProb)) => d < (keyProb + variance)}
+        .map{ case (k, (((_, d), variance), keyProb))  =>
+          (k, (if (d < (keyProb - variance)) 1L else 0L, 1L))}
         .sumByKey
 
-      val thresholdByKey = uniformThresholdByKey(s, counts, variancePerKey, fpk, ppk)
+      val thresholdByKey = uniformThresholdByKey(s, counts, variancePerKey, probPerKey, popPerKey)
 
       val sampled = filterByThreshold(s, thresholdByKey)
 
-      val sampledDiffs = buildUniformDiffs(s, sampled, keyFn, fraction, ppk)
+      val sampledDiffs = buildUniformDiffs(s, sampled, keyFn, prob, popPerKey)
       logDistributionDiffs(sampledDiffs, logSerDe)
       sampled.values
     }
@@ -212,7 +215,7 @@ object SamplerSCollectionFunctions {
   implicit class RatatoolSCollection[T: ClassTag](s: SCollection[T]) {
     def stratifiedSample[U: ClassTag](keyFn: T => U,
                                       withReplacement: Boolean,
-                                      fraction: Double
+                                      prob: Double
                                      ): SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
@@ -224,8 +227,8 @@ object SamplerSCollectionFunctions {
           new BernoulliValueSampler[U, T]
         }
       val keyed = s.keyBy(keyFn)
-      val sampled = keyed.map((_, fraction)).applyTransform(ParDo.of(sampleFn))
-      val sampledDiffs = buildStratifiedDiffs(s, sampled, keyFn, fraction)
+      val sampled = keyed.map((_, prob)).applyTransform(ParDo.of(sampleFn))
+      val sampledDiffs = buildStratifiedDiffs(s, sampled, keyFn, prob)
       logDistributionDiffs(sampledDiffs, logSerDe)
       sampled.values
     }
@@ -233,7 +236,7 @@ object SamplerSCollectionFunctions {
 
     def uniformSample[U: ClassTag](keyFn: T => U,
                                    withReplacement: Boolean,
-                                   fraction: Double
+                                   prob: Double
                                   ): SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
@@ -244,12 +247,12 @@ object SamplerSCollectionFunctions {
         } else {
           new BernoulliValueSampler[U, T]
         }
-      val (ppk, fpk) = uniformParams(s, keyFn, fraction)
+      val (popPerKey, probPerKey) = uniformParams(s, keyFn, prob)
       val sampled = s.keyBy(keyFn)
-        .join(fpk).map{ case (k, (v, keyFraction)) =>
-        ((k, v), keyFraction)}.applyTransform(ParDo.of(sampleFn))
+        .join(probPerKey).map{ case (k, (v, keyProb)) =>
+        ((k, v), keyProb)}.applyTransform(ParDo.of(sampleFn))
 
-      val sampledDiffs = buildUniformDiffs(s, sampled, keyFn, fraction, ppk)
+      val sampledDiffs = buildUniformDiffs(s, sampled, keyFn, prob, popPerKey)
       logDistributionDiffs(sampledDiffs, logSerDe)
       sampled.values
     }
