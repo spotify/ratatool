@@ -17,12 +17,12 @@
 
 package com.spotify.ratatool.samplers.util
 
-trait SamplerDistribution
-case object StratifiedDistribution extends SamplerDistribution
-case object UniformDistribution extends SamplerDistribution
+trait SampleDistribution
+case object StratifiedDistribution extends SampleDistribution
+case object UniformDistribution extends SampleDistribution
 
-object SamplerDistribution {
-  def fromString(s: String): SamplerDistribution = {
+object SampleDistribution {
+  def fromString(s: String): SampleDistribution = {
     if (s == "stratified") {
       StratifiedDistribution
     }

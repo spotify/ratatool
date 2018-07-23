@@ -72,11 +72,11 @@ object SamplerSCollectionFunctions {
   : SCollection[(Double, Map[U, Double])] = {
     sampled.keys.map(k => (1L, Map[U, Long](k -> 1L))).sum
       .withSideInputs(popPerKey).map{ case (res, sic) =>
-        val popPerKey = sic(popPerKey)
+        val pop = sic(popPerKey)
         val (totalCount, keyCounts) = res
-        val totalDiff = ((popPerKey * keyCounts.size) - totalCount)/(popPerKey * keyCounts.size)
+        val totalDiff = ((pop * keyCounts.size) - totalCount)/(pop * keyCounts.size)
         val keyDiffs = keyCounts.keySet.map(k =>
-          k -> (popPerKey - keyCounts.getOrElse(k, 0L))/popPerKey).toMap
+          k -> (pop - keyCounts.getOrElse(k, 0L))/pop).toMap
 
         (totalDiff, keyDiffs)
     }.toSCollection
@@ -131,8 +131,7 @@ object SamplerSCollectionFunctions {
     }
   }
 
-  private def uniformThresholdByKey[T: ClassTag, U: ClassTag](
-                                                        s: SCollection[(U, (T, Double))],
+  private def uniformThresholdByKey[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
                                                         countsByKey: SCollection[(U, (Long, Long))],
                                                         varByKey: SCollection[(U, Double)],
                                                         probByKey: SCollection[(U, Double)],
@@ -165,94 +164,74 @@ object SamplerSCollectionFunctions {
   }
 
   implicit class RatatoolKVDSCollection[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))]){
-    def exactStratifiedSample(keyFn: T => U,
-                              prob: Double)
+    //scalastyle:off cyclomatic.complexity
+    def exactSampleDist(dist: SampleDistribution, keyFn: T => U, prob: Double): SCollection[T] = {
+      @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
+
+      val (sampled, sampledDiffs) = dist match {
+        case StratifiedDistribution =>
+          val targets = s.countByKey.map { case (k, c) => (k, (c * prob).toLong) }
+          val variance = prob * (1 - prob)
+          val counts = s.filter { case (_, (_, d)) => d < (prob + variance) }
+            .map { case (k, (_, d)) => (k, (if (d < prob - variance) 1L else 0L, 1L)) }
+            .sumByKey
+
+          val thresholdByKey = stratifiedThresholdByKey(s, counts, targets, variance, prob)
+
+          val sample = filterByThreshold(s, thresholdByKey)
+          val diffs = buildStratifiedDiffs(s.values.keys, sample, keyFn, prob)
+          (sample, diffs)
+
+        case UniformDistribution =>
+          val (popPerKey, probPerKey) = uniformParams(s.values.keys, keyFn, prob)
+          //TODO: Find better bounds than variance, potentially what Spark uses
+          val variancePerKey = probPerKey.map{case (k, f) => (k, f * (1 - f))}
+
+          val counts = s
+            .hashJoin(variancePerKey)
+            .hashJoin(probPerKey)
+            .filter{case (_, (((_, d), variance), keyProb)) => d < (keyProb + variance)}
+            .map{ case (k, (((_, d), variance), keyProb))  =>
+              (k, (if (d < (keyProb - variance)) 1L else 0L, 1L))}
+            .sumByKey
+
+          val thresholdByKey =
+            uniformThresholdByKey(s, counts, variancePerKey, probPerKey, popPerKey)
+
+          val sample = filterByThreshold(s, thresholdByKey)
+          val diffs = buildUniformDiffs(s.values.keys, sample, keyFn, prob, popPerKey)
+          (sample, diffs)
+      }
+      logDistributionDiffs(sampledDiffs, logSerDe)
+      sampled.values
+    }
+    //scalastyle:on cyclomatic.complexity
+  }
+
+  implicit class RatatoolSCollection[T: ClassTag](s: SCollection[T]) {
+    def sampleDist[U: ClassTag](dist: SampleDistribution, keyFn: T => U, prob: Double)
     : SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
-      val targets = s.countByKey.map{case (k, c) => (k, (c * prob).toLong)}
-      val variance = prob * (1 - prob)
-      val counts = s.filter{case (_, (_, d)) => d < (prob + variance)}
-        .map{ case (k, (_, d)) => (k, (if (d < prob - variance) 1L else 0L, 1L))}
-        .sumByKey
+      val (sampled, sampledDiffs) = dist match {
+        case StratifiedDistribution =>
+          val sampleFn: RandomValueSampler[U, T, _] = new BernoulliValueSampler[U, T]
+          val keyed = s.keyBy(keyFn)
+          val sample = keyed.map((_, prob)).applyTransform(ParDo.of(sampleFn))
+          val diffs = buildStratifiedDiffs(s, sample, keyFn, prob)
+          (sample, diffs)
 
-      val thresholdByKey = stratifiedThresholdByKey(s, counts, targets, variance, prob)
+        case UniformDistribution =>
+          val sampleFn: RandomValueSampler[U, T, _] = new BernoulliValueSampler[U, T]
+          val (popPerKey, probPerKey) = uniformParams(s, keyFn, prob)
+          val sample = s.keyBy(keyFn)
+            .join(probPerKey).map{ case (k, (v, keyProb)) =>
+            ((k, v), keyProb)}.applyTransform(ParDo.of(sampleFn))
 
-      val sampled = filterByThreshold(s, thresholdByKey)
-      val sampledDiffs = buildStratifiedDiffs(s, sampled, keyFn, prob)
-      logDistributionDiffs(sampledDiffs, logSerDe)
-      sampled.values
-    }
+          val diffs = buildUniformDiffs(s, sample, keyFn, prob, popPerKey)
+          (sample, diffs)
+      }
 
-    def exactUniformSample(keyFn: T => U,
-                           prob: Double
-                          ): SCollection[T] = {
-      @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
-      val (popPerKey, probPerKey) = uniformParams(s, keyFn, prob)
-      //TODO: Find better bounds than variance, potentially what Spark uses
-      val variancePerKey = probPerKey.map{case (k, f) => (k, f * (1 - f))}
-
-      val counts = s
-        .hashJoin(variancePerKey)
-        .hashJoin(probPerKey)
-        .filter{case (_, (((_, d), variance), keyProb)) => d < (keyProb + variance)}
-        .map{ case (k, (((_, d), variance), keyProb))  =>
-          (k, (if (d < (keyProb - variance)) 1L else 0L, 1L))}
-        .sumByKey
-
-      val thresholdByKey = uniformThresholdByKey(s, counts, variancePerKey, probPerKey, popPerKey)
-
-      val sampled = filterByThreshold(s, thresholdByKey)
-
-      val sampledDiffs = buildUniformDiffs(s, sampled, keyFn, prob, popPerKey)
-      logDistributionDiffs(sampledDiffs, logSerDe)
-      sampled.values
-    }
-  }
-
-
-  //scalastyle:off cyclomatic.complexity method.length
-  implicit class RatatoolSCollection[T: ClassTag](s: SCollection[T]) {
-    def stratifiedSample[U: ClassTag](keyFn: T => U,
-                                      withReplacement: Boolean,
-                                      prob: Double
-                                     ): SCollection[T] = {
-      @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
-
-      val sampleFn: RandomValueSampler[U, T, _] =
-        if (withReplacement){
-          throw new UnsupportedOperationException(
-            "Sampling with replacement not currently supported for distributions")
-        } else {
-          new BernoulliValueSampler[U, T]
-        }
-      val keyed = s.keyBy(keyFn)
-      val sampled = keyed.map((_, prob)).applyTransform(ParDo.of(sampleFn))
-      val sampledDiffs = buildStratifiedDiffs(s, sampled, keyFn, prob)
-      logDistributionDiffs(sampledDiffs, logSerDe)
-      sampled.values
-    }
-    //scalastyle:on
-
-    def uniformSample[U: ClassTag](keyFn: T => U,
-                                   withReplacement: Boolean,
-                                   prob: Double
-                                  ): SCollection[T] = {
-      @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
-
-      val sampleFn: RandomValueSampler[U, T, _] =
-        if (withReplacement){
-          throw new UnsupportedOperationException(
-            "Sampling with replacement not currently supported for distributions")
-        } else {
-          new BernoulliValueSampler[U, T]
-        }
-      val (popPerKey, probPerKey) = uniformParams(s, keyFn, prob)
-      val sampled = s.keyBy(keyFn)
-        .join(probPerKey).map{ case (k, (v, keyProb)) =>
-        ((k, v), keyProb)}.applyTransform(ParDo.of(sampleFn))
-
-      val sampledDiffs = buildUniformDiffs(s, sampled, keyFn, prob, popPerKey)
       logDistributionDiffs(sampledDiffs, logSerDe)
       sampled.values
     }

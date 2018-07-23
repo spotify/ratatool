@@ -498,7 +498,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
     BigSampler.run(Array(
       s"--input=$dir/*.avro",
       s"--output=$outDir",
-      "--sample=0.1",
+      "--sample=0.2",
       "--distribution=uniform",
       "--distributionFields=required_fields.string_field",
       "--exact"
@@ -514,9 +514,9 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.1 +- 200
-    largeStrataCount/totalCount shouldBe 0.5 +- 0.005
-    smallStrataCount/totalCount shouldBe 0.5 +- 0.005
+    totalCount shouldBe totalElements * 0.2 +- 400
+    largeStrataCount/totalCount shouldBe 0.5 +- 0.05
+    smallStrataCount/totalCount shouldBe 0.5 +- 0.05
   }
 
   it should "sample uniformly across a single field with hash field" in withOutFile { outDir =>
@@ -548,7 +548,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
     BigSampler.run(Array(
       s"--input=$dir/*.avro",
       s"--output=$outDir",
-      "--sample=0.25",
+      "--sample=0.15",
       "--distribution=uniform",
       "--distributionFields=required_fields.string_field",
       "--fields=required_fields.long_field",
@@ -565,8 +565,8 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.25 +- 100
-    largeStrataCount/totalCount shouldBe 0.5 +- 0.005
-    smallStrataCount/totalCount shouldBe 0.5 +- 0.005
+    totalCount shouldBe totalElements * 0.15 +- 150
+    largeStrataCount/totalCount shouldBe 0.5 +- 0.05
+    smallStrataCount/totalCount shouldBe 0.5 +- 0.05
   }
 }

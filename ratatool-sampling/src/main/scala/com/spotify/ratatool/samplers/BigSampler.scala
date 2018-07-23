@@ -150,7 +150,7 @@ object BigSampler extends Command {
         args("output"),
         args.list("fields"),
         args.optional("seed"),
-        args.optional("distribution").map(SamplerDistribution.fromString),
+        args.optional("distribution").map(SampleDistribution.fromString),
         args.list("distributionFields"),
         args.boolean("exact", default = false))
     } catch {
@@ -222,13 +222,12 @@ object BigSampler extends Command {
 }
 
 private[samplers] trait BigSampler {
-  def assignHashRoll[T: ClassTag, U: ClassTag, V: ClassTag, W: ClassTag](
-                                                           s: SCollection[T],
+  def assignHashRoll[T: ClassTag, U: ClassTag, V: ClassTag](s: SCollection[T],
                                                            seed: Option[Int],
                                                            fields: Seq[String],
-                                                           hashFn: (V, String, W, Hasher) => Hasher,
+                                                           hashFn: (T, String, V, Hasher) => Hasher,
                                                            keyFn: T => U,
-                                                           schemaFields: W)
+                                                           schemaFields: =>V)
   : SCollection[(U, (T, Double))] = {
     s.map { v =>
       val hasher = BigSampler.hashFun(seed = seed)
@@ -414,7 +413,7 @@ private[samplers] object BigSamplerAvro extends BigSampler {
                                    fields: Seq[String],
                                    samplePct: Double,
                                    seed: Option[Int],
-                                   distribution: Option[SamplerDistribution],
+                                   distribution: Option[SampleDistribution],
                                    distributionFields: Seq[String],
                                    exact: Boolean)
   : Future[Tap[GenericRecord]] = {
@@ -438,11 +437,8 @@ private[samplers] object BigSamplerAvro extends BigSampler {
       val sampledCollection: SCollection[GenericRecord] = (fields, distribution, exact) match {
         case (Seq(), None, false) => coll.sample(withReplacement = false, samplePct)
 
-        case (Seq(), Some(StratifiedDistribution), _) =>
-          coll.stratifiedSample(buildKey(schemaSerDe), withReplacement = false, samplePct)
-
-        case (Seq(), Some(UniformDistribution), _) =>
-          coll.uniformSample(buildKey(schemaSerDe), withReplacement = false, samplePct)
+        case (Seq(), Some(d), _) =>
+          coll.sampleDist(d, buildKey(schemaSerDe), samplePct)
 
         case (_, None, false) =>
           val fieldsMissing = fields.filterNot(f => fieldInAvroSchema(schema, f))
@@ -458,12 +454,9 @@ private[samplers] object BigSamplerAvro extends BigSampler {
             BigSampler.diceElement(e, hash, samplePct100)
           }
 
-        case (_, Some(StratifiedDistribution), true) =>
-          val (sampled, sampledDiffs) =
-            assignHashRoll(coll, seed, fields, hashAvroField, buildKey(schemaSerDe), schemaSerDe)
-              .exactStratifiedSample(buildKey(schemaSerDe), samplePct)
-          logDistributionDiffs(sampledDiffs, logSerDe)
-          sampled
+        case (_, Some(d), true) =>
+          assignHashRoll(coll, seed, fields, hashAvroField, buildKey(schemaSerDe), schemaSerDe)
+            .exactSampleDist(d, buildKey(schemaSerDe), samplePct)
 
         case (_, Some(StratifiedDistribution), false) =>
           val sampled = coll.flatMap { v =>
@@ -490,13 +483,6 @@ private[samplers] object BigSamplerAvro extends BigSampler {
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
 
-
-        case (_, Some(UniformDistribution), true) =>
-          val (sampled, sampledDiffs) =
-            assignHashRoll(coll, seed, fields, hashAvroField, buildKey(schemaSerDe), schemaSerDe)
-              .exactStratifiedSample(buildKey(schemaSerDe), samplePct)
-          logDistributionDiffs(sampledDiffs, logSerDe)
-          sampled
         case _ =>
           throw new UnsupportedOperationException("This sampling mode is not currently supported")
       }
@@ -630,7 +616,7 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
                           fields: List[String],
                           samplePct: Float,
                           seed: Option[Int],
-                          distribution: Option[SamplerDistribution],
+                          distribution: Option[SampleDistribution],
                           distributionFields: List[String],
                           exact: Boolean
                          ): Future[Tap[TableRow]] = {
@@ -668,11 +654,8 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
             BigSampler.diceElement(e, hash, samplePct * 100.0)
           }
 
-        case (Seq(), Some(StratifiedDistribution), false) =>
-          coll.stratifiedSample(buildKey(schema), withReplacement = false, samplePct)
-
-        case (Seq(), Some(StratifiedDistribution), true) =>
-          coll.stratifiedSample(buildKey(schema), withReplacement = false, samplePct)
+        case (Seq(), Some(d), false) =>
+          coll.sampleDist(d, buildKey(schema), samplePct)
 
         case (_, Some(StratifiedDistribution), false) =>
           val sampled = coll.flatMap { v =>
@@ -685,13 +668,9 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
 
-        case (Seq(), Some(UniformDistribution), false) =>
-            coll.uniformSample(buildKey(schema), withReplacement = false, samplePct)
-
-        case (_, Some(StratifiedDistribution), true) =>
+        case (_, Some(d), true) =>
             assignHashRoll(coll, seed, fields, hashTableRow, buildKey(schema), schemaFields)
-              .exactStratifiedSample(buildKey(schema), samplePct)
-
+              .exactSampleDist(d, buildKey(schema), samplePct)
 
         case (_, Some(UniformDistribution), false) =>
           val (popPerKey, probPerKey) = uniformParams(coll, buildKey(schema), samplePct)
@@ -706,10 +685,6 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
             buildUniformDiffs(coll, sampled, buildKey(schema), samplePct, popPerKey)
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
-
-        case (_, Some(UniformDistribution), true) =>
-            assignHashRoll(coll, seed, fields, hashTableRow, buildKey(schema), schemaFields)
-              .exactStratifiedSample(buildKey(schema), samplePct)
 
         case _ =>
           throw new UnsupportedOperationException("This sampling mode is not currently supported")
