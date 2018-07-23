@@ -232,7 +232,7 @@ private[samplers] trait BigSampler {
     s.map { v =>
       val hasher = BigSampler.hashFun(seed = seed)
       val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, schemaFields, h)).hash
-      (keyFn(v), (v, (math.abs(hash.asLong) % 100000.0) / 100000))
+      (keyFn(v), (v, (math.abs(hash.asLong) % 1000000.0) / 1000000))
     }
   }
 }

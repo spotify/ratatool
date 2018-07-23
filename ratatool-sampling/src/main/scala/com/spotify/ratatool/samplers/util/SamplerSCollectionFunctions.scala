@@ -70,6 +70,7 @@ object SamplerSCollectionFunctions {
                                                                     prob: Double,
                                                                     popPerKey: SideInput[Double])
   : SCollection[(Double, Map[U, Double])] = {
+    //TODO: Error out if difference is too high
     sampled.keys.map(k => (1L, Map[U, Long](k -> 1L))).sum
       .withSideInputs(popPerKey).map{ case (res, sic) =>
         val pop = sic(popPerKey)
@@ -101,7 +102,12 @@ object SamplerSCollectionFunctions {
                                                            thresholdByKey: SCollection[(U, Double)])
   : SCollection[(U, T)] = {
     s.join(thresholdByKey)
-      .filter{case (_, ((_, d), t)) => d < t}
+      .filter{case (k, ((_, d), t)) =>
+        if (k == Set("large_strata")) {
+          identity(k)
+        }
+        d <= t
+      }
       .map{case (k, ((v, _), _)) => (k, v)}
   }
 
@@ -131,13 +137,17 @@ object SamplerSCollectionFunctions {
     }
   }
 
+  //scalastyle:off
   private def uniformThresholdByKey[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
                                                         countsByKey: SCollection[(U, (Long, Long))],
                                                         varByKey: SCollection[(U, Double)],
                                                         probByKey: SCollection[(U, Double)],
                                                         popPerKey: SideInput[Double])
   : SCollection[(U, Double)] = {
-    s.map{case (k, (_, d)) => (k, d)}
+    countsByKey.map{case (k, _) => identity(k)}
+    varByKey.map{case (k, _) => identity(k)}
+    probByKey.map{case (k, _) => identity(k)}
+    s.map{ case (k, (_, d)) => (k, d) }
       .hashJoin(varByKey)
       .hashJoin(probByKey)
       .filter{case (_, ((d, variance), prob)) =>
@@ -145,11 +155,15 @@ object SamplerSCollectionFunctions {
       .map{case (k, ((d, _), _)) => (k, d)}
       //TODO: Clean up magic number
       .topByKey(1e8.toInt)(Ordering.by(identity[Double]).reverse)
-      .join(countsByKey)
+      .hashJoin(countsByKey)
       .hashJoin(varByKey)
       .hashJoin(probByKey)
       .withSideInputs(popPerKey)
       .map { case ((k, ((((itr, (lower, upper)), variance)), prob)), sic) =>
+        val x = sic(popPerKey)
+        if (k == Set("large_strata")) {
+          identity(k)
+        }
         if (lower >= sic(popPerKey)) {
           (k, prob - variance)
         }
@@ -162,6 +176,7 @@ object SamplerSCollectionFunctions {
         }
       }.toSCollection
   }
+  //scalastyle:on
 
   implicit class RatatoolKVDSCollection[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))]){
     //scalastyle:off cyclomatic.complexity

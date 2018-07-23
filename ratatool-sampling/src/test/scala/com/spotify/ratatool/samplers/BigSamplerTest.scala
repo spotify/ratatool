@@ -426,7 +426,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
       "--sample=0.5",
       "--distribution=stratified",
       "--distributionFields=required_fields.string_field",
-      "--fields=required_fields.long_field"
+      "--fields=required_fields.long_field,required_fields.int_field"
     ))
     val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
       (gr: GenericRecord) =>
@@ -451,7 +451,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
       "--sample=0.5",
       "--distribution=stratified",
       "--distributionFields=required_fields.string_field",
-      "--fields=required_fields.long_field",
+      "--fields=required_fields.long_field,required_fields.int_field",
       "--exact"
     ))
     val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
@@ -526,7 +526,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
       "--sample=0.1",
       "--distribution=uniform",
       "--distributionFields=required_fields.string_field",
-      "--fields=required_fields.long_field"
+      "--fields=required_fields.long_field,required_fields.int_field"
     ))
     val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
       (gr: GenericRecord) =>
@@ -551,7 +551,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
       "--sample=0.15",
       "--distribution=uniform",
       "--distributionFields=required_fields.string_field",
-      "--fields=required_fields.long_field",
+      "--fields=required_fields.long_field,required_fields.int_field",
       "--exact"
     ))
     val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
