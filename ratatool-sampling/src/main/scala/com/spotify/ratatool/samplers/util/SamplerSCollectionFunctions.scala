@@ -76,8 +76,7 @@ object SamplerSCollectionFunctions {
         val pop = sic(popPerKey)
         val (totalCount, keyCounts) = res
         val totalDiff = ((pop * keyCounts.size) - totalCount)/(pop * keyCounts.size)
-        val keyDiffs = keyCounts.keySet.map(k =>
-          k -> (pop - keyCounts.getOrElse(k, 0L))/pop).toMap
+        val keyDiffs = keyCounts.keySet.map(k => k -> (pop - keyCounts.getOrElse(k, 0L))/pop).toMap
 
         (totalDiff, keyDiffs)
     }.toSCollection
@@ -101,8 +100,8 @@ object SamplerSCollectionFunctions {
   private def filterByThreshold[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
                                                            thresholdByKey: SCollection[(U, Double)])
   : SCollection[(U, T)] = {
-    s.join(thresholdByKey)
-      .filter{case (k, ((_, d), t)) => d <= t}
+    s.hashJoin(thresholdByKey)
+      .filter{case (_, ((_, d), t)) => d <= t}
       .map{case (k, ((v, _), _)) => (k, v)}
   }
 
@@ -132,16 +131,12 @@ object SamplerSCollectionFunctions {
     }
   }
 
-  //scalastyle:off
   private def uniformThresholdByKey[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
                                                         countsByKey: SCollection[(U, (Long, Long))],
                                                         varByKey: SCollection[(U, Double)],
                                                         probByKey: SCollection[(U, Double)],
                                                         popPerKey: SideInput[Double])
   : SCollection[(U, Double)] = {
-    countsByKey.map{case (k, _) => identity(k)}
-    varByKey.map{case (k, _) => identity(k)}
-    probByKey.map{case (k, _) => identity(k)}
     s.map{ case (k, (_, d)) => (k, d) }
       .hashJoin(varByKey)
       .hashJoin(probByKey)
@@ -167,10 +162,17 @@ object SamplerSCollectionFunctions {
         }
       }.toSCollection
   }
-  //scalastyle:on
 
   implicit class RatatoolKVDSCollection[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))]){
     //scalastyle:off cyclomatic.complexity
+    /**
+     * Performs higher precision sampling for a given distribution by assigning random probabilities
+     * to each element in SCollection[T] and then finding the Kth lowest, where K is the target
+     * population for a given strata or key.
+     *
+     * Currently variance is used to create cut-offs for upper and lower bounds to find K,
+     * but this can be improved inthe future.
+     */
     def exactSampleDist(dist: SampleDistribution, keyFn: T => U, prob: Double): SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
@@ -215,6 +217,11 @@ object SamplerSCollectionFunctions {
   }
 
   implicit class RatatoolSCollection[T: ClassTag](s: SCollection[T]) {
+    /**
+     * Wrapper function that samples an SCollection[T] for a given distribution. This sampling is
+     * done approximately using a Bernoulli probability (coin toss) per element. For more precision
+     * sampling use `exactSampleDist` instead
+     */
     def sampleDist[U: ClassTag](dist: SampleDistribution, keyFn: T => U, prob: Double)
     : SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
@@ -230,9 +237,9 @@ object SamplerSCollectionFunctions {
         case UniformDistribution =>
           val sampleFn: RandomValueSampler[U, T, _] = new BernoulliValueSampler[U, T]
           val (popPerKey, probPerKey) = uniformParams(s, keyFn, prob)
-          val sample = s.keyBy(keyFn)
-            .join(probPerKey).map{ case (k, (v, keyProb)) =>
-            ((k, v), keyProb)}.applyTransform(ParDo.of(sampleFn))
+          val sample = s.keyBy(keyFn).hashJoin(probPerKey)
+            .map{ case (k, (v, keyProb)) => ((k, v), keyProb)}
+            .applyTransform(ParDo.of(sampleFn))
 
           val diffs = buildUniformDiffs(s, sample, keyFn, prob, popPerKey)
           (sample, diffs)

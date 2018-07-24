@@ -53,3 +53,5 @@ BigSampler will also output metrics in logs for how close it came to the target 
  per strata, and in `--exact` mode it will error if the produced sample misses by too much.
 
 Distribution sampling currently does *not* support sampling with replacement.
+Distribution sampling currently assumes all distinct keys or strata can fit into memory (this allows
+ leveraging `hashJoin` for performance improvements)
