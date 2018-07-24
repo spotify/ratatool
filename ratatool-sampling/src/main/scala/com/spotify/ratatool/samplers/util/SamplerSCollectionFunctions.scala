@@ -102,12 +102,7 @@ object SamplerSCollectionFunctions {
                                                            thresholdByKey: SCollection[(U, Double)])
   : SCollection[(U, T)] = {
     s.join(thresholdByKey)
-      .filter{case (k, ((_, d), t)) =>
-        if (k == Set("large_strata")) {
-          identity(k)
-        }
-        d <= t
-      }
+      .filter{case (k, ((_, d), t)) => d <= t}
       .map{case (k, ((v, _), _)) => (k, v)}
   }
 
@@ -160,10 +155,6 @@ object SamplerSCollectionFunctions {
       .hashJoin(probByKey)
       .withSideInputs(popPerKey)
       .map { case ((k, ((((itr, (lower, upper)), variance)), prob)), sic) =>
-        val x = sic(popPerKey)
-        if (k == Set("large_strata")) {
-          identity(k)
-        }
         if (lower >= sic(popPerKey)) {
           (k, prob - variance)
         }
