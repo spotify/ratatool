@@ -26,13 +26,14 @@ import scala.reflect.ClassTag
 import scala.math.max
 
 object SamplerSCollectionFunctions {
+  private val errorTolerance = 2e-2
 
   private[samplers] def logDistributionDiffs[U: ClassTag](s: SCollection[(Double, Map[U, Double])],
                                                            logger: Logger): Unit = {
     s.map{ case (totalDiff, keyDiffs) =>
-      logger.info(s"Total record counts differs from expected target count by: $totalDiff%")
+      logger.info(s"Total record counts differs from expected target count by: ${totalDiff * 100}%")
       keyDiffs.foreach{ case (k, diff) =>
-        logger.info(s"Count for key $k differs from expected target count by: $diff%")
+        logger.info(s"Count for key $k differs from expected target count by: ${diff * 100}%")
       }
     }
   }
@@ -45,7 +46,8 @@ object SamplerSCollectionFunctions {
   private[samplers] def buildStratifiedDiffs[T: ClassTag, U: ClassTag](s: SCollection[T],
                                                                        sampled: SCollection[(U, T)],
                                                                        keyFn: T => U,
-                                                                       prob: Double)
+                                                                       prob: Double,
+                                                                       exact: Boolean = false)
   : SCollection[(Double, Map[U, Double])] = {
     val targets = s.map(t => (1L, Map[U, Long](keyFn(t) -> 1L))).sum
       .map{case (total, m) =>
@@ -60,6 +62,18 @@ object SamplerSCollectionFunctions {
       val keyDiffs = keyTargets.keySet.map(k =>
           k -> (keyTargets(k) - keyCounts.getOrElse(k, 0L))/keyTargets(k)).toMap
 
+      if (exact) {
+        if (totalDiff > errorTolerance) {
+          throw new Exception(
+            s"Total elements sampled off by ${totalDiff * 100}% (> ${errorTolerance * 100}%)")
+        }
+        keyDiffs.foreach { case (k, diff) =>
+          if (diff > errorTolerance) {
+            throw new Exception(
+              s"Elements for key $k sample off by ${diff * 100}% (> ${errorTolerance * 100}%)")
+          }
+        }
+      }
       (totalDiff, keyDiffs)
     }.toSCollection
   }
@@ -68,9 +82,9 @@ object SamplerSCollectionFunctions {
                                                                     sampled: SCollection[(U, T)],
                                                                     keyFn: T => U,
                                                                     prob: Double,
-                                                                    popPerKey: SideInput[Double])
+                                                                    popPerKey: SideInput[Double],
+                                                                    exact: Boolean = false)
   : SCollection[(Double, Map[U, Double])] = {
-    //TODO: Error out if difference is too high
     sampled.keys.map(k => (1L, Map[U, Long](k -> 1L))).sum
       .withSideInputs(popPerKey).map{ case (res, sic) =>
         val pop = sic(popPerKey)
@@ -78,6 +92,18 @@ object SamplerSCollectionFunctions {
         val totalDiff = ((pop * keyCounts.size) - totalCount)/(pop * keyCounts.size)
         val keyDiffs = keyCounts.keySet.map(k => k -> (pop - keyCounts.getOrElse(k, 0L))/pop).toMap
 
+        if (exact) {
+          if (totalDiff > errorTolerance) {
+            throw new Exception(
+              s"Total elements sampled off by ${totalDiff * 100}% (> ${errorTolerance * 100}%)")
+          }
+          keyDiffs.foreach { case (k, diff) =>
+            if (diff > errorTolerance) {
+              throw new Exception(
+                s"Elements for key $k sample off by ${diff * 100}% (> ${errorTolerance * 100}%)")
+            }
+          }
+        }
         (totalDiff, keyDiffs)
     }.toSCollection
   }
@@ -98,7 +124,7 @@ object SamplerSCollectionFunctions {
   }
 
   private def filterByThreshold[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
-                                                           thresholdByKey: SCollection[(U, Double)])
+                                                          thresholdByKey: SCollection[(U, Double)])
   : SCollection[(U, T)] = {
     s.hashJoin(thresholdByKey)
       .filter{case (_, ((_, d), t)) => d <= t}
@@ -187,7 +213,7 @@ object SamplerSCollectionFunctions {
           val thresholdByKey = stratifiedThresholdByKey(s, counts, targets, variance, prob)
 
           val sample = filterByThreshold(s, thresholdByKey)
-          val diffs = buildStratifiedDiffs(s.values.keys, sample, keyFn, prob)
+          val diffs = buildStratifiedDiffs(s.values.keys, sample, keyFn, prob, exact = true)
           (sample, diffs)
 
         case UniformDistribution =>
@@ -207,7 +233,7 @@ object SamplerSCollectionFunctions {
             uniformThresholdByKey(s, counts, variancePerKey, probPerKey, popPerKey)
 
           val sample = filterByThreshold(s, thresholdByKey)
-          val diffs = buildUniformDiffs(s.values.keys, sample, keyFn, prob, popPerKey)
+          val diffs = buildUniformDiffs(s.values.keys, sample, keyFn, prob, popPerKey, exact = true)
           (sample, diffs)
       }
       logDistributionDiffs(sampledDiffs, logSerDe)
