@@ -30,6 +30,7 @@ import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.io.{AvroIO, FileStorage}
 import com.spotify.ratatool.samplers.util._
 import com.spotify.ratatool.serde.JsonSerDe
+import com.spotify.scio.Random.RandomValueAssigner
 import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.io.{Tap, Taps}
 import com.spotify.scio.values.SCollection
@@ -38,9 +39,9 @@ import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.io.FileSystems
-import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers, BigQueryIO, BigQueryOptions,
-  PatchedBigQueryServicesImpl}
+import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers, BigQueryIO, BigQueryOptions, PatchedBigQueryServicesImpl}
 import org.apache.beam.sdk.options.PipelineOptions
+import org.apache.beam.sdk.transforms.ParDo
 import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
@@ -411,7 +412,7 @@ private[samplers] object BigSamplerAvro extends BigSampler {
                                    input: String,
                                    output: String,
                                    fields: Seq[String],
-                                   samplePct: Double,
+                                   fraction: Double,
                                    seed: Option[Int],
                                    distribution: Option[SampleDistribution],
                                    distributionFields: Seq[String],
@@ -435,10 +436,14 @@ private[samplers] object BigSamplerAvro extends BigSampler {
       val coll = sc.avroFile[GenericRecord](input, schema)
 
       val sampledCollection: SCollection[GenericRecord] = (fields, distribution, exact) match {
-        case (Seq(), None, false) => coll.sample(withReplacement = false, samplePct)
+        case (Seq(), None, false) => coll.sample(withReplacement = false, fraction)
 
-        case (Seq(), Some(d), _) =>
-          coll.sampleDist(d, buildKey(schemaSerDe), samplePct)
+        case (Seq(), Some(d), false) =>
+          coll.sampleDist(d, buildKey(schemaSerDe), fraction)
+
+        case (Seq(), Some(d), true) =>
+          assignRandomRoll(coll, buildKey(schemaSerDe))
+            .exactSampleDist(d, buildKey(schemaSerDe), fraction)
 
         case (_, None, false) =>
           val fieldsMissing = fields.filterNot(f => fieldInAvroSchema(schema, f))
@@ -447,7 +452,7 @@ private[samplers] object BigSamplerAvro extends BigSampler {
               s"""Could not locate field(s) ${fieldsMissing.mkString(",")} """ +
                 s"""in $input with schema $schema""")
           }
-          val samplePct100 = samplePct * 100.0
+          val samplePct100 = fraction * 100.0
           coll.flatMap { e =>
             val hasher = BigSampler.hashFun(seed = seed)
             val hash = fields.foldLeft(hasher)((h, f) => hashAvroField(e, f, schemaSerDe, h)).hash
@@ -456,21 +461,21 @@ private[samplers] object BigSamplerAvro extends BigSampler {
 
         case (_, Some(d), true) =>
           assignHashRoll(coll, seed, fields, hashAvroField, buildKey(schemaSerDe), schemaSerDe)
-            .exactSampleDist(d, buildKey(schemaSerDe), samplePct)
+            .exactSampleDist(d, buildKey(schemaSerDe), fraction)
 
         case (_, Some(StratifiedDistribution), false) =>
           val sampled = coll.flatMap { v =>
             val hasher = BigSampler.hashFun(seed = seed)
             val hash = fields.foldLeft(hasher)((h, f) => hashAvroField(v, f, schemaSerDe, h)).hash
-            BigSampler.diceElement(v, hash, samplePct * 100.0)
+            BigSampler.diceElement(v, hash, fraction * 100.0)
           }.keyBy(buildKey(schemaSerDe)(_))
 
-          val sampledDiffs = buildStratifiedDiffs(coll, sampled, buildKey(schemaSerDe), samplePct)
+          val sampledDiffs = buildStratifiedDiffs(coll, sampled, buildKey(schemaSerDe), fraction)
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
 
         case (_, Some(UniformDistribution), false) =>
-          val (popPerKey, probPerKey) = uniformParams(coll, buildKey(schemaSerDe), samplePct)
+          val (popPerKey, probPerKey) = uniformParams(coll, buildKey(schemaSerDe), fraction)
           val sampled = coll.keyBy(buildKey(schemaSerDe)(_))
             .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
               val hasher = BigSampler.hashFun(seed = seed)
@@ -479,7 +484,7 @@ private[samplers] object BigSamplerAvro extends BigSampler {
             }
 
           val sampledDiffs =
-            buildUniformDiffs(coll, sampled, buildKey(schemaSerDe), samplePct, popPerKey)
+            buildUniformDiffs(coll, sampled, buildKey(schemaSerDe), fraction, popPerKey)
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
 
@@ -614,7 +619,7 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
                           inputTbl: TableReference,
                           outputTbl: TableReference,
                           fields: List[String],
-                          samplePct: Float,
+                          fraction: Double,
                           seed: Option[Int],
                           distribution: Option[SampleDistribution],
                           distributionFields: List[String],
@@ -645,35 +650,39 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
       val coll = sc.bigQueryTable(inputTbl)
 
       val sampledCollection: SCollection[TableRow] = (fields, distribution, exact) match {
-        case (Seq(), None, false) => coll.sample(withReplacement = false, samplePct)
+        case (Seq(), None, false) => coll.sample(withReplacement = false, fraction)
 
         case (_, None, _) =>
           coll.flatMap { e =>
             val hasher = BigSampler.hashFun(seed=seed)
             val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(e, f, schemaFields, h)).hash()
-            BigSampler.diceElement(e, hash, samplePct * 100.0)
+            BigSampler.diceElement(e, hash, fraction * 100.0)
           }
 
         case (Seq(), Some(d), false) =>
-          coll.sampleDist(d, buildKey(schema), samplePct)
+          coll.sampleDist(d, buildKey(schema), fraction)
+
+        case (Seq(), Some(d), true) =>
+          assignRandomRoll(coll, buildKey(schema))
+            .exactSampleDist(d, buildKey(schema), fraction)
 
         case (_, Some(StratifiedDistribution), false) =>
           val sampled = coll.flatMap { v =>
             val hasher = BigSampler.hashFun(seed = seed)
             val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(v, f, schemaFields, h)).hash
-            BigSampler.diceElement(v, hash, samplePct * 100.0)
+            BigSampler.diceElement(v, hash, fraction * 100.0)
           }.keyBy(buildKey(schema)(_))
 
-          val sampledDiffs = buildStratifiedDiffs(coll, sampled, buildKey(schema), samplePct)
+          val sampledDiffs = buildStratifiedDiffs(coll, sampled, buildKey(schema), fraction)
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
 
         case (_, Some(d), true) =>
             assignHashRoll(coll, seed, fields, hashTableRow, buildKey(schema), schemaFields)
-              .exactSampleDist(d, buildKey(schema), samplePct)
+              .exactSampleDist(d, buildKey(schema), fraction)
 
         case (_, Some(UniformDistribution), false) =>
-          val (popPerKey, probPerKey) = uniformParams(coll, buildKey(schema), samplePct)
+          val (popPerKey, probPerKey) = uniformParams(coll, buildKey(schema), fraction)
           val sampled = coll.keyBy(buildKey(schema)(_))
             .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
               val hasher = BigSampler.hashFun(seed = seed)
@@ -682,7 +691,7 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
             }
 
           val sampledDiffs =
-            buildUniformDiffs(coll, sampled, buildKey(schema), samplePct, popPerKey)
+            buildUniformDiffs(coll, sampled, buildKey(schema), fraction, popPerKey)
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
 

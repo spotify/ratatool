@@ -98,10 +98,10 @@ object Random {
     }
 
     @ProcessElement
-    def processElement(c: DoFn[(K, V), ((K, V), Double)]#ProcessContext): Unit = {
+    def processElement(c: DoFn[(K, V), (K, (V, Double))]#ProcessContext): Unit = {
       val (key, value) = c.element()
       rngs.putIfAbsent(key, init())
-      (key, (value, rngs.get(key).nextDouble()))
+      c.output((key, (value, rngs.get(key).nextDouble())))
     }
 
     def setSeed(seed: Long): Unit = this.seed = seed

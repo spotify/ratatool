@@ -26,7 +26,8 @@ import scala.reflect.ClassTag
 import scala.math.max
 
 object SamplerSCollectionFunctions {
-  private val errorTolerance = 2e-2
+  //TODO: What is a good number for tolerance
+  private val errorTolerance = 1e-2
 
   private[samplers] def logDistributionDiffs[U: ClassTag](s: SCollection[(Double, Map[U, Double])],
                                                            logger: Logger): Unit = {

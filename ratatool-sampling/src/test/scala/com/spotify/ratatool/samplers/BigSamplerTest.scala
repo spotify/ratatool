@@ -301,8 +301,8 @@ object BigSamplerTest extends Properties("BigSampler") {
 
 class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllConfigMap {
   val schema = Schemas.avroSchema
-  val data1Size = 20000
-  val data2Size = 5000
+  val data1Size = 10000
+  val data2Size = 2500
   val data1 = Gen.listOfN(data1Size, genericRecordOf(schema))
     .pureApply(Gen.Parameters.default.withSize(5), Seed.random())
     .map{ gr =>
@@ -348,12 +348,12 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
 
   "BigSampler" should "work for 50%" in withOutFile { outDir =>
     BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.5"))
-    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 500
+    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 250
   }
 
   it should "work for 1%" in withOutFile { outDir =>
     BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.01"))
-    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.01 +- 50
+    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.01 +- 25
   }
 
   it should "work for 100%" in withOutFile { outDir =>
@@ -368,7 +368,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
       "--sample=0.5",
       "--seed=42",
       "--fields=required_fields.int_field"))
-    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 4000
+    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 2000
   }
 
   it should "stratify across a single field" in withOutFile { outDir =>
@@ -390,7 +390,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.5 +- 500
+    totalCount shouldBe totalElements * 0.5 +- 250
     largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.05
     smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.05
   }
@@ -414,7 +414,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.25 +- 200
+    totalCount shouldBe totalElements * 0.25 +- 100
     largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.005
     smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.005
   }
@@ -439,7 +439,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.5 +- 4000
+    totalCount shouldBe totalElements * 0.5 +- 2000
     largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.05
     smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.05
   }
@@ -465,7 +465,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.5 +- 500
+    totalCount shouldBe totalElements * 0.5 +- 250
     largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.005
     smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.005
   }
@@ -489,7 +489,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.1 +- 1000
+    totalCount shouldBe totalElements * 0.1 +- 750
     largeStrataCount/totalCount shouldBe 0.5 +- 0.05
     smallStrataCount/totalCount shouldBe 0.5 +- 0.05
   }
@@ -514,7 +514,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.2 +- 400
+    totalCount shouldBe totalElements * 0.2 +- 200
     largeStrataCount/totalCount shouldBe 0.5 +- 0.05
     smallStrataCount/totalCount shouldBe 0.5 +- 0.05
   }
@@ -539,7 +539,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.1 +- 1000
+    totalCount shouldBe totalElements * 0.1 +- 500
     largeStrataCount/totalCount shouldBe 0.5 +- 0.1
     smallStrataCount/totalCount shouldBe 0.5 +- 0.1
   }
@@ -565,7 +565,7 @@ class BigSamplerJobTest extends FlatSpec with Matchers with BeforeAndAfterAllCon
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.15 +- 150
+    totalCount shouldBe totalElements * 0.15 +- 75
     largeStrataCount/totalCount shouldBe 0.5 +- 0.05
     smallStrataCount/totalCount shouldBe 0.5 +- 0.05
   }

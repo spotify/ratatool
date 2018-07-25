@@ -17,6 +17,8 @@ A tool for random data sampling and generation
 - [BigDiffy](https://github.com/spotify/ratatool/blob/master/ratatool-diffy) - [Scio](https://github.com/spotify/scio) library for pairwise field-level statistical diff of data sets. See [slides](http://www.lyh.me/slides/bigdiffy.html) for more.
 - [Command line tool](https://github.com/spotify/ratatool/tree/master/ratatool-cli/src/main/scala/com/spotify/ratatool/tool) - command line tool for local sampler, or executing BigDiffy and BigSampler.
 
+For more information or documentation, project level READMEs are provided.
+
 # Usage
 
 If you use [sbt](http://www.scala-sbt.org/) add the following dependency to your build file:
