@@ -30,7 +30,6 @@ import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.io.{AvroIO, FileStorage}
 import com.spotify.ratatool.samplers.util._
 import com.spotify.ratatool.serde.JsonSerDe
-import com.spotify.scio.Random.RandomValueAssigner
 import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.io.{Tap, Taps}
 import com.spotify.scio.values.SCollection

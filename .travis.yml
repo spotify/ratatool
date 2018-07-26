@@ -10,15 +10,17 @@ cache:
     - $HOME/.ivy2/cache
 
 env:
-  - TEST_PROJECT=ratatoolCommon
-  - TEST_PROJECT=ratatoolScalacheck
-  - TEST_PROJECT=ratatoolDiffy
-  - TEST_PROJECT=ratatoolSampling
-  - TEST_PROJECT=ratatoolCli
-  - TEST_PROJECT=ratatoolExamples
+  - TEST_PROJECT=ratatoolCommon     TESTS="*"
+  - TEST_PROJECT=ratatoolScalacheck TESTS="*"
+  - TEST_PROJECT=ratatoolDiffy      TESTS="*"
+  - TEST_PROJECT=ratatoolSampling   TESTS="**.BigSamplerBasicJobTest"
+  - TEST_PROJECT=ratatoolSampling   TESTS="**.BigSamplerApproxDistJobTest"
+  - TEST_PROJECT=ratatoolSampling   TESTS="**.BigSamplerExactDistJobTest"
+  - TEST_PROJECT=ratatoolCli        TESTS="*"
+  - TEST_PROJECT=ratatoolExamples   TESTS="*"
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION "project $TEST_PROJECT" clean scalastyle test:scalastyle coverage test coverageReport
+  - sbt ++$TRAVIS_SCALA_VERSION "project $TEST_PROJECT" clean scalastyle test:scalastyle coverage "testOnly " coverageReport
 
   # Tricks to avoid unnecessary cache updates
   - find $HOME/.sbt -name "*.lock" | xargs rm

@@ -150,11 +150,11 @@ object SamplerSCollectionFunctions {
           (k, prob - variance)
         }
         else if (upper < target) {
-        (k, prob + variance)
-      }
-      else {
-        (k, itr.drop((target - lower).toInt).headOption.getOrElse(prob + variance))
-      }
+          (k, prob + variance)
+        }
+        else {
+          (k, itr.drop((target - lower).toInt).headOption.getOrElse(prob + variance))
+        }
     }
   }
 
