@@ -20,7 +20,7 @@ env:
   - TEST_PROJECT=ratatoolExamples   TESTS="*"
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION "project $TEST_PROJECT" clean scalastyle test:scalastyle coverage "testOnly " coverageReport
+  - sbt ++$TRAVIS_SCALA_VERSION "project $TEST_PROJECT" clean scalastyle test:scalastyle coverage "testOnly $TESTS" coverageReport
 
   # Tricks to avoid unnecessary cache updates
   - find $HOME/.sbt -name "*.lock" | xargs rm
