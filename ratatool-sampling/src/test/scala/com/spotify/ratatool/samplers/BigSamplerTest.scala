@@ -508,8 +508,8 @@ class BigSamplerExactDistJobTest extends BigSamplerJobTestRoot {
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.4 +- 75
-    largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.005
-    smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.005
+    largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.01
+    smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.01
   }
 
   it should "stratify across a single field with hash field exactly" in withOutFile { outDir =>
@@ -534,8 +534,8 @@ class BigSamplerExactDistJobTest extends BigSamplerJobTestRoot {
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.5 +- 100
-    largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.005
-    smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.005
+    largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.01
+    smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.01
   }
 
   it should "sample uniformly across a single field exactly" in withOutFile { outDir =>
@@ -559,15 +559,15 @@ class BigSamplerExactDistJobTest extends BigSamplerJobTestRoot {
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.25 +- 50
-    largeStrataCount/totalCount shouldBe 0.5 +- 0.005
-    smallStrataCount/totalCount shouldBe 0.5 +- 0.005
+    largeStrataCount/totalCount shouldBe 0.5 +- 0.01
+    smallStrataCount/totalCount shouldBe 0.5 +- 0.01
   }
 
   it should "sample uniformly across a single field with hash exactly" in withOutFile { outDir =>
     BigSampler.run(Array(
       s"--input=$dir/*.avro",
       s"--output=$outDir",
-      "--sample=0.6",
+      "--sample=0.2",
       "--distribution=uniform",
       "--distributionFields=required_fields.string_field",
       "--fields=required_fields.long_field,required_fields.int_field",
@@ -584,8 +584,8 @@ class BigSamplerExactDistJobTest extends BigSamplerJobTestRoot {
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.6 +- 120
-    largeStrataCount/totalCount shouldBe 0.5 +- 0.005
-    smallStrataCount/totalCount shouldBe 0.5 +- 0.005
+    totalCount shouldBe totalElements * 0.2 +- 120
+    largeStrataCount/totalCount shouldBe 0.5 +- 0.01
+    smallStrataCount/totalCount shouldBe 0.5 +- 0.01
   }
 }
