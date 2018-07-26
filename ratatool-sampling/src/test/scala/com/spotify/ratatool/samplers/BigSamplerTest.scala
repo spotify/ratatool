@@ -478,7 +478,7 @@ class BigSamplerApproxDistJobTest extends BigSamplerJobTestRoot {
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.1 +- 500
+    totalCount shouldBe totalElements * 0.1 +- 750
     largeStrataCount/totalCount shouldBe 0.5 +- 0.1
     smallStrataCount/totalCount shouldBe 0.5 +- 0.1
   }
