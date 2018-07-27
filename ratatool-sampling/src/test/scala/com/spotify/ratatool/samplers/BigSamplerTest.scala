@@ -507,7 +507,7 @@ class BigSamplerExactDistJobTest extends BigSamplerJobTestRoot {
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.4 +- 75
+    totalCount shouldBe totalElements * 0.4 +- 125
     largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.02
     smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.02
   }
@@ -533,7 +533,7 @@ class BigSamplerExactDistJobTest extends BigSamplerJobTestRoot {
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.5 +- 100
+    totalCount shouldBe totalElements * 0.5 +- 150
     largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.02
     smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.02
   }
@@ -558,7 +558,7 @@ class BigSamplerExactDistJobTest extends BigSamplerJobTestRoot {
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.25 +- 50
+    totalCount shouldBe totalElements * 0.25 +- 125
     largeStrataCount/totalCount shouldBe 0.5 +- 0.01
     smallStrataCount/totalCount shouldBe 0.5 +- 0.01
   }
@@ -584,7 +584,7 @@ class BigSamplerExactDistJobTest extends BigSamplerJobTestRoot {
           .get("string_field").toString == "small_strata")
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
-    totalCount shouldBe totalElements * 0.2 +- 120
+    totalCount shouldBe totalElements * 0.2 +- 125
     largeStrataCount/totalCount shouldBe 0.5 +- 0.01
     smallStrataCount/totalCount shouldBe 0.5 +- 0.01
   }
