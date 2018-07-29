@@ -119,18 +119,19 @@ object MapEncoder {
     }
   }
 
-  //scalastyle:off
-  implicit def hlistEncoder0[K <: Symbol, H, T <: HList](implicit hEncoder: Lazy[MapEncoder[FieldType[K, H]]],
-                                                          tEncoder: Lazy[MapEncoder[T]]): MapEncoder[FieldType[K, H] :: T] = {
-    createEncoder[FieldType[K, H] :: T](in => hEncoder.value.toMap(in.head) ++ tEncoder.value.toMap(in.tail))
+  implicit def hlistEncoder0[K <: Symbol, H, T <: HList](
+                    implicit hEncoder: Lazy[MapEncoder[FieldType[K, H]]],
+                    tEncoder: Lazy[MapEncoder[T]]): MapEncoder[FieldType[K, H] :: T] = {
+    createEncoder[FieldType[K, H] :: T] { in =>
+      hEncoder.value.toMap(in.head) ++ tEncoder.value.toMap(in.tail)
+    }
   }
 
-  implicit def hListEncoder1[K <: Symbol, H, T <: HList, R <: HList](implicit
-                                                                      wit: Witness.Aux[K],
-                                                                      gen: LabelledGeneric.Aux[H, R],
-                                                                      encoderH: Lazy[MapEncoder[R]],
-                                                                      encoderT: Lazy[MapEncoder[T]]
-                                                                     ): MapEncoder[FieldType[K, H] :: T] =
+  implicit def hListEncoder1[K <: Symbol, H, T <: HList, R <: HList](
+                    implicit wit: Witness.Aux[K],
+                    gen: LabelledGeneric.Aux[H, R],
+                    encoderH: Lazy[MapEncoder[R]],
+                    encoderT: Lazy[MapEncoder[T]]): MapEncoder[FieldType[K, H] :: T] =
     createEncoder(in =>
       encoderT.value.toMap(in.tail) ++ Map(wit.value.name -> encoderH.value.toMap(gen.to(in.head))))
 
