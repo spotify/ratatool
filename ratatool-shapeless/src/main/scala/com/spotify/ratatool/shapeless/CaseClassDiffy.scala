@@ -152,8 +152,7 @@ class CaseClassDiffy[T](ignore: Set[String] = Set.empty,
 
   private def hnilIgnore = ignore ++ Set(HNil.toString)
 
-  private def diff(left: Any, right: Any, pref: String = "")
-  : Seq[Delta] = {
+  private def diff(left: Any, right: Any, pref: String = ""): Seq[Delta] = {
     def diffMap(left: Map[String, Any], right: Map[String, Any], pref: String = pref) = {
       (left.keySet ++ right.keySet).toSeq
         .flatMap(k => diff(left.get(k), right.get(k), if (pref.isEmpty) k else s"$pref.$k"))
