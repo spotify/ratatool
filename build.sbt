@@ -33,6 +33,7 @@ val slf4jVersion = "1.7.25"
 val bigqueryVersion = "v2-rev372-1.23.0"
 val beamVersion = "2.4.0"
 val guavaVersion = "20.0"
+val shapelessVersion = "2.3.3"
 
 val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
@@ -154,6 +155,25 @@ lazy val ratatoolDiffy = project
     ratatoolScalacheck % "test"
   )
   .settings(protoBufSettings)
+
+lazy val ratatoolShapeless = project
+  .in(file("ratatool-shapeless"))
+  .settings(commonSettings)
+  .settings(
+    name := "ratatool-shapeless",
+    libraryDependencies ++= Seq(
+      "com.chuusai" %% "shapeless" % shapelessVersion,
+      "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+    ),
+    // In case of scalacheck failures print more info
+    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
+    parallelExecution in Test := false
+  )
+  .dependsOn(
+    ratatoolDiffy,
+    ratatoolSampling
+  )
 
 lazy val ratatoolCli = project
   .in(file("ratatool-cli"))
