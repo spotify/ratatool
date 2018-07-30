@@ -23,7 +23,7 @@ import org.apache.beam.sdk.transforms.ParDo
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.reflect.ClassTag
-import scala.math.max
+import scala.math._
 
 object SamplerSCollectionFunctions {
   //TODO: What is a good number for tolerance
@@ -124,6 +124,24 @@ object SamplerSCollectionFunctions {
     (populationPerKey, probPerKey)
   }
 
+  /**
+   * Using Chernoff bounds we can find a `p` such that it is unlikely to have less than n * f
+   * elements in our sample. This is similar to the calculation that Spark uses.
+   * @param n Number of elements we are sampling from
+   * @param f Fraction of elements to sample
+   * @param delta A parameter to tune how wide the bounds should be
+   * @return A `p` such that count(Bernoulli trials < `p`) > n * f
+   */
+  private def getUpperBound(n: Long, f: Double, delta: Double): Double = {
+    val gamma = -log(delta)/n
+    f + gamma + sqrt(pow(gamma, 2) + (2 * gamma * f))
+  }
+
+  private def getLowerBound(n: Long, f: Double, delta: Double): Double = {
+    val gamma = -(3 * log(delta))/(2 * n)
+    min(1.0, f + gamma - sqrt(pow(gamma, 2) + (2 * gamma * f)))
+  }
+
   private def filterByThreshold[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
                                                           thresholdByKey: SCollection[(U, Double)])
   : SCollection[(U, T)] = {
@@ -132,66 +150,89 @@ object SamplerSCollectionFunctions {
       .map{case (k, ((v, _), _)) => (k, v)}
   }
 
-  private def stratifiedThresholdByKey[T: ClassTag, U: ClassTag](
-      s: SCollection[(U, (T, Double))],
-      countsByKey: SCollection[(U, (Long, Long))],
-      targetByKey: SCollection[(U, Long)],
-      variance: Double,
-      prob: Double)
+  //scalastyle:off cyclomatic.complexity
+  private def stratifiedThresholdByKey[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
+                                                                 prob: Double,
+                                                                 delta: Double)
   : SCollection[(U, Double)] = {
-    s.map{case (k, (_, d)) => (k, d)}
-      .filter{case (_, d) => d < (prob + variance) && d > (prob - variance)}
-      //TODO: Clean up magic number
-      .topByKey(1e8.toInt)(Ordering.by(identity[Double]).reverse)
-      .hashJoin(countsByKey)
-      .hashJoin(targetByKey)
-      .map { case (k, ((itr, (lower, upper)), target)) =>
-        if (lower >= target) {
-          (k, prob - variance)
-        }
-        else if (upper < target) {
-          (k, prob + variance)
-        }
-        else {
-          (k, itr.drop((target - lower).toInt).headOption.getOrElse(prob + variance))
-        }
-    }
-  }
+    val countByKey = s.countByKey
+    val targetByKey = countByKey.map { case (k, c) => (k, (c * prob).toLong) }
+    val boundsByKey =  countByKey
+      .map{case (k, c) =>
+        (k, (getLowerBound(c, prob, delta), getUpperBound(c, prob, delta)))}
 
-  private def uniformThresholdByKey[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
-                                                        countsByKey: SCollection[(U, (Long, Long))],
-                                                        varByKey: SCollection[(U, Double)],
-                                                        probByKey: SCollection[(U, Double)],
-                                                        popPerKey: SideInput[Double])
-  : SCollection[(U, Double)] = {
-    s.map{ case (k, (_, d)) => (k, d) }
-      .hashJoin(varByKey)
-      .hashJoin(probByKey)
-      .filter{case (_, ((d, variance), prob)) =>
-        d < (prob + variance) && d >= (prob - variance)}
-      .map{case (k, ((d, _), _)) => (k, d)}
+    val boundCountsByKey = s.map{case (k, (_, d)) => (k, d)}
+      .hashJoin(boundsByKey)
+      .filter{ case (_, (d, (_, u))) => d < u }
+      .map{ case (k, (d, (l, _))) => (k, (if (d < l) 1L else 0L, 1L)) }
+      .sumByKey
+
+    s.map{case (k, (_, d)) => (k, d)}
+      .hashJoin(countByKey)
+      .filter{case (_, (d, c)) =>
+        d < getUpperBound(c, prob, delta) && d >= getLowerBound(c, prob, delta)}
+      .map{case (k, (d, _)) => (k, d)}
       //TODO: Clean up magic number
       .topByKey(1e8.toInt)(Ordering.by(identity[Double]).reverse)
-      .hashJoin(countsByKey)
-      .hashJoin(varByKey)
-      .hashJoin(probByKey)
-      .withSideInputs(popPerKey)
-      .map { case ((k, ((((itr, (lower, upper)), variance)), prob)), sic) =>
-        if (lower >= sic(popPerKey)) {
-          (k, prob - variance)
+      .hashJoin(boundCountsByKey)
+      .hashJoin(boundsByKey)
+      .hashJoin(targetByKey)
+      .map { case (k, (((itr, (lCounts, uCounts)), (l, u)), target)) =>
+        if (lCounts >= target) {
+          (k, l)
         }
-        else if (upper < sic(popPerKey)) {
-          (k, prob + variance)
+        else if (uCounts < target) {
+          (k, u)
         }
         else {
-          val threshold = itr.drop(max(0, (sic(popPerKey) - lower).toInt)).headOption
-          (k, threshold.getOrElse(prob + variance))
+          val threshold = itr.drop(max(0, (target - lCounts).toInt)).headOption
+          (k, threshold.getOrElse(u))
+        }
+      }
+  }
+  //scalastyle:on cyclomatic.complexity
+
+  //scalastyle:off cyclomatic.complexity
+  private def uniformThresholdByKey[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
+                                                              probByKey: SCollection[(U, Double)],
+                                                              popPerKey: SideInput[Double],
+                                                              delta: Double)
+  : SCollection[(U, Double)] = {
+    val countByKey = s.countByKey
+    val boundsByKey =  probByKey.hashJoin(countByKey)
+      .map{case (k, (p, c)) => (k, (getLowerBound(c, p, delta), getUpperBound(c, p, delta)))}
+
+    val boundCountsByKey = s.map{case (k, (_, d)) => (k, d)}
+      .hashJoin(boundsByKey)
+      .filter{ case (_, (d, (_, u))) => d < u }
+      .map{ case (k, (d, (l, _))) => (k, (if (d < l) 1L else 0L, 1L)) }
+      .sumByKey
+
+    s.map{ case (k, (_, d)) => (k, d) }
+      .hashJoin(boundsByKey)
+      .filter{ case (_, (d, (l, u))) => d >= l && d < u }
+      .map{ case (k, (d, _)) => (k, d) }
+      //TODO: Clean up magic number
+      .topByKey(1e8.toInt)(Ordering.by(identity[Double]).reverse)
+      .hashJoin(boundCountsByKey)
+      .hashJoin(boundsByKey)
+      .withSideInputs(popPerKey)
+      .map { case ((k, ((itr, (lCounts, uCounts)), (l, u))), sic) =>
+        if (lCounts >= sic(popPerKey)) {
+          (k, l)
+        }
+        else if (uCounts < sic(popPerKey)) {
+          (k, u)
+        }
+        else {
+          val threshold = itr.drop(max(0, (sic(popPerKey) - lCounts).toInt)).headOption
+          (k, threshold.getOrElse(u))
         }
       }.toSCollection
   }
+  //scalastyle:on cyclomatic.complexity
 
   implicit class RatatoolKVDSCollection[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))]){
-    //scalastyle:off cyclomatic.complexity
     /**
      * Performs higher precision sampling for a given distribution by assigning random probabilities
      * to each element in SCollection[T] and then finding the Kth lowest, where K is the target
@@ -200,39 +241,20 @@ object SamplerSCollectionFunctions {
      * Currently variance is used to create cut-offs for upper and lower bounds to find K,
      * but this can be improved inthe future.
      */
-    def exactSampleDist(dist: SampleDistribution, keyFn: T => U, prob: Double): SCollection[T] = {
+    def exactSampleDist(dist: SampleDistribution, keyFn: T => U, prob: Double, delta: Double = 1e-3)
+    : SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
       val (sampled, sampledDiffs) = dist match {
         case StratifiedDistribution =>
-          val targets = s.countByKey.map { case (k, c) => (k, (c * prob).toLong) }
-          val variance = prob * (1 - prob)
-          val counts = s.filter { case (_, (_, d)) => d < (prob + variance) }
-            .map { case (k, (_, d)) => (k, (if (d < prob - variance) 1L else 0L, 1L)) }
-            .sumByKey
-
-          val thresholdByKey = stratifiedThresholdByKey(s, counts, targets, variance, prob)
-
+          val thresholdByKey = stratifiedThresholdByKey(s, prob, delta)
           val sample = filterByThreshold(s, thresholdByKey)
           val diffs = buildStratifiedDiffs(s.values.keys, sample, keyFn, prob, exact = true)
           (sample, diffs)
 
         case UniformDistribution =>
           val (popPerKey, probPerKey) = uniformParams(s.values.keys, keyFn, prob)
-          //TODO: Find better bounds than variance, potentially what Spark uses
-          val variancePerKey = probPerKey.map{case (k, f) => (k, f * (1 - f))}
-
-          val counts = s
-            .hashJoin(variancePerKey)
-            .hashJoin(probPerKey)
-            .filter{case (_, (((_, d), variance), keyProb)) => d < (keyProb + variance)}
-            .map{ case (k, (((_, d), variance), keyProb))  =>
-              (k, (if (d < (keyProb - variance)) 1L else 0L, 1L))}
-            .sumByKey
-
-          val thresholdByKey =
-            uniformThresholdByKey(s, counts, variancePerKey, probPerKey, popPerKey)
-
+          val thresholdByKey = uniformThresholdByKey(s, probPerKey, popPerKey, delta)
           val sample = filterByThreshold(s, thresholdByKey)
           val diffs = buildUniformDiffs(s.values.keys, sample, keyFn, prob, popPerKey, exact = true)
           (sample, diffs)
@@ -240,7 +262,6 @@ object SamplerSCollectionFunctions {
       logDistributionDiffs(sampledDiffs, logSerDe)
       sampled.values
     }
-    //scalastyle:on cyclomatic.complexity
   }
 
   implicit class RatatoolSCollection[T: ClassTag](s: SCollection[T]) {

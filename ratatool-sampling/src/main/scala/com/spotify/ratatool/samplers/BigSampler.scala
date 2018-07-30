@@ -460,7 +460,7 @@ private[samplers] object BigSamplerAvro extends BigSampler {
 
         case (_, Some(d), true) =>
           assignHashRoll(coll, seed, fields, hashAvroField, buildKey(schemaSerDe), schemaSerDe)
-            .exactSampleDist(d, buildKey(schemaSerDe), fraction)
+            .exactSampleDist(d, buildKey(schemaSerDe), fraction, delta = 1e-6)
 
         case (_, Some(StratifiedDistribution), false) =>
           val sampled = coll.flatMap { v =>
@@ -678,7 +678,7 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
 
         case (_, Some(d), true) =>
             assignHashRoll(coll, seed, fields, hashTableRow, buildKey(schema), schemaFields)
-              .exactSampleDist(d, buildKey(schema), fraction)
+              .exactSampleDist(d, buildKey(schema), fraction, delta = 1e-4)
 
         case (_, Some(UniformDistribution), false) =>
           val (popPerKey, probPerKey) = uniformParams(coll, buildKey(schema), fraction)
