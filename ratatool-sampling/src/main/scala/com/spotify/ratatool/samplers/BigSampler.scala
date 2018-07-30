@@ -433,18 +433,16 @@ private[samplers] object BigSamplerAvro extends BigSampler {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
       val coll = sc.avroFile[GenericRecord](input, schema)
+      val det = Determinism.fromSeq(fields)
+      val precision = Precision.fromBoolean(exact)
 
-      val sampledCollection: SCollection[GenericRecord] = (fields, distribution, exact) match {
-        case (Seq(), None, false) => coll.sample(withReplacement = false, fraction)
+      val sampledCollection: SCollection[GenericRecord] = (det, distribution, precision) match {
+        case (NonDeterministic, None, Approximate) => coll.sample(withReplacement = false, fraction)
 
-        case (Seq(), Some(d), false) =>
+        case (NonDeterministic, Some(d), Approximate) =>
           coll.sampleDist(d, buildKey(schemaSerDe), fraction)
 
-        case (Seq(), Some(d), true) =>
-          assignRandomRoll(coll, buildKey(schemaSerDe))
-            .exactSampleDist(d, buildKey(schemaSerDe), fraction)
-
-        case (_, None, false) =>
+        case (Deterministic, None, Approximate) =>
           val fieldsMissing = fields.filterNot(f => fieldInAvroSchema(schema, f))
           if (fieldsMissing.nonEmpty) {
             throw new NoSuchElementException(
@@ -458,11 +456,7 @@ private[samplers] object BigSamplerAvro extends BigSampler {
             BigSampler.diceElement(e, hash, samplePct100)
           }
 
-        case (_, Some(d), true) =>
-          assignHashRoll(coll, seed, fields, hashAvroField, buildKey(schemaSerDe), schemaSerDe)
-            .exactSampleDist(d, buildKey(schemaSerDe), fraction, delta = 1e-6)
-
-        case (_, Some(StratifiedDistribution), false) =>
+        case (Deterministic, Some(StratifiedDistribution), Approximate) =>
           val sampled = coll.flatMap { v =>
             val hasher = BigSampler.hashFun(seed = seed)
             val hash = fields.foldLeft(hasher)((h, f) => hashAvroField(v, f, schemaSerDe, h)).hash
@@ -473,7 +467,7 @@ private[samplers] object BigSamplerAvro extends BigSampler {
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
 
-        case (_, Some(UniformDistribution), false) =>
+        case (Deterministic, Some(UniformDistribution), Approximate) =>
           val (popPerKey, probPerKey) = uniformParams(coll, buildKey(schemaSerDe), fraction)
           val sampled = coll.keyBy(buildKey(schemaSerDe)(_))
             .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
@@ -486,6 +480,14 @@ private[samplers] object BigSamplerAvro extends BigSampler {
             buildUniformDiffs(coll, sampled, buildKey(schemaSerDe), fraction, popPerKey)
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
+
+        case (NonDeterministic, Some(d), Exact) =>
+          assignRandomRoll(coll, buildKey(schemaSerDe))
+            .exactSampleDist(d, buildKey(schemaSerDe), fraction)
+
+        case (Deterministic, Some(d), Exact) =>
+          assignHashRoll(coll, seed, fields, hashAvroField, buildKey(schemaSerDe), schemaSerDe)
+            .exactSampleDist(d, buildKey(schemaSerDe), fraction, delta = 1e-6)
 
         case _ =>
           throw new UnsupportedOperationException("This sampling mode is not currently supported")
@@ -647,25 +649,23 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
       val coll = sc.bigQueryTable(inputTbl)
+      val determinism = Determinism.fromSeq(fields)
+      val precision = Precision.fromBoolean(exact)
 
-      val sampledCollection: SCollection[TableRow] = (fields, distribution, exact) match {
-        case (Seq(), None, false) => coll.sample(withReplacement = false, fraction)
+      val sampledCollection: SCollection[TableRow] = (determinism, distribution, precision) match {
+        case (NonDeterministic, None, Approximate) => coll.sample(withReplacement = false, fraction)
 
-        case (_, None, _) =>
+        case (NonDeterministic, Some(d), Approximate) =>
+          coll.sampleDist(d, buildKey(schema), fraction)
+
+        case (Deterministic, None, Approximate) =>
           coll.flatMap { e =>
             val hasher = BigSampler.hashFun(seed=seed)
             val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(e, f, schemaFields, h)).hash()
             BigSampler.diceElement(e, hash, fraction * 100.0)
           }
 
-        case (Seq(), Some(d), false) =>
-          coll.sampleDist(d, buildKey(schema), fraction)
-
-        case (Seq(), Some(d), true) =>
-          assignRandomRoll(coll, buildKey(schema))
-            .exactSampleDist(d, buildKey(schema), fraction)
-
-        case (_, Some(StratifiedDistribution), false) =>
+        case (Deterministic, Some(StratifiedDistribution), Approximate) =>
           val sampled = coll.flatMap { v =>
             val hasher = BigSampler.hashFun(seed = seed)
             val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(v, f, schemaFields, h)).hash
@@ -676,11 +676,7 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
 
-        case (_, Some(d), true) =>
-            assignHashRoll(coll, seed, fields, hashTableRow, buildKey(schema), schemaFields)
-              .exactSampleDist(d, buildKey(schema), fraction, delta = 1e-4)
-
-        case (_, Some(UniformDistribution), false) =>
+        case (Deterministic, Some(UniformDistribution), Approximate) =>
           val (popPerKey, probPerKey) = uniformParams(coll, buildKey(schema), fraction)
           val sampled = coll.keyBy(buildKey(schema)(_))
             .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
@@ -693,6 +689,14 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
             buildUniformDiffs(coll, sampled, buildKey(schema), fraction, popPerKey)
           logDistributionDiffs(sampledDiffs, logSerDe)
           sampled.values
+
+        case (NonDeterministic, Some(d), Exact) =>
+          assignRandomRoll(coll, buildKey(schema))
+            .exactSampleDist(d, buildKey(schema), fraction)
+
+        case (Deterministic, Some(d), Exact) =>
+          assignHashRoll(coll, seed, fields, hashTableRow, buildKey(schema), schemaFields)
+            .exactSampleDist(d, buildKey(schema), fraction, delta = 1e-6)
 
         case _ =>
           throw new UnsupportedOperationException("This sampling mode is not currently supported")

@@ -24,7 +24,7 @@ Usage: ratatool $command [dataflow_options] [options]
   [--seed=<seed>]                            An optional seed used in hashing for sampling cohort selection
   [--distribution=(uniform|stratified)]      An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
   [--distributionFields=<field1,field2,...>] An optional list of fields to sample for distribution. Must provide `distribution`
-  [--exact]                                  An optional arg for higher precision distribution sampling.
+  [--exact]                                  An optional arg for higher precision distribution sampling. By default the sampling is approximate.
 ```
 
 ### Reproducible Sampling

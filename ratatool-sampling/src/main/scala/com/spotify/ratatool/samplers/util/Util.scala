@@ -34,3 +34,31 @@ object SampleDistribution {
     }
   }
 }
+
+trait Determinism
+case object NonDeterministic extends Determinism
+case object Deterministic extends Determinism
+
+object Determinism {
+  def fromSeq(l: Seq[_]): Determinism = {
+    if (l == Seq()) {
+      NonDeterministic
+    } else {
+      Deterministic
+    }
+  }
+}
+
+trait Precision
+case object Approximate extends Precision
+case object Exact extends Precision
+
+object Precision {
+  def fromBoolean(exact: Boolean): Precision = {
+    if (exact) {
+      Exact
+    } else {
+      Approximate
+    }
+  }
+}

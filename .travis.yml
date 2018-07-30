@@ -10,14 +10,12 @@ cache:
     - $HOME/.ivy2/cache
 
 env:
-  - TEST_PROJECT=ratatoolCommon     TESTS="*"
-  - TEST_PROJECT=ratatoolScalacheck TESTS="*"
-  - TEST_PROJECT=ratatoolDiffy      TESTS="*"
-  - TEST_PROJECT=ratatoolSampling   TESTS="**.BigSamplerBasicJobTest"
-  - TEST_PROJECT=ratatoolSampling   TESTS="**.BigSamplerApproxDistJobTest"
-  - TEST_PROJECT=ratatoolSampling   TESTS="**.BigSamplerExactDistJobTest"
-  - TEST_PROJECT=ratatoolCli        TESTS="*"
-  - TEST_PROJECT=ratatoolExamples   TESTS="*"
+  - TEST_PROJECT=ratatoolCommon     TESTS="test"
+  - TEST_PROJECT=ratatoolScalacheck TESTS="test"
+  - TEST_PROJECT=ratatoolDiffy      TESTS="test"
+  - TEST_PROJECT=ratatoolSampling   TESTS="testOnly **.BigSamplerBasicJobTest **.BigSamplerApproxDistJobTest **.BigSamplerExactDistJobTest"
+  - TEST_PROJECT=ratatoolCli        TESTS="test"
+  - TEST_PROJECT=ratatoolExamples   TESTS="test"
 
 script:
   - sbt ++$TRAVIS_SCALA_VERSION clean "project $TEST_PROJECT" scalastyle test:scalastyle coverage "testOnly $TESTS" coverageReport
