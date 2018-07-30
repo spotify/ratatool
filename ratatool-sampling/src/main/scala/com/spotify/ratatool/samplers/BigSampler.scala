@@ -39,7 +39,8 @@ import org.apache.avro.Schema.Type
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.runners.dataflow.options.DataflowPipelineWorkerPoolOptions
 import org.apache.beam.sdk.io.FileSystems
-import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers, BigQueryIO, BigQueryOptions, PatchedBigQueryServicesImpl}
+import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers, BigQueryIO, BigQueryOptions,
+  PatchedBigQueryServicesImpl}
 import org.apache.beam.sdk.options.PipelineOptions
 import org.slf4j.LoggerFactory
 
