@@ -50,7 +50,7 @@ As an example, `--distribution=stratified --distributionFields=country --sample=
  less performant, and may have issues dealing with very large datasets.
  
 BigSampler will also output metrics in logs for how close it came to the target sample populations
- per strata, and in `--exact` mode it will error if the produced sample misses by too much.
+ per strata, and in `--exact` mode it will error if the produced sample misses by `> 1%`.
 
 Distribution sampling currently does *not* support sampling with replacement.
 Distribution sampling currently assumes all distinct keys or strata can fit into memory (this allows
