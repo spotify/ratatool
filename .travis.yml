@@ -20,10 +20,6 @@ env:
 script:
   - sbt ++$TRAVIS_SCALA_VERSION clean "project $TEST_PROJECT" scalastyle test:scalastyle coverage test "project root" coverageReport
 
-  # Tricks to avoid unnecessary cache updates
-  - find $HOME/.sbt -name "*.lock" | xargs rm
-  - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
-
 after_success:
   - bash <(curl -s https://codecov.io/bash) -cF $TEST_PROJECT
 
