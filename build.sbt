@@ -235,6 +235,7 @@ val root = project.in(file("."))
     ratatoolScalacheck,
     ratatoolDiffy,
     ratatoolSampling,
+    ratatoolShapeless,
     ratatoolCli,
     ratatoolExamples
   )
