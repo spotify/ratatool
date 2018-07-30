@@ -37,9 +37,9 @@ import com.spotify.scio.{ContextAndArgs, ScioContext}
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
 import org.apache.avro.generic.GenericRecord
+import org.apache.beam.runners.dataflow.options.DataflowPipelineWorkerPoolOptions
 import org.apache.beam.sdk.io.FileSystems
-import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers, BigQueryIO,
-  BigQueryOptions, PatchedBigQueryServicesImpl}
+import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers, BigQueryIO, BigQueryOptions, PatchedBigQueryServicesImpl}
 import org.apache.beam.sdk.options.PipelineOptions
 import org.slf4j.LoggerFactory
 
@@ -141,8 +141,16 @@ object BigSampler extends Command {
   def singleInput(argv: Array[String]): Future[Tap[_]] = {
     val (sc, args) = ContextAndArgs(argv)
     val (opts, _) = ScioContext.parseArguments[PipelineOptions](argv)
+    // Determines how large our heap should be for topByKey
+    val sizePerKey =
+      if (Try(opts.asInstanceOf[DataflowPipelineWorkerPoolOptions].getWorkerMachineType)
+          .map(_.split("-").last.toInt).getOrElse(4) > 8){
+        1e9.toInt
+      } else {
+        1e6.toInt
+      }
 
-    val (samplePct, input, output, fields, seed, distribution, distributionFields, exact, s) = try {
+    val (samplePct, input, output, fields, seed, distribution, distributionFields, exact) = try {
       val pct = args("sample").toFloat
       require(pct > 0.0F && pct <= 1.0F)
       (pct,
@@ -152,13 +160,7 @@ object BigSampler extends Command {
         args.optional("seed"),
         args.optional("distribution").map(SampleDistribution.fromString),
         args.list("distributionFields"),
-        Precision.fromBoolean(args.boolean("exact", default = false)),
-        // Determines how large our heap should be for topByKey
-        if (args.optional("workerMachineType").map(_.split("-").last.toInt).getOrElse(4) > 8){
-          1e9.toInt
-        } else {
-          1e6.toInt
-        })
+        Precision.fromBoolean(args.boolean("exact", default = false)))
     } catch {
       case e: Throwable =>
         usage()
@@ -198,7 +200,7 @@ object BigSampler extends Command {
         distribution,
         distributionFields,
         exact,
-        s
+        sizePerKey
       )
     } else if (parseAsURI(input).isDefined) {
       // right now only support for avro
@@ -216,7 +218,7 @@ object BigSampler extends Command {
         distribution,
         distributionFields,
         exact,
-        s
+        sizePerKey
       )
     } else {
       throw new UnsupportedOperationException(s"Input `$input not supported.")
