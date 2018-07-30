@@ -5,6 +5,7 @@
             {"mode": "NULLABLE", "name": "float_field", "type": "FLOAT"},
             {"mode": "NULLABLE", "name": "boolean_field", "type": "BOOLEAN"},
             {"mode": "NULLABLE", "name": "string_field", "type": "STRING"},
+            {"mode": "NULLABLE", "name": "upper_string_field", "type": "STRING"},
             {"mode": "NULLABLE", "name": "timestamp_field", "type": "TIMESTAMP"},
             {"mode": "NULLABLE", "name": "date_field", "type": "DATE"},
             {"mode": "NULLABLE", "name": "time_field", "type": "TIME"},

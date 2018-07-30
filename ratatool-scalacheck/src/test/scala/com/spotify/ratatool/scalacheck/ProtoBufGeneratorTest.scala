@@ -34,7 +34,7 @@ object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
     .amend(Gen.choose(10.0f, 20.0f))(_.setFloatField)
     .amend(Gen.choose(10.0, 20.0))(_.setDoubleField)
     .amend(Gen.const(true))(_.setBoolField)
-    .amend(Gen.const("hello"))(_.setStringField)
+    .amend(Gen.const("hello"))(_.setStringField, m => s => m.setUpperStringField(s.toUpperCase))
     .map(_.build())
 
 
@@ -59,7 +59,8 @@ object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
       "Double" |:
         r.getOptionalFields.getDoubleField >= 10.0 && r.getOptionalFields.getDoubleField <= 20.0,
       "Boolean" |: r.getOptionalFields.getBoolField,
-      "String" |: r.getOptionalFields.getStringField == "hello"
+      "String" |: r.getOptionalFields.getStringField == "hello",
+      "String" |: r.getOptionalFields.getUpperStringField == "HELLO"
     )
   }
 

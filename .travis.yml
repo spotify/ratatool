@@ -14,6 +14,7 @@ env:
   - TEST_PROJECT=ratatoolScalacheck
   - TEST_PROJECT=ratatoolDiffy
   - TEST_PROJECT=ratatoolSampling
+  - TEST_PROJECT=ratatoolShapeless
   - TEST_PROJECT=ratatoolCli
   - TEST_PROJECT=ratatoolExamples
 

@@ -33,7 +33,8 @@ object TableRowGeneratorTest extends Properties("TableRowGenerator") {
     .amend(Gen.choose(10L, 20L))(_.getRecord(n).set("int_field"))
     .amend(Gen.choose(10.0, 20.0))(_.getRecord(n).set("float_field"))
     .amend(Gen.const(true))(_.getRecord(n).set("boolean_field"))
-    .amend(Gen.const("hello"))(_.getRecord(n).set("string_field"))
+    .amend(Gen.const("hello"))(_.getRecord(n).set("string_field"),
+      m => s => m.getRecord(n).set("upper_string_field")(s.asInstanceOf[String].toUpperCase))
 
   val richTupGen = (tableRowOf(Schemas.tableSchema), tableRowOf(Schemas.tableSchema)).tupled
     .amend2(Gen.choose(10L, 20L))(_.getRecord(r).set("int_field"),
@@ -49,11 +50,13 @@ object TableRowGeneratorTest extends Properties("TableRowGenerator") {
     val f = fields.get("float_field").asInstanceOf[Double]
     val b = fields.get("boolean_field").asInstanceOf[Boolean]
     val s = fields.get("string_field").asInstanceOf[String]
+    val upper = fields.get("upper_string_field").asInstanceOf[String]
     all(
       "Int"     |: i >= 10L && i <= 20L,
       "Float"   |: f >= 10.0 && f <= 20.0,
       "Boolean" |: b == true,
-      "String"  |: s == "hello"
+      "String"  |: s == "hello",
+      "String"  |: upper == "HELLO"
     )
   }
 
