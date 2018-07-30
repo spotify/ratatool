@@ -10,22 +10,22 @@ cache:
     - $HOME/.ivy2/cache
 
 env:
-  - TEST_PROJECT=ratatoolCommon     TESTS="test"
-  - TEST_PROJECT=ratatoolScalacheck TESTS="test"
-  - TEST_PROJECT=ratatoolDiffy      TESTS="test"
-  - TEST_PROJECT=ratatoolSampling   TESTS="testOnly **.BigSamplerBasicJobTest **.BigSamplerApproxDistJobTest **.BigSamplerExactDistJobTest"
-  - TEST_PROJECT=ratatoolCli        TESTS="test"
-  - TEST_PROJECT=ratatoolExamples   TESTS="test"
+  - TEST_PROJECT=ratatoolCommon
+  - TEST_PROJECT=ratatoolScalacheck
+  - TEST_PROJECT=ratatoolDiffy
+  - TEST_PROJECT=ratatoolSampling
+  - TEST_PROJECT=ratatoolCli
+  - TEST_PROJECT=ratatoolExamples
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION clean "project $TEST_PROJECT" scalastyle test:scalastyle coverage "testOnly $TESTS" coverageReport
+  - sbt ++$TRAVIS_SCALA_VERSION clean "project $TEST_PROJECT" scalastyle test:scalastyle coverage test "project root" coverageReport
 
   # Tricks to avoid unnecessary cache updates
   - find $HOME/.sbt -name "*.lock" | xargs rm
   - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
 
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - bash <(curl -s https://codecov.io/bash) -cF $TEST_PROJECT
 
 notifications:
   email:

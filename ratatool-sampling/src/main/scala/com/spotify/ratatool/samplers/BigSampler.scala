@@ -137,12 +137,12 @@ object BigSampler extends Command {
                                       hasher: Hasher): Hasher =
     BigSamplerAvro.hashAvroField(r, f, avroSchema, hasher)
 
-  //scalastyle:off method.length
+  //scalastyle:off method.length cyclomatic.complexity
   def singleInput(argv: Array[String]): Future[Tap[_]] = {
     val (sc, args) = ContextAndArgs(argv)
     val (opts, _) = ScioContext.parseArguments[PipelineOptions](argv)
 
-    val (samplePct, input, output, fields, seed, distribution, distributionFields, exact) = try {
+    val (samplePct, input, output, fields, seed, distribution, distributionFields, exact, s) = try {
       val pct = args("sample").toFloat
       require(pct > 0.0F && pct <= 1.0F)
       (pct,
@@ -152,7 +152,13 @@ object BigSampler extends Command {
         args.optional("seed"),
         args.optional("distribution").map(SampleDistribution.fromString),
         args.list("distributionFields"),
-        args.boolean("exact", default = false))
+        Precision.fromBoolean(args.boolean("exact", default = false)),
+        // Determines how large our heap should be for topByKey
+        if (args.optional("workerMachineType").map(_.split("-").last.toInt).getOrElse(4) > 8){
+          1e9.toInt
+        } else {
+          1e6.toInt
+        })
     } catch {
       case e: Throwable =>
         usage()
@@ -191,7 +197,8 @@ object BigSampler extends Command {
         seed.map(_.toInt),
         distribution,
         distributionFields,
-        exact
+        exact,
+        s
       )
     } else if (parseAsURI(input).isDefined) {
       // right now only support for avro
@@ -208,13 +215,14 @@ object BigSampler extends Command {
         seed.map(_.toInt),
         distribution,
         distributionFields,
-        exact
+        exact,
+        s
       )
     } else {
       throw new UnsupportedOperationException(s"Input `$input not supported.")
     }
   }
-  //scalastyle:on method.length
+  //scalastyle:on method.length cyclomatic.complexity
 
   def run(argv: Array[String]): Unit = {
     this.singleInput(argv)
@@ -235,6 +243,74 @@ private[samplers] trait BigSampler {
       (keyFn(v), (v, (math.abs(hash.asLong) % 1000000.0) / 1000000))
     }
   }
+
+  //scalastyle:off method.length cyclomatic.complexity parameter.number
+  def sample[T: ClassTag, U: ClassTag, V: ClassTag](s: SCollection[T],
+                                                    fields: Seq[String],
+                                                    fraction: Double,
+                                                    seed: Option[Int],
+                                                    distribution: Option[SampleDistribution],
+                                                    distributionFields: Seq[String],
+                                                    precision: Precision,
+                                                    hashFn: (T, String, V, Hasher) => Hasher,
+                                                    keyFn: T => U,
+                                                    schemaSerDe: => V,
+                                                    sizePerKey: Int): SCollection[T] = {
+    @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
+    val det = Determinism.fromSeq(fields)
+
+    (det, distribution, precision) match {
+      case (NonDeterministic, None, Approximate) => s.sample(withReplacement = false, fraction)
+
+      case (NonDeterministic, Some(d), Approximate) =>
+        s.sampleDist(d, keyFn, fraction)
+
+      case (Deterministic, None, Approximate) =>
+        val samplePct100 = fraction * 100.0
+        s.flatMap { e =>
+          val hasher = BigSampler.hashFun(seed = seed)
+          val hash = fields.foldLeft(hasher)((h, f) => hashFn(e, f, schemaSerDe, h)).hash
+          BigSampler.diceElement(e, hash, samplePct100)
+        }
+
+      case (Deterministic, Some(StratifiedDistribution), Approximate) =>
+        val sampled = s.flatMap { v =>
+          val hasher = BigSampler.hashFun(seed = seed)
+          val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, schemaSerDe, h)).hash
+          BigSampler.diceElement(v, hash, fraction * 100.0)
+        }.keyBy(keyFn(_))
+
+        val sampledDiffs = buildStratifiedDiffs(s, sampled, keyFn, fraction)
+        logDistributionDiffs(sampledDiffs, logSerDe)
+        sampled.values
+
+      case (Deterministic, Some(UniformDistribution), Approximate) =>
+        val (popPerKey, probPerKey) = uniformParams(s, keyFn, fraction)
+        val sampled = s.keyBy(keyFn(_))
+          .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
+          val hasher = BigSampler.hashFun(seed = seed)
+          val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, schemaSerDe, h)).hash
+          BigSampler.diceElement(v, hash, prob * 100.0).map(e => (k, e))
+        }
+
+        val sampledDiffs =
+          buildUniformDiffs(s, sampled, keyFn, fraction, popPerKey)
+        logDistributionDiffs(sampledDiffs, logSerDe)
+        sampled.values
+
+      case (NonDeterministic, Some(d), Exact) =>
+        assignRandomRoll(s, keyFn)
+          .exactSampleDist(d, keyFn, fraction, sizePerKey)
+
+      case (Deterministic, Some(d), Exact) =>
+        assignHashRoll(s, seed, fields, hashFn, keyFn, schemaSerDe)
+          .exactSampleDist(d, keyFn, fraction, sizePerKey, delta = 1e-6)
+
+      case _ =>
+        throw new UnsupportedOperationException("This sampling mode is not currently supported")
+    }
+  }
+  //scalastyle:on method.length cyclomatic.complexity
 }
 
 private[samplers] object BigSamplerAvro extends BigSampler {
@@ -415,7 +491,8 @@ private[samplers] object BigSamplerAvro extends BigSampler {
                                    seed: Option[Int],
                                    distribution: Option[SampleDistribution],
                                    distributionFields: Seq[String],
-                                   exact: Boolean)
+                                   precision: Precision,
+                                   sizePerKey: Int)
   : Future[Tap[GenericRecord]] = {
     def buildKey(schema: Schema)(gr: GenericRecord): Set[String] = {
       distributionFields.map(f => getAvroField(gr, f, schema).toString).toSet
@@ -430,74 +507,18 @@ private[samplers] object BigSamplerAvro extends BigSampler {
       log.info(s"Will sample from: $input, output will be $output")
       val schemaSer = schema.toString(false)
       @transient lazy val schemaSerDe = new Schema.Parser().parse(schemaSer)
-      @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
       val coll = sc.avroFile[GenericRecord](input, schema)
-      val det = Determinism.fromSeq(fields)
-      val precision = Precision.fromBoolean(exact)
+      val sampledCollection = sample(coll, fields, fraction, seed, distribution,
+        distributionFields, precision, hashAvroField, buildKey(schemaSerDe), schemaSerDe,
+        sizePerKey)
 
-      val sampledCollection: SCollection[GenericRecord] = (det, distribution, precision) match {
-        case (NonDeterministic, None, Approximate) => coll.sample(withReplacement = false, fraction)
-
-        case (NonDeterministic, Some(d), Approximate) =>
-          coll.sampleDist(d, buildKey(schemaSerDe), fraction)
-
-        case (Deterministic, None, Approximate) =>
-          val fieldsMissing = fields.filterNot(f => fieldInAvroSchema(schema, f))
-          if (fieldsMissing.nonEmpty) {
-            throw new NoSuchElementException(
-              s"""Could not locate field(s) ${fieldsMissing.mkString(",")} """ +
-                s"""in $input with schema $schema""")
-          }
-          val samplePct100 = fraction * 100.0
-          coll.flatMap { e =>
-            val hasher = BigSampler.hashFun(seed = seed)
-            val hash = fields.foldLeft(hasher)((h, f) => hashAvroField(e, f, schemaSerDe, h)).hash
-            BigSampler.diceElement(e, hash, samplePct100)
-          }
-
-        case (Deterministic, Some(StratifiedDistribution), Approximate) =>
-          val sampled = coll.flatMap { v =>
-            val hasher = BigSampler.hashFun(seed = seed)
-            val hash = fields.foldLeft(hasher)((h, f) => hashAvroField(v, f, schemaSerDe, h)).hash
-            BigSampler.diceElement(v, hash, fraction * 100.0)
-          }.keyBy(buildKey(schemaSerDe)(_))
-
-          val sampledDiffs = buildStratifiedDiffs(coll, sampled, buildKey(schemaSerDe), fraction)
-          logDistributionDiffs(sampledDiffs, logSerDe)
-          sampled.values
-
-        case (Deterministic, Some(UniformDistribution), Approximate) =>
-          val (popPerKey, probPerKey) = uniformParams(coll, buildKey(schemaSerDe), fraction)
-          val sampled = coll.keyBy(buildKey(schemaSerDe)(_))
-            .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
-              val hasher = BigSampler.hashFun(seed = seed)
-              val hash = fields.foldLeft(hasher)((h, f) => hashAvroField(v, f, schemaSerDe, h)).hash
-              BigSampler.diceElement(v, hash, prob * 100.0).map(e => (k, e))
-            }
-
-          val sampledDiffs =
-            buildUniformDiffs(coll, sampled, buildKey(schemaSerDe), fraction, popPerKey)
-          logDistributionDiffs(sampledDiffs, logSerDe)
-          sampled.values
-
-        case (NonDeterministic, Some(d), Exact) =>
-          assignRandomRoll(coll, buildKey(schemaSerDe))
-            .exactSampleDist(d, buildKey(schemaSerDe), fraction)
-
-        case (Deterministic, Some(d), Exact) =>
-          assignHashRoll(coll, seed, fields, hashAvroField, buildKey(schemaSerDe), schemaSerDe)
-            .exactSampleDist(d, buildKey(schemaSerDe), fraction, delta = 1e-6)
-
-        case _ =>
-          throw new UnsupportedOperationException("This sampling mode is not currently supported")
-      }
       val r = sampledCollection.saveAsAvroFile(output, schema = schema)
       sc.close().waitUntilDone()
       r
     }
   }
-  //scalastyle:on method.length cyclomatic.complexity
+  //scalastyle:on method.length cyclomatic.complexity parameter.number
 }
 
 private[samplers] object BigSamplerBigQuery extends BigSampler {
@@ -614,8 +635,8 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
     }
   }
 
-  //scalastyle:off
-  // TODO: investiage if possible to move this logic to BQ itself
+  //scalastyle:off method.length cyclomatic.complexity parameter.number
+  // TODO: investigate if possible to move this logic to BQ itself
   def sampleBigQueryTable(sc: ScioContext,
                           inputTbl: TableReference,
                           outputTbl: TableReference,
@@ -624,11 +645,11 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
                           seed: Option[Int],
                           distribution: Option[SampleDistribution],
                           distributionFields: List[String],
-                          exact: Boolean
-                         ): Future[Tap[TableRow]] = {
+                          precision: Precision,
+                          sizePerKey: Int)
+  : Future[Tap[TableRow]] = {
     import BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED
     import BigQueryIO.Write.WriteDisposition.WRITE_EMPTY
-    import com.spotify.ratatool.samplers.util.SamplerSCollectionFunctions._
 
     def buildKey(schema: TableSchema)(tr: TableRow): Set[String] = {
       distributionFields.map(f => schema.get(f).toString).toSet
@@ -646,65 +667,17 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
 
       @transient lazy val schemaFields =
         JsonSerDe.fromJsonString(schemaStr, classOf[TableSchema]).getFields.asScala
-      @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
       val coll = sc.bigQueryTable(inputTbl)
-      val determinism = Determinism.fromSeq(fields)
-      val precision = Precision.fromBoolean(exact)
 
-      val sampledCollection: SCollection[TableRow] = (determinism, distribution, precision) match {
-        case (NonDeterministic, None, Approximate) => coll.sample(withReplacement = false, fraction)
+      val sampledCollection = sample(coll, fields, fraction, seed, distribution, distributionFields,
+        precision, hashTableRow, buildKey(schema), schemaFields, sizePerKey)
 
-        case (NonDeterministic, Some(d), Approximate) =>
-          coll.sampleDist(d, buildKey(schema), fraction)
-
-        case (Deterministic, None, Approximate) =>
-          coll.flatMap { e =>
-            val hasher = BigSampler.hashFun(seed=seed)
-            val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(e, f, schemaFields, h)).hash()
-            BigSampler.diceElement(e, hash, fraction * 100.0)
-          }
-
-        case (Deterministic, Some(StratifiedDistribution), Approximate) =>
-          val sampled = coll.flatMap { v =>
-            val hasher = BigSampler.hashFun(seed = seed)
-            val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(v, f, schemaFields, h)).hash
-            BigSampler.diceElement(v, hash, fraction * 100.0)
-          }.keyBy(buildKey(schema)(_))
-
-          val sampledDiffs = buildStratifiedDiffs(coll, sampled, buildKey(schema), fraction)
-          logDistributionDiffs(sampledDiffs, logSerDe)
-          sampled.values
-
-        case (Deterministic, Some(UniformDistribution), Approximate) =>
-          val (popPerKey, probPerKey) = uniformParams(coll, buildKey(schema), fraction)
-          val sampled = coll.keyBy(buildKey(schema)(_))
-            .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
-              val hasher = BigSampler.hashFun(seed = seed)
-              val hash = fields.foldLeft(hasher)((h, f) => hashTableRow(v, f, schemaFields, h)).hash
-              BigSampler.diceElement(v, hash, prob * 100.0).map(e => (k, e))
-            }
-
-          val sampledDiffs =
-            buildUniformDiffs(coll, sampled, buildKey(schema), fraction, popPerKey)
-          logDistributionDiffs(sampledDiffs, logSerDe)
-          sampled.values
-
-        case (NonDeterministic, Some(d), Exact) =>
-          assignRandomRoll(coll, buildKey(schema))
-            .exactSampleDist(d, buildKey(schema), fraction)
-
-        case (Deterministic, Some(d), Exact) =>
-          assignHashRoll(coll, seed, fields, hashTableRow, buildKey(schema), schemaFields)
-            .exactSampleDist(d, buildKey(schema), fraction, delta = 1e-6)
-
-        case _ =>
-          throw new UnsupportedOperationException("This sampling mode is not currently supported")
-      }
       val r = sampledCollection
         .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "")
       sc.close().waitUntilDone()
       r
     }
   }
+  //scalastyle:on method.length cyclomatic.complexity parameter.number
 }

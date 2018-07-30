@@ -32,7 +32,7 @@ object SamplerSCollectionFunctions {
   private[samplers] def logDistributionDiffs[U: ClassTag](s: SCollection[(Double, Map[U, Double])],
                                                            logger: Logger): Unit = {
     s.map{ case (totalDiff, keyDiffs) =>
-      logger.info(s"Total record counts differs from expected target count by: ${totalDiff * 100}%")
+      logger.info(s"Total record count differs from expected target count by: ${totalDiff * 100}%")
       keyDiffs.foreach{ case (k, diff) =>
         logger.info(s"Count for key $k differs from expected target count by: ${diff * 100}%")
       }
@@ -153,7 +153,8 @@ object SamplerSCollectionFunctions {
   //scalastyle:off cyclomatic.complexity
   private def stratifiedThresholdByKey[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
                                                                  prob: Double,
-                                                                 delta: Double)
+                                                                 delta: Double,
+                                                                 sizePerKey: Int)
   : SCollection[(U, Double)] = {
     val countByKey = s.countByKey
     val targetByKey = countByKey.map { case (k, c) => (k, (c * prob).toLong) }
@@ -173,7 +174,7 @@ object SamplerSCollectionFunctions {
         d < getUpperBound(c, prob, delta) && d >= getLowerBound(c, prob, delta)}
       .map{case (k, (d, _)) => (k, d)}
       //TODO: Clean up magic number
-      .topByKey(1e8.toInt)(Ordering.by(identity[Double]).reverse)
+      .topByKey(sizePerKey)(Ordering.by(identity[Double]).reverse)
       .hashJoin(boundCountsByKey)
       .hashJoin(boundsByKey)
       .hashJoin(targetByKey)
@@ -196,7 +197,8 @@ object SamplerSCollectionFunctions {
   private def uniformThresholdByKey[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
                                                               probByKey: SCollection[(U, Double)],
                                                               popPerKey: SideInput[Double],
-                                                              delta: Double)
+                                                              delta: Double,
+                                                              sizePerKey: Int)
   : SCollection[(U, Double)] = {
     val countByKey = s.countByKey
     val boundsByKey =  probByKey.hashJoin(countByKey)
@@ -213,7 +215,7 @@ object SamplerSCollectionFunctions {
       .filter{ case (_, (d, (l, u))) => d >= l && d < u }
       .map{ case (k, (d, _)) => (k, d) }
       //TODO: Clean up magic number
-      .topByKey(1e8.toInt)(Ordering.by(identity[Double]).reverse)
+      .topByKey(sizePerKey)(Ordering.by(identity[Double]).reverse)
       .hashJoin(boundCountsByKey)
       .hashJoin(boundsByKey)
       .withSideInputs(popPerKey)
@@ -237,24 +239,25 @@ object SamplerSCollectionFunctions {
      * Performs higher precision sampling for a given distribution by assigning random probabilities
      * to each element in SCollection[T] and then finding the Kth lowest, where K is the target
      * population for a given strata or key.
-     *
-     * Currently variance is used to create cut-offs for upper and lower bounds to find K,
-     * but this can be improved inthe future.
      */
-    def exactSampleDist(dist: SampleDistribution, keyFn: T => U, prob: Double, delta: Double = 1e-3)
+    def exactSampleDist(dist: SampleDistribution,
+                        keyFn: T => U,
+                        prob: Double,
+                        sizePerKey: Int,
+                        delta: Double = 1e-3)
     : SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
       val (sampled, sampledDiffs) = dist match {
         case StratifiedDistribution =>
-          val thresholdByKey = stratifiedThresholdByKey(s, prob, delta)
+          val thresholdByKey = stratifiedThresholdByKey(s, prob, delta, sizePerKey)
           val sample = filterByThreshold(s, thresholdByKey)
           val diffs = buildStratifiedDiffs(s.values.keys, sample, keyFn, prob, exact = true)
           (sample, diffs)
 
         case UniformDistribution =>
           val (popPerKey, probPerKey) = uniformParams(s.values.keys, keyFn, prob)
-          val thresholdByKey = uniformThresholdByKey(s, probPerKey, popPerKey, delta)
+          val thresholdByKey = uniformThresholdByKey(s, probPerKey, popPerKey, delta, sizePerKey)
           val sample = filterByThreshold(s, thresholdByKey)
           val diffs = buildUniformDiffs(s.values.keys, sample, keyFn, prob, popPerKey, exact = true)
           (sample, diffs)
