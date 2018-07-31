@@ -362,7 +362,7 @@ class BigSamplerBasicJobTest extends BigSamplerJobTestRoot {
 
   it should "work for 1%" in withOutFile { outDir =>
     BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.01"))
-    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.01 +- 25
+    countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.01 +- 35
   }
 
   it should "work for 100%" in withOutFile { outDir =>
