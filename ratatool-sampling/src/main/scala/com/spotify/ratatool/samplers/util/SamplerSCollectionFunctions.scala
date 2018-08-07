@@ -127,6 +127,9 @@ object SamplerSCollectionFunctions {
   /**
    * Using Chernoff bounds we can find a `p` such that it is unlikely to have less than n * f
    * elements in our sample. This is similar to the calculation that Spark uses.
+   *
+   * Derivation: https://gist.github.com/mfranberg/a2eb63cf3f39c995b55f1bb3b4b7c51b
+   *
    * @param n Number of elements we are sampling from
    * @param f Fraction of elements to sample
    * @param delta A parameter to tune how wide the bounds should be

@@ -291,10 +291,10 @@ private[samplers] trait BigSampler {
         val (popPerKey, probPerKey) = uniformParams(s, keyFn, fraction)
         val sampled = s.keyBy(keyFn(_))
           .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
-          val hasher = BigSampler.hashFun(seed = seed)
-          val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, schemaSerDe, h)).hash
-          BigSampler.diceElement(v, hash, prob * 100.0).map(e => (k, e))
-        }
+            val hasher = BigSampler.hashFun(seed = seed)
+            val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, schemaSerDe, h)).hash
+            BigSampler.diceElement(v, hash, prob * 100.0).map(e => (k, e))
+          }
 
         val sampledDiffs =
           buildUniformDiffs(s, sampled, keyFn, fraction, popPerKey)
