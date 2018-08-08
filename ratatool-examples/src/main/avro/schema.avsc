@@ -57,6 +57,12 @@
             "name": "bounded_double_field",
             "type": "double",
             "doc": "A double between -1.0 and 1.0"
+        },
+        {
+            "name": "nullable_int_field",
+            "type": ["null", "int"],
+            "default": null,
+            "doc": "Nullable int field"
         }
     ]
 }
