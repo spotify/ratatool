@@ -48,6 +48,10 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
       case _ => Nil
     }
   },
+  sourceDirectories in Compile := (sourceDirectories in Compile).value
+    .filterNot(_.getPath.endsWith("/src_managed/main")),
+  managedSourceDirectories in Compile := (managedSourceDirectories in Compile).value
+    .filterNot(_.getPath.endsWith("/src_managed/main")),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked")
 )
 
@@ -217,7 +221,8 @@ lazy val ratatoolExamples = project
   .settings(
     name := "ratatool-examples",
     libraryDependencies ++= Seq(
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
+      "com.spotify" %% "scio-test" % scioVersion % "test"
     )
   )
   .enablePlugins(ProtobufPlugin)
