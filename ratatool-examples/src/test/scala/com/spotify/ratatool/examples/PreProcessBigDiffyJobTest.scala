@@ -26,12 +26,11 @@ import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Gen
 
 class PreProcessBigDiffyJobTest extends PipelineSpec {
-  val keys = (1 to 1000).map("key" + _)
-
   val lhs = Gen.listOfN(1000, ExampleAvroGen.exampleRecordGen).sample.get.map{ r =>
     r.setNullableIntField(null)
     r
   }
+
   val rhs = lhs.map(CoderUtils.clone(AvroCoder.of(classOf[ExampleRecord]), _)).map{ r =>
     r.setNullableIntField(0)
     r
