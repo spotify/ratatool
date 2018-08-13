@@ -16,6 +16,9 @@ A tool for random data sampling and generation
 - [Diffy](https://github.com/spotify/ratatool/tree/master/ratatool-diffy) - field-level record diff tool for Avro, Protobuf and BigQuery TableRow.
 - [BigDiffy](https://github.com/spotify/ratatool/blob/master/ratatool-diffy) - [Scio](https://github.com/spotify/scio) library for pairwise field-level statistical diff of data sets. See [slides](http://www.lyh.me/slides/bigdiffy.html) for more.
 - [Command line tool](https://github.com/spotify/ratatool/tree/master/ratatool-cli/src/main/scala/com/spotify/ratatool/tool) - command line tool for local sampler, or executing BigDiffy and BigSampler.
+- [Shapeless](https://github.com/spotify/ratatool/tree/master/ratatool-shapeless) - An extension for Case Class Diffing via Shapeless.
+
+For more information or documentation, project level READMEs are provided.
 
 # Usage
 

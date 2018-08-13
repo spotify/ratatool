@@ -27,12 +27,13 @@ val parquetVersion = "1.9.0"
 val protoBufVersion = "3.3.1"
 val scalaCheckVersion = "1.14.0"
 val scalaTestVersion = "3.0.4"
-val scioVersion = "0.5.5"
+val scioVersion = "0.5.6"
 val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.25"
-val bigqueryVersion = "v2-rev372-1.23.0"
-val beamVersion = "2.4.0"
+val bigqueryVersion = "v2-rev374-1.23.0"
+val beamVersion = "2.5.0"
 val guavaVersion = "20.0"
+val shapelessVersion = "2.3.3"
 
 val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
@@ -47,8 +48,11 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
       case _ => Nil
     }
   },
-  javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
-  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+  sourceDirectories in Compile := (sourceDirectories in Compile).value
+    .filterNot(_.getPath.endsWith("/src_managed/main")),
+  managedSourceDirectories in Compile := (managedSourceDirectories in Compile).value
+    .filterNot(_.getPath.endsWith("/src_managed/main")),
+  javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked")
 )
 
 lazy val protoBufSettings = Seq(
@@ -146,7 +150,8 @@ lazy val ratatoolDiffy = project
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
-    parallelExecution in Test := false
+    parallelExecution in Test := false,
+    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
   )
   .enablePlugins(ProtobufPlugin)
   .dependsOn(
@@ -155,6 +160,25 @@ lazy val ratatoolDiffy = project
     ratatoolScalacheck % "test"
   )
   .settings(protoBufSettings)
+
+lazy val ratatoolShapeless = project
+  .in(file("ratatool-shapeless"))
+  .settings(commonSettings)
+  .settings(
+    name := "ratatool-shapeless",
+    libraryDependencies ++= Seq(
+      "com.chuusai" %% "shapeless" % shapelessVersion,
+      "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+    ),
+    // In case of scalacheck failures print more info
+    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
+    parallelExecution in Test := false
+  )
+  .dependsOn(
+    ratatoolDiffy,
+    ratatoolSampling
+  )
 
 lazy val ratatoolCli = project
   .in(file("ratatool-cli"))
@@ -198,7 +222,8 @@ lazy val ratatoolExamples = project
   .settings(
     name := "ratatool-examples",
     libraryDependencies ++= Seq(
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
+      "com.spotify" %% "scio-test" % scioVersion % "test"
     )
   )
   .enablePlugins(ProtobufPlugin)
@@ -216,6 +241,7 @@ val root = project.in(file("."))
     ratatoolScalacheck,
     ratatoolDiffy,
     ratatoolSampling,
+    ratatoolShapeless,
     ratatoolCli,
     ratatoolExamples
   )
