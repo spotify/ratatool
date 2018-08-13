@@ -158,6 +158,10 @@ class BigDiffy[T](lhs: SCollection[T], rhs: SCollection[T],
 
 }
 
+sealed trait OutputMode
+case object GCS extends OutputMode
+case object BQ extends OutputMode
+
 /** Big diff between two data sets given a primary key. */
 object BigDiffy extends Command {
   val command: String = "bigDiffy"
@@ -302,49 +306,49 @@ object BigDiffy extends Command {
 
   /** saves stats to either GCS as text, or BigQuery */
   def saveStats[T](bigDiffy: BigDiffy[T], output: String, withHeader: Boolean = false,
-                   saveToBq: Boolean = false): Unit = {
+                   outputMode: OutputMode = GCS): Unit = {
     val keyStatsPath = s"$output/keys"
     val fieldStatsPath = s"$output/fields"
     val globalStatsPath = s"$output/global"
-    if (!saveToBq) {
-      // saving to GCS, either with or without header
-      if (withHeader) {
-        bigDiffy.keyStats.map(_.toString).saveAsTextFileWithHeader(keyStatsPath, "key\tdifftype")
-        bigDiffy.fieldStats.map(_.toString).saveAsTextFileWithHeader(fieldStatsPath,
-          "field\tcount\tfraction\tdeltaType\tmin" +
-            "\tmax\tcount\tmean\tvariance\tstddev\tskewness\tkurtosis")
-        bigDiffy.globalStats.map(_.toString).saveAsTextFileWithHeader(globalStatsPath,
-          "numTotal\tnumSame\tnumDiff\tnumMissingLhs\tnumMissingRhs")
-      }
-      else {
-        bigDiffy.keyStats.saveAsTextFile(keyStatsPath)
-        bigDiffy.fieldStats.saveAsTextFile(fieldStatsPath)
-        bigDiffy.globalStats.saveAsTextFile(globalStatsPath)
-      }
-    } else {
-      // saving to BQ, header irrelevant
-
-      bigDiffy.keyStats.map(stat =>
-        KeyStatsBigQuery(stat.key, stat.diffType.toString, stat.delta.map(d => {
-          val dv = if(d.delta.isInstanceOf[TypedDelta]) {
-            val typedDelta = d.delta.asInstanceOf[TypedDelta]
-            DeltaValueBigQuery(typedDelta.deltaType.toString, Option(typedDelta.value))
-          } else {
-            DeltaValueBigQuery("UNKNOWN", None)
-          }
-          DeltaBigQuery(d.field, d.left.toString, d.right.toString, dv)})
-        ))
-        .saveAsTypedBigQuery(s"${output}_keys")
-      bigDiffy.fieldStats.map(stat =>
-        FieldStatsBigQuery(stat.field, stat.count, stat.fraction, stat.deltaStats.map(ds =>
-          DeltaStatsBigQuery(ds.deltaType.toString, ds.min, ds.max, ds.count, ds.mean,
-            ds.variance, ds.stddev, ds.skewness, ds.kurtosis)
-        )))
-        .saveAsTypedBigQuery(s"${output}_fields")
-      bigDiffy.globalStats.map( stat =>
-        GlobalStatsBigQuery(stat.numTotal, stat.numSame, stat.numDiff,
-          stat.numMissingLhs, stat.numMissingRhs))
-        .saveAsTypedBigQuery(s"${output}_global")
+    outputMode match {
+      case GCS =>
+        // saving to GCS, either with or without header
+        if (withHeader) {
+          bigDiffy.keyStats.map(_.toString).saveAsTextFileWithHeader(keyStatsPath,
+            Seq("key", "difftype").mkString("\t"))
+          bigDiffy.fieldStats.map(_.toString).saveAsTextFileWithHeader(fieldStatsPath,
+            Seq("field", "count", "fraction", "deltaType", "min", "max", "count", "mean",
+              "variance", "stddev", "skewness", "kurtosis").mkString("\t"))
+          bigDiffy.globalStats.map(_.toString).saveAsTextFileWithHeader(globalStatsPath,
+            Seq("numTotal", "numSame", "numDiff", "numMissingLhs", "numMissingRhs").mkString("\t"))
+        } else {
+          bigDiffy.keyStats.saveAsTextFile(keyStatsPath)
+          bigDiffy.fieldStats.saveAsTextFile(fieldStatsPath)
+          bigDiffy.globalStats.saveAsTextFile(globalStatsPath)
+        }
+      case BQ =>
+        // saving to BQ, header irrelevant
+        bigDiffy.keyStats.map(stat =>
+          KeyStatsBigQuery(stat.key, stat.diffType.toString, stat.delta.map(d => {
+            val dv = d.delta match {
+              case TypedDelta(dt, v) =>
+                DeltaValueBigQuery(dt.toString, Option(v))
+              case _ =>
+              DeltaValueBigQuery("UNKNOWN", None)
+            }
+            DeltaBigQuery(d.field, d.left.toString, d.right.toString, dv)})
+          ))
+          .saveAsTypedBigQuery(s"${output}_keys")
+        bigDiffy.fieldStats.map(stat =>
+          FieldStatsBigQuery(stat.field, stat.count, stat.fraction, stat.deltaStats.map(ds =>
+            DeltaStatsBigQuery(ds.deltaType.toString, ds.min, ds.max, ds.count, ds.mean,
+              ds.variance, ds.stddev, ds.skewness, ds.kurtosis)
+          )))
+          .saveAsTypedBigQuery(s"${output}_fields")
+        bigDiffy.globalStats.map( stat =>
+          GlobalStatsBigQuery(stat.numTotal, stat.numSame, stat.numDiff,
+            stat.numMissingLhs, stat.numMissingRhs))
+          .saveAsTypedBigQuery(s"${output}_global")
     }
   }
 
@@ -442,7 +446,7 @@ object BigDiffy extends Command {
       try {
         (args("input-mode"), args("key"), args("lhs"), args("rhs"), args("output"),
           args.boolean("with-header", false), args.list("ignore").toSet,
-          args.list("unordered").toSet, args("output-mode"))
+          args.list("unordered").toSet, args.optional("output-mode"))
       } catch {
         case e: Throwable =>
           usage()
@@ -450,9 +454,9 @@ object BigDiffy extends Command {
       }
     }
 
-    val saveToBq: Boolean = outputMode match {
-      case "gcs" => false
-      case "bigquery" => true
+    val om: OutputMode = outputMode match {
+      case Some("gcs") => GCS
+      case Some("bigquery") => BQ
       case m => throw new IllegalArgumentException(s"output mode $m not supported")
     }
 
@@ -475,7 +479,7 @@ object BigDiffy extends Command {
       case m =>
         throw new IllegalArgumentException(s"input mode $m not supported")
     }
-    saveStats(result, output, header, saveToBq)
+    saveStats(result, output, header, om)
 
     sc.close().waitUntilDone()
   }
