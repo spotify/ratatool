@@ -307,12 +307,13 @@ object BigDiffy extends Command {
   /** saves stats to either GCS as text, or BigQuery */
   def saveStats[T](bigDiffy: BigDiffy[T], output: String, withHeader: Boolean = false,
                    outputMode: OutputMode = GCS): Unit = {
-    val keyStatsPath = s"$output/keys"
-    val fieldStatsPath = s"$output/fields"
-    val globalStatsPath = s"$output/global"
     outputMode match {
       case GCS =>
-        // saving to GCS, either with or without header
+        // Saving to GCS, either with or without header
+        val keyStatsPath = s"$output/keys"
+        val fieldStatsPath = s"$output/fields"
+        val globalStatsPath = s"$output/global"
+
         if (withHeader) {
           bigDiffy.keyStats.map(_.toString).saveAsTextFileWithHeader(keyStatsPath,
             Seq("key", "difftype").mkString("\t"))
@@ -327,7 +328,7 @@ object BigDiffy extends Command {
           bigDiffy.globalStats.saveAsTextFile(globalStatsPath)
         }
       case BQ =>
-        // saving to BQ, header irrelevant
+        // Saving to BQ, header irrelevant
         bigDiffy.keyStats.map(stat =>
           KeyStatsBigQuery(stat.key, stat.diffType.toString, stat.delta.map(d => {
             val dv = d.delta match {
@@ -383,15 +384,15 @@ object BigDiffy extends Command {
       s"""BigDiffy - pair-wise field-level statistical diff
         |Usage: ratatool $command [dataflow_options] [options]
         |
-        |  --input-mode=[avro|bigquery]
-        |  --output-mode=[gcs|bigquery]   Saves to a text file in GCS or a BigQuery dataset
-        |  --key=<key>            '.' separated key field
-        |  --lhs=<path>           LHS File path or BigQuery table
-        |  --rhs=<path>           RHS File path or BigQuery table
-        |  --output=<output>      File path prefix for output
-        |  --ignore=<keys>        ',' separated field list to ignore
-        |  --unordered=<keys>     ',' separated field list to treat as unordered
-        |  [--with-header]        Output all TSVs with header rows
+        |  --input-mode=(avro|bigquery)     Diff-ing Avro or BQ records
+        |  [--output-mode=(gcs|bigquery)]   Saves to a text file in GCS or a BigQuery dataset
+        |  --key=<key>                      '.' separated key field
+        |  --lhs=<path>                     LHS File path or BigQuery table
+        |  --rhs=<path>                     RHS File path or BigQuery table
+        |  --output=<output>                File path prefix for output
+        |  --ignore=<keys>                  ',' separated field list to ignore
+        |  --unordered=<keys>               ',' separated field list to treat as unordered
+        |  [--with-header]                  Output all TSVs with header rows
       """.stripMargin)
     // scalastyle:on regex
     sys.exit(1)
