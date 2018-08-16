@@ -379,7 +379,7 @@ object BigDiffy extends Command {
   }
 
   private def usage(): Unit = {
-    // scalastyle:off regex
+    // scalastyle:off regex line.size.limit
     println(
       s"""BigDiffy - pair-wise field-level statistical diff
         |Usage: ratatool $command [dataflow_options] [options]
@@ -394,7 +394,7 @@ object BigDiffy extends Command {
         |  --unordered=<keys>               ',' separated field list to treat as unordered
         |  [--with-header]                  Output all TSVs with header rows. Defaults to false
       """.stripMargin)
-    // scalastyle:on regex
+    // scalastyle:on regex line.size.limit
     sys.exit(1)
   }
 
