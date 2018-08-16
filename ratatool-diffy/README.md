@@ -23,15 +23,15 @@ From the CLI
 BigDiffy - pair-wise field-level statistical diff
 Usage: ratatool bigDiffy [dataflow_options] [options]
 
-  --input-mode=[avro|bigquery]   Diff-ing Avro or BQ records
-  --output-mode=[gcs|bigquery]   Saves to a text file in GCS or a BigQuery dataset
-  --key=<key>                    '.' separated key field
-  --lhs=<path>                   LHS File path or BigQuery table
-  --rhs=<path>                   RHS File path or BigQuery table
-  --output=<output>              File path prefix for output
-  --ignore=<keys>                ',' separated field list to ignore
-  --unordered=<keys>             ',' separated field list to treat as unordered
-  [--with-header]                Output all TSVs with header rows
+  --input-mode=(avro|bigquery)     Diff-ing Avro or BQ records
+  [--output-mode=(gcs|bigquery)]   Saves to a text file in GCS or a BigQuery dataset. Defaults to GCS
+  --key=<key>                      '.' separated key field
+  --lhs=<path>                     LHS File path or BigQuery table
+  --rhs=<path>                     RHS File path or BigQuery table
+  --output=<output>                File path prefix for output
+  --ignore=<keys>                  ',' separated field list to ignore
+  --unordered=<keys>               ',' separated field list to treat as unordered
+  [--with-header]                  Output all TSVs with header rows. Defaults to false
 ```
 
 Or from SBT
