@@ -15,7 +15,7 @@ For full details see [BigSample.scala](https://github.com/spotify/ratatool/blob/
 
 ```
 BigSampler - a tool for big data sampling
-Usage: ratatool $command [dataflow_options] [options]
+Usage: ratatool bigSampler [dataflow_options] [options]
 
   --sample=<percentage>                      Percentage of records to take in sample, a decimal between 0.0 and 1.0
   --input=<path>                             Input file path or BigQuery table
