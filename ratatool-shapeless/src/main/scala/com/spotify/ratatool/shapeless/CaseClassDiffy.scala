@@ -26,7 +26,8 @@ import shapeless.labelled.FieldType
 
 import scala.reflect.ClassTag
 
-sealed trait MapEncoder[A] {
+@SerialVersionUID(42L)
+sealed trait MapEncoder[A] extends Serializable {
   def toMap(in: A): Map[String, Any]
 }
 
