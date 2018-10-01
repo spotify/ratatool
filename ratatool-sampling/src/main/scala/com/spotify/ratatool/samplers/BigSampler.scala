@@ -569,7 +569,7 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
         case "RECORD" =>
           vs.foldLeft(hasher)((hasher, vi) =>
             hashTableRow(
-              TableRow(vi.asInstanceOf[Map[String, AnyRef]].toList: _*),
+              vi.asInstanceOf[TableRow],
               subfields.tail.mkString(BigSampler.fieldSep.toString),
               field.getFields.asScala,
               hasher)
