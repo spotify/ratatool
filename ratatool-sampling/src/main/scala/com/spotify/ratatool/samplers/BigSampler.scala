@@ -569,7 +569,7 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
         case "RECORD" =>
           vs.foldLeft(hasher)((hasher, vi) =>
             hashTableRow(
-              vi.asInstanceOf[TableRow],
+              TableRow(vi.asInstanceOf[Map[String, AnyRef]].toList: _*),
               subfields.tail.mkString(BigSampler.fieldSep.toString),
               field.getFields.asScala,
               hasher)
@@ -607,8 +607,9 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
         case "TIME" => v.toString
         case "DATETIME" => v.toString
         case "RECORD" if fieldStr.nonEmpty =>
+          // v is a LinkedHashMap
           getTableRowField(
-            v.asInstanceOf[TableRow],
+            TableRow(v.asInstanceOf[java.util.Map[String, AnyRef]].asScala.toList: _*),
             subfields.tail.mkString(BigSampler.fieldSep.toString),
             field.getFields.asScala)
         case t => throw new UnsupportedOperationException(
@@ -654,8 +655,10 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
     import BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED
     import BigQueryIO.Write.WriteDisposition.WRITE_EMPTY
 
-    def buildKey(schema: TableSchema)(tr: TableRow): Set[String] = {
-      distributionFields.map(f => schema.get(f).toString).toSet
+    def buildKey(schema: => Seq[TableFieldSchema])(tr: TableRow): Set[String] = {
+      distributionFields.map{ f =>
+        getTableRowField(tr, f, schema).toString
+      }.toSet
     }
 
     val patchedBigQueryService = new PatchedBigQueryServicesImpl()
@@ -674,7 +677,7 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
       val coll = sc.bigQueryTable(inputTbl)
 
       val sampledCollection = sample(coll, fields, fraction, seed, distribution, distributionFields,
-        precision, hashTableRow, buildKey(schema), schemaFields, sizePerKey)
+        precision, hashTableRow, buildKey(schemaFields), schemaFields, sizePerKey)
 
       val r = sampledCollection
         .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "")

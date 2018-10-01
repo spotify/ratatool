@@ -40,7 +40,13 @@ object Random {
     def processElement(c: DoFn[((K, V), Double), (K, V)]#ProcessContext): Unit = {
       val ((key, value), fraction) = c.element()
 
-      rngs.putIfAbsent(key, init(fraction))
+      /** Epsilon slop to avoid failure from floating point jitter */
+      require(
+        fraction >= (0.0 - RandomSampler.roundingEpsilon)
+          && fraction <= (1.0 + RandomSampler.roundingEpsilon),
+        s"Sampling fractions must be on interval [0, 1], Key: $key, Fraction: $fraction")
+
+      rngs.putIfAbsent(key, init())
       val count = samples(fraction, rngs.get(key))
       var i = 0
       while (i < count) {
@@ -49,7 +55,7 @@ object Random {
       }
     }
 
-    def init(fraction: Double): R
+    def init(): R
     def samples(fraction: Double, rng: R): Int
     def setSeed(seed: Long): Unit = this.seed = seed
 
@@ -60,12 +66,7 @@ object Random {
 
     // TODO: Is seed properly handled here
     // TODO: is it necessary to setSeed for each instance like Spark does?
-    override def init(fraction: Double): JRandom = {
-      /** Epsilon slop to avoid failure from floating point jitter */
-      require(
-        fraction >= (0.0 - RandomSampler.roundingEpsilon)
-          && fraction <= (1.0 + RandomSampler.roundingEpsilon),
-        s"Sampling fractions must be on interval [0, 1]")
+    override def init(): JRandom = {
       val r = RandomSampler.newDefaultRNG
       if (seed > 0) {
         r.setSeed(seed)

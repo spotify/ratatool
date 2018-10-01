@@ -120,7 +120,7 @@ object SamplerSCollectionFunctions {
     val populationPerKey: SideInput[Double] = totalRecords.withSideInputs(keyCount)
       .map{case (c, sic) => (c * prob)/sic(keyCount)}.toSCollection.asSingletonSideInput
     val probPerKey = keyed.countByKey.withSideInputs(populationPerKey).map {
-      case ((k, c), sic) => (k, sic(populationPerKey)/c) }.toSCollection
+      case ((k, c), sic) => (k, min(sic(populationPerKey)/c, 1.0)) }.toSCollection
     (populationPerKey, probPerKey)
   }
 
