@@ -24,7 +24,23 @@ Usage: ratatool bigSampler [dataflow_options] [options]
   [--seed=<seed>]                            An optional seed used in hashing for sampling cohort selection
   [--distribution=(uniform|stratified)]      An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
   [--distributionFields=<field1,field2,...>] An optional list of fields to sample for distribution. Must provide `distribution`
-  [--exact]                                  An optional arg for higher precision distribution sampling. By default the sampling is approximate.
+  [--exact]                                  An optional arg for higher precision distribution sampling.
+
+Since this runs a Scio/Beam pipeline, Dataflow options will have to be provided. At a
+minimum, the following should be specified:
+
+   --project=<gcp-project-id>                GCP Project used to run your job
+   --runner=DataflowRunner                   Executes the job on Google Cloud Dataflow
+   --stagingLocation=<gcs-path>              Location to stage jars for the job. GCS bucket must be created prior to running job.
+   --gcpTempLocation=<gcs-path>              Location for temporary files. GCS bucket must be created prior to running job.
+
+The following options are recommended, but may not be necessary.
+
+   --serviceAccount=<your-service-account>   Service account used on Dataflow workers. Useful to avoid permissions issues.
+   --workerMachineType=<machine-type>        Can be tweaked based on your specific needs, but is not necessary.
+   --maxNumWorkers=<num-workers>             Limits the number of workers (machines) used in the job to avoid using up quota.
+
+For more details regarding Dataflow options see here: https://cloud.google.com/dataflow/pipelines/specifying-exec-params
 ```
 
 ### Reproducible Sampling
@@ -55,3 +71,11 @@ BigSampler will also output metrics in logs for how close it came to the target 
 Distribution sampling currently does *not* support sampling with replacement.
 Distribution sampling currently assumes all distinct keys or strata can fit into memory (this allows
  leveraging `hashJoin` for performance improvements)
+ 
+## Distributions
+### Stratified
+![Stratified](https://github.com/spotify/ratatool/blob/master/misc/Stratified.png)
+Stratified sampling example. Not that only the specified distributionFields are preserved in the sample.
+
+![Uniform](https://github.com/spotify/ratatool/blob/master/misc/Uniform.png)
+Uniform sampling example. Adjusts
