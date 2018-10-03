@@ -21,7 +21,7 @@ For full details on Statistics and output see [BigDiffy.scala](https://github.co
 From the CLI
 ```
 BigDiffy - pair-wise field-level statistical diff
-Usage: ratatool $command [dataflow_options] [options]
+Usage: ratatool bigDiffy [dataflow_options] [options]
 
   --input-mode=(avro|bigquery)     Diff-ing Avro or BQ records
   [--output-mode=(gcs|bigquery)]   Saves to a text file in GCS or a BigQuery dataset. Defaults to GCS
