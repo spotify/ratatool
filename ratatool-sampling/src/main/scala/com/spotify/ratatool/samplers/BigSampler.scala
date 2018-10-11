@@ -24,6 +24,8 @@ import java.util.{List => JList}
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableReference, TableSchema}
 import com.google.common.hash.{HashCode, Hasher, Hashing}
 import com.google.common.io.BaseEncoding
+import com.google.protobuf.{AbstractMessage, ByteString}
+import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import com.spotify.ratatool.samplers.util.SamplerSCollectionFunctions._
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.avro.specific.TestRecord
@@ -146,13 +148,13 @@ object BigSampler extends Command {
                                      f: String,
                                      tblSchemaFields: Seq[TableFieldSchema],
                                      hasher: Hasher): Hasher =
-    BigSamplerBigQuery.hashTableRow(r, f, tblSchemaFields, hasher)
+    BigSamplerBigQuery.hashTableRow(tblSchemaFields)(r, f, hasher)
 
   private[samplers] def hashAvroField(r: TestRecord,
                                       f: String,
                                       avroSchema: Schema,
                                       hasher: Hasher): Hasher =
-    BigSamplerAvro.hashAvroField(r, f, avroSchema, hasher)
+    BigSamplerAvro.hashAvroField(avroSchema)(r, f, hasher)
 
   //scalastyle:off method.length cyclomatic.complexity
   def singleInput(argv: Array[String]): Future[Tap[_]] = {
@@ -243,26 +245,6 @@ object BigSampler extends Command {
   }
   //scalastyle:on method.length cyclomatic.complexity
 
-  def run(argv: Array[String]): Unit = {
-    this.singleInput(argv)
-  }
-}
-
-private[samplers] trait BigSampler {
-  def assignHashRoll[T: ClassTag, U: ClassTag, V: ClassTag](s: SCollection[T],
-                                                           seed: Option[Int],
-                                                           fields: Seq[String],
-                                                           hashFn: (T, String, V, Hasher) => Hasher,
-                                                           keyFn: T => U,
-                                                           schemaFields: =>V)
-  : SCollection[(U, (T, Double))] = {
-    s.map { v =>
-      val hasher = BigSampler.hashFun(seed = seed)
-      val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, schemaFields, h)).hash
-      (keyFn(v), (v, (math.abs(hash.asLong) % 1000000.0) / 1000000))
-    }
-  }
-
   //scalastyle:off method.length cyclomatic.complexity parameter.number
   def sample[T: ClassTag, U: ClassTag, V: ClassTag](s: SCollection[T],
                                                     fields: Seq[String],
@@ -271,10 +253,21 @@ private[samplers] trait BigSampler {
                                                     distribution: Option[SampleDistribution],
                                                     distributionFields: Seq[String],
                                                     precision: Precision,
-                                                    hashFn: (T, String, V, Hasher) => Hasher,
+                                                    hashFn: (T, String, Hasher) => Hasher,
                                                     keyFn: T => U,
-                                                    schemaSerDe: => V,
                                                     sizePerKey: Int): SCollection[T] = {
+
+    def assignHashRoll(s: SCollection[T],
+                       seed: Option[Int],
+                       fields: Seq[String])
+    : SCollection[(U, (T, Double))] = {
+      s.map { v =>
+        val hasher = BigSampler.hashFun(seed = seed)
+        val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
+        (keyFn(v), (v, (math.abs(hash.asLong) % 1000000.0) / 1000000))
+      }
+    }
+
     @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
     val det = Determinism.fromSeq(fields)
 
@@ -288,14 +281,14 @@ private[samplers] trait BigSampler {
         val samplePct100 = fraction * 100.0
         s.flatMap { e =>
           val hasher = BigSampler.hashFun(seed = seed)
-          val hash = fields.foldLeft(hasher)((h, f) => hashFn(e, f, schemaSerDe, h)).hash
+          val hash = fields.foldLeft(hasher)((h, f) => hashFn(e, f, h)).hash
           BigSampler.diceElement(e, hash, samplePct100)
         }
 
       case (Deterministic, Some(StratifiedDistribution), Approximate) =>
         val sampled = s.flatMap { v =>
           val hasher = BigSampler.hashFun(seed = seed)
-          val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, schemaSerDe, h)).hash
+          val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
           BigSampler.diceElement(v, hash, fraction * 100.0)
         }.keyBy(keyFn(_))
 
@@ -307,10 +300,10 @@ private[samplers] trait BigSampler {
         val (popPerKey, probPerKey) = uniformParams(s, keyFn, fraction)
         val sampled = s.keyBy(keyFn(_))
           .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
-            val hasher = BigSampler.hashFun(seed = seed)
-            val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, schemaSerDe, h)).hash
-            BigSampler.diceElement(v, hash, prob * 100.0).map(e => (k, e))
-          }
+          val hasher = BigSampler.hashFun(seed = seed)
+          val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
+          BigSampler.diceElement(v, hash, prob * 100.0).map(e => (k, e))
+        }
 
         val sampledDiffs =
           buildUniformDiffs(s, sampled, keyFn, fraction, popPerKey)
@@ -322,7 +315,7 @@ private[samplers] trait BigSampler {
           .exactSampleDist(d, keyFn, fraction, sizePerKey)
 
       case (Deterministic, Some(d), Exact) =>
-        assignHashRoll(s, seed, fields, hashFn, keyFn, schemaSerDe)
+        assignHashRoll(s, seed, fields)
           .exactSampleDist(d, keyFn, fraction, sizePerKey, delta = 1e-6)
 
       case _ =>
@@ -330,16 +323,92 @@ private[samplers] trait BigSampler {
     }
   }
   //scalastyle:on method.length cyclomatic.complexity
+
+  def run(argv: Array[String]): Unit = {
+    this.singleInput(argv)
+  }
 }
 
-private[samplers] object BigSamplerAvro extends BigSampler {
+private[samplers] object BigSamplerProtobuf {
+  private val log = LoggerFactory.getLogger(BigSamplerProtobuf.getClass)
+
+  private[samplers] def buildKey(distributionFields: Seq[String])(m: AbstractMessage)
+  : Set[String] = {
+    distributionFields.map(f => getProtobufField(m, f).toString).toSet
+  }
+
+  // scalastyle:off cyclomatic.complexity
+  private[samplers] def hashProtobufField[T <: AbstractMessage : ClassTag](m: T,
+                                                                           fieldStr: String,
+                                                                           hasher: Hasher)
+  : Hasher = {
+    val subfields = fieldStr.split(BigSampler.fieldSep)
+    val field = Option(m.getDescriptorForType.findFieldByName(subfields.head)).getOrElse {
+      throw new NoSuchElementException(s"Can't find field $fieldStr in protobuf schema")
+    }
+    val v = m.getField(field)
+    if (v == null) {
+      log.debug(s"Field `${field.getFullName}` of type ${field.getType} is null - won't account" +
+      s" for hash")
+      hasher
+    } else {
+      field.getJavaType match {
+        case JavaType.MESSAGE => hashProtobufField(
+          v.asInstanceOf[AbstractMessage], subfields.tail.mkString("."), hasher)
+        case JavaType.INT => hasher.putLong(v.asInstanceOf[Int].toLong)
+        case JavaType.LONG => hasher.putLong(v.asInstanceOf[Long])
+        case JavaType.FLOAT => hasher.putFloat(v.asInstanceOf[Float])
+        case JavaType.DOUBLE => hasher.putDouble(v.asInstanceOf[Double])
+        case JavaType.BOOLEAN => hasher.putBoolean(v.asInstanceOf[Boolean])
+        case JavaType.STRING => hasher.putString(v.asInstanceOf[CharSequence],
+          BigSampler.utf8Charset)
+        case JavaType.BYTE_STRING => hasher.putBytes(v.asInstanceOf[ByteString].toByteArray)
+        case JavaType.ENUM => hasher.putString(v.asInstanceOf[Enum[_]].name, BigSampler.utf8Charset)
+        // Array, Union
+      }
+    }
+  }
+  // scalastyle:on cyclomatic.complexity
+
+  // scalastyle:off cyclomatic.complexity
+  private[samplers] def getProtobufField[T <: AbstractMessage : ClassTag](m: T, fieldStr: String)
+  : Any = {
+    val subfields = fieldStr.split(BigSampler.fieldSep)
+    val field = Option(m.getDescriptorForType.findFieldByName(subfields.head)).getOrElse {
+      throw new NoSuchElementException(s"Can't find field $fieldStr in protobuf schema")
+    }
+    val v = m.getField(field)
+    if (v == null) {
+      log.debug(s"Field `${field.getFullName}` of type ${field.getType} is null - won't account" +
+        s" for key")
+    } else {
+      field.getJavaType match {
+        case JavaType.MESSAGE => getProtobufField(
+          v.asInstanceOf[AbstractMessage], subfields.tail.mkString("."))
+        case JavaType.INT => v.asInstanceOf[Int]
+        case JavaType.LONG => v.asInstanceOf[Long]
+        case JavaType.FLOAT => v.asInstanceOf[Float]
+        case JavaType.DOUBLE => v.asInstanceOf[Double]
+        case JavaType.BOOLEAN => v.asInstanceOf[Boolean]
+        case JavaType.STRING => v.asInstanceOf[CharSequence]
+        case JavaType.BYTE_STRING => v.asInstanceOf[ByteString].toByteArray
+        case JavaType.ENUM => v.asInstanceOf[Enum[_]].name
+        // Array, Union
+      }
+    }
+  }
+  // scalastyle:on cyclomatic.complexity
+
+
+}
+
+private[samplers] object BigSamplerAvro {
   private val log = LoggerFactory.getLogger(BigSamplerAvro.getClass)
 
   // scalastyle:off cyclomatic.complexity
   @tailrec
-  private[samplers] def hashAvroField(r: GenericRecord,
+  private[samplers] def hashAvroField(schema: Schema)(r: GenericRecord,
                                       fieldStr: String,
-                                      schema: Schema,
                                       hasher: Hasher): Hasher = {
     val recordSchema = getRecordSchema(schema)
     val subfields = fieldStr.split(BigSampler.fieldSep)
@@ -354,10 +423,9 @@ private[samplers] object BigSamplerAvro extends BigSampler {
     } else {
       field.schema.getType match {
         case Type.RECORD =>
-          hashAvroField(
+          hashAvroField(field.schema)(
             v.asInstanceOf[GenericRecord],
             subfields.tail.mkString(BigSampler.fieldSep.toString),
-            field.schema,
             hasher)
         case Type.ENUM => hasher.putString(v.asInstanceOf[Enum[_]].name, BigSampler.utf8Charset)
         case Type.STRING => hasher.putString(v.asInstanceOf[CharSequence], BigSampler.utf8Charset)
@@ -501,6 +569,12 @@ private[samplers] object BigSamplerAvro extends BigSampler {
   }
   // scalastyle:on cyclomatic.complexity
 
+  private[samplers] def buildKey(schema: => Schema,
+                                 distributionFields: Seq[String])(gr: GenericRecord)
+  : Set[String] = {
+    distributionFields.map(f => getAvroField(gr, f, schema).toString).toSet
+  }
+
   //scalastyle:off method.length cyclomatic.complexity parameter.number
   private[samplers] def sampleAvro(sc: ScioContext,
                                    input: String,
@@ -513,10 +587,6 @@ private[samplers] object BigSamplerAvro extends BigSampler {
                                    precision: Precision,
                                    sizePerKey: Int)
   : Future[Tap[GenericRecord]] = {
-    def buildKey(schema: Schema)(gr: GenericRecord): Set[String] = {
-      distributionFields.map(f => getAvroField(gr, f, schema).toString).toSet
-    }
-
     val schema = AvroIO.getAvroSchemaFromFile(input)
     val outputParts = if (output.endsWith("/")) output + "part*" else output + "/part*"
     if (FileStorage(outputParts).isDone) {
@@ -528,9 +598,9 @@ private[samplers] object BigSamplerAvro extends BigSampler {
       @transient lazy val schemaSerDe = new Schema.Parser().parse(schemaSer)
 
       val coll = sc.avroFile[GenericRecord](input, schema)
-      val sampledCollection = sample(coll, fields, fraction, seed, distribution,
-        distributionFields, precision, hashAvroField, buildKey(schemaSerDe), schemaSerDe,
-        sizePerKey)
+      val sampledCollection = BigSampler.sample(coll, fields, fraction, seed, distribution,
+        distributionFields, precision, hashAvroField(schemaSerDe),
+        buildKey(schemaSerDe, distributionFields), sizePerKey)
 
       val r = sampledCollection.saveAsAvroFile(output, schema = schema)
       sc.close().waitUntilDone()
@@ -540,14 +610,13 @@ private[samplers] object BigSamplerAvro extends BigSampler {
   //scalastyle:on method.length cyclomatic.complexity parameter.number
 }
 
-private[samplers] object BigSamplerBigQuery extends BigSampler {
+private[samplers] object BigSamplerBigQuery {
 
   private val log = LoggerFactory.getLogger(BigSamplerBigQuery.getClass)
 
   // scalastyle:off cyclomatic.complexity
-  private[samplers] def hashTableRow(r: TableRow,
+  private[samplers] def hashTableRow(tblSchema: => Seq[TableFieldSchema])(r: TableRow,
                                      fieldStr: String,
-                                     tblSchema: Seq[TableFieldSchema],
                                      hasher: Hasher): Hasher = {
     val subfields = fieldStr.split(BigSampler.fieldSep)
     val field = tblSchema.find(_.getName == subfields.head).getOrElse {
@@ -584,10 +653,9 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
           hasher.putString(v.toString, BigSampler.utf8Charset))
         case "RECORD" =>
           vs.foldLeft(hasher)((hasher, vi) =>
-            hashTableRow(
+            hashTableRow(field.getFields.asScala)(
               vi.asInstanceOf[TableRow],
               subfields.tail.mkString(BigSampler.fieldSep.toString),
-              field.getFields.asScala,
               hasher)
           )
         case t => throw new UnsupportedOperationException(
@@ -655,6 +723,14 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
     }
   }
 
+  private[samplers] def buildKey(schema: => Seq[TableFieldSchema],
+                                 distributionFields: Seq[String])(tr: TableRow)
+  : Set[String] = {
+    distributionFields.map{ f =>
+      getTableRowField(tr, f, schema).toString
+    }.toSet
+  }
+
   //scalastyle:off method.length cyclomatic.complexity parameter.number
   // TODO: investigate if possible to move this logic to BQ itself
   def sampleBigQueryTable(sc: ScioContext,
@@ -671,12 +747,6 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
     import BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED
     import BigQueryIO.Write.WriteDisposition.WRITE_EMPTY
 
-    def buildKey(schema: => Seq[TableFieldSchema])(tr: TableRow): Set[String] = {
-      distributionFields.map{ f =>
-        getTableRowField(tr, f, schema).toString
-      }.toSet
-    }
-
     val patchedBigQueryService = new PatchedBigQueryServicesImpl()
       .getDatasetService(sc.optionsAs[BigQueryOptions])
     if (patchedBigQueryService.getTable(outputTbl) != null) {
@@ -692,8 +762,9 @@ private[samplers] object BigSamplerBigQuery extends BigSampler {
 
       val coll = sc.bigQueryTable(inputTbl)
 
-      val sampledCollection = sample(coll, fields, fraction, seed, distribution, distributionFields,
-        precision, hashTableRow, buildKey(schemaFields), schemaFields, sizePerKey)
+      val sampledCollection = BigSampler.sample(coll, fields, fraction, seed, distribution,
+        distributionFields, precision, hashTableRow(schemaFields),
+        buildKey(schemaFields, distributionFields), sizePerKey)
 
       val r = sampledCollection
         .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "")
