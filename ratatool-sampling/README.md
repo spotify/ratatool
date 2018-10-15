@@ -13,6 +13,7 @@ For full details see [BigSample.scala](https://github.com/spotify/ratatool/blob/
 
 ## Usage
 
+### Command Line
 ```
 BigSampler - a tool for big data sampling
 Usage: ratatool bigSampler [dataflow_options] [options]
@@ -43,7 +44,39 @@ The following options are recommended, but may not be necessary.
 For more details regarding Dataflow options see here: https://cloud.google.com/dataflow/pipelines/specifying-exec-params
 ```
 
-### Reproducible Sampling
+### Importing into a Scio Pipeline
+BigSampler also provides some helper functions for usage in a Scio pipeline. These are provided for
+ GenericRecord, TableRow, and Protobuf Messages.
+ 
+Here is the example for Protobuf. There is also `sampleAvro` and `sampleBigQuery` defined with
+ similar signatures.
+```scala
+/**
+* Sample wrapper function for Avro GenericRecord
+* @param coll The input SCollection to be sampled
+* @param fraction The sample rate
+* @param fields Fields to construct hash over for determinism
+* @param seed Seed used to salt the deterministic hash
+* @param distribution Desired output sample distribution
+* @param distributionFields Fields to construct distribution over (strata = set of unique fields)
+* @param precision Approximate or Exact precision
+* @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
+* @tparam T Record Type
+* @return SCollection containing Sample population
+*/
+def sampleProto[T <: AbstractMessage : ClassTag](coll: SCollection[T],
+                                                fraction: Double,
+                                                fields: Seq[String] = Seq(),
+                                                seed: Option[Int] = None,
+                                                distribution: Option[SampleDistribution]=None,
+                                                distributionFields: Seq[String] = Seq(),
+                                                precision: Precision = Approximate,
+                                                maxKeySize: Int = 1e6.toInt)
+: SCollection[T]
+```
+For an example of usage, see [ProtoSamplerExample.scala](https://github.com/spotify/ratatool/blob/master/ratatool-examples/src/main/scala/com/spotify/ratatool/examples/samplers/ProtoSamplerExample.scala)
+
+## Reproducible Sampling
 Leveraging `--fields=<field1,field2,...>` BigSampler can produce a hash based on the specified
  fields. This ensures that rows will always produce the same value to determine whether or not they
  are in the sample. For example, `--fields=user_id --sample=0.5` will always produce the same sample
