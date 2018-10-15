@@ -48,6 +48,8 @@ For more details regarding Dataflow options see here: https://cloud.google.com/d
 BigSampler also provides some helper functions for usage in a Scio pipeline. These are provided for
  GenericRecord, TableRow, and Protobuf Messages.
  
+Here is the example for Protobuf. There is also `sampleAvro` and `sampleBigQuery` defined with
+ similar signatures.
 ```scala
 /**
 * Sample wrapper function for Avro GenericRecord
