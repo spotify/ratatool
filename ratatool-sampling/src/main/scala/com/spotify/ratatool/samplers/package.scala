@@ -117,7 +117,7 @@ package object samplers {
                                                    maxKeySize: Int = 1e6.toInt)
   : SCollection[T] = {
     BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
-      BigSamplerProtobuf.hashProtobufField, BigSamplerProtobuf.buildKey(distributionFields),
+      BigSamplerProto.hashProtobufField, BigSamplerProto.buildKey(distributionFields),
       maxKeySize)
   }
   //scalastyle:on parameter.number
