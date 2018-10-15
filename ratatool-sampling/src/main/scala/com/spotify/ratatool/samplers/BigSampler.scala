@@ -209,7 +209,7 @@ object BigSampler extends Command {
           s"but instead it's `$output`.")
       val inputTbl = parseAsBigQueryTable(input).get
       val outputTbl = parseAsBigQueryTable(output).get
-      BigSamplerBigQuery.sampleBigQueryTable(
+      BigSamplerBigQuery.sample(
         sc,
         inputTbl,
         outputTbl,
@@ -227,7 +227,7 @@ object BigSampler extends Command {
         s"Input is a URI: `$input`, output should be a URI too, but instead it's `$output`.")
       // Prompts FileSystems to load service classes, otherwise fetching schema from non-local fails
       FileSystems.setDefaultPipelineOptions(opts)
-      BigSamplerAvro.sampleAvro(
+      BigSamplerAvro.sample(
         sc,
         input,
         output,
@@ -246,16 +246,33 @@ object BigSampler extends Command {
   //scalastyle:on method.length cyclomatic.complexity
 
   //scalastyle:off method.length cyclomatic.complexity parameter.number
-  def sample[T: ClassTag, U: ClassTag, V: ClassTag](s: SCollection[T],
-                                                    fields: Seq[String],
-                                                    fraction: Double,
-                                                    seed: Option[Int],
-                                                    distribution: Option[SampleDistribution],
-                                                    distributionFields: Seq[String],
-                                                    precision: Precision,
-                                                    hashFn: (T, String, Hasher) => Hasher,
-                                                    keyFn: T => U,
-                                                    sizePerKey: Int): SCollection[T] = {
+  /**
+   * Sample wrapper function that manages sampling pipeline based on determinimism, precision,
+   *  and data type. Can be used to build sampling for data types not supported out of the box.
+   * @param s The input SCollection to be sampled
+   * @param fraction The sample rate
+   * @param fields Fields to construct hash over for determinism
+   * @param seed Seed used to salt the deterministic hash
+   * @param distribution Desired output sample distribution
+   * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
+   * @param precision Approximate or Exact precision
+   * @param hashFn Function to construct a hash given a record, field, and hasher
+   * @param keyFn Function to extract a value given a record
+   * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
+   * @tparam T Record Type
+   * @tparam U Key Type, usually we use Set[String]
+   * @return SCollection containing Sample population
+   */
+  def sample[T: ClassTag, U: ClassTag](s: SCollection[T],
+                                        fraction: Double,
+                                        fields: Seq[String],
+                                        seed: Option[Int],
+                                        distribution: Option[SampleDistribution],
+                                        distributionFields: Seq[String],
+                                        precision: Precision,
+                                        hashFn: (T, String, Hasher) => Hasher,
+                                        keyFn: T => U,
+                                        maxKeySize: Int = 1e6.toInt): SCollection[T] = {
 
     def assignHashRoll(s: SCollection[T],
                        seed: Option[Int],
@@ -312,11 +329,11 @@ object BigSampler extends Command {
 
       case (NonDeterministic, Some(d), Exact) =>
         assignRandomRoll(s, keyFn)
-          .exactSampleDist(d, keyFn, fraction, sizePerKey)
+          .exactSampleDist(d, keyFn, fraction, maxKeySize)
 
       case (Deterministic, Some(d), Exact) =>
         assignHashRoll(s, seed, fields)
-          .exactSampleDist(d, keyFn, fraction, sizePerKey, delta = 1e-6)
+          .exactSampleDist(d, keyFn, fraction, maxKeySize, delta = 1e-6)
 
       case _ =>
         throw new UnsupportedOperationException("This sampling mode is not currently supported")
@@ -576,16 +593,16 @@ private[samplers] object BigSamplerAvro {
   }
 
   //scalastyle:off method.length cyclomatic.complexity parameter.number
-  private[samplers] def sampleAvro(sc: ScioContext,
-                                   input: String,
-                                   output: String,
-                                   fields: Seq[String],
-                                   fraction: Double,
-                                   seed: Option[Int],
-                                   distribution: Option[SampleDistribution],
-                                   distributionFields: Seq[String],
-                                   precision: Precision,
-                                   sizePerKey: Int)
+  private[samplers] def sample(sc: ScioContext,
+                               input: String,
+                               output: String,
+                               fields: Seq[String],
+                               fraction: Double,
+                               seed: Option[Int],
+                               distribution: Option[SampleDistribution],
+                               distributionFields: Seq[String],
+                               precision: Precision,
+                               maxKeySize: Int)
   : Future[Tap[GenericRecord]] = {
     val schema = AvroIO.getAvroSchemaFromFile(input)
     val outputParts = if (output.endsWith("/")) output + "part*" else output + "/part*"
@@ -598,9 +615,10 @@ private[samplers] object BigSamplerAvro {
       @transient lazy val schemaSerDe = new Schema.Parser().parse(schemaSer)
 
       val coll = sc.avroFile[GenericRecord](input, schema)
-      val sampledCollection = BigSampler.sample(coll, fields, fraction, seed, distribution,
-        distributionFields, precision, hashAvroField(schemaSerDe),
-        buildKey(schemaSerDe, distributionFields), sizePerKey)
+
+      val sampledCollection = sampleAvro(coll, fraction, schema, fields, seed, distribution,
+        distributionFields, precision, maxKeySize)
+
 
       val r = sampledCollection.saveAsAvroFile(output, schema = schema)
       sc.close().waitUntilDone()
@@ -733,16 +751,16 @@ private[samplers] object BigSamplerBigQuery {
 
   //scalastyle:off method.length cyclomatic.complexity parameter.number
   // TODO: investigate if possible to move this logic to BQ itself
-  def sampleBigQueryTable(sc: ScioContext,
-                          inputTbl: TableReference,
-                          outputTbl: TableReference,
-                          fields: List[String],
-                          fraction: Double,
-                          seed: Option[Int],
-                          distribution: Option[SampleDistribution],
-                          distributionFields: List[String],
-                          precision: Precision,
-                          sizePerKey: Int)
+  private[samplers] def sample(sc: ScioContext,
+             inputTbl: TableReference,
+             outputTbl: TableReference,
+             fields: List[String],
+             fraction: Double,
+             seed: Option[Int],
+             distribution: Option[SampleDistribution],
+             distributionFields: List[String],
+             precision: Precision,
+             sizePerKey: Int)
   : Future[Tap[TableRow]] = {
     import BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED
     import BigQueryIO.Write.WriteDisposition.WRITE_EMPTY
@@ -755,16 +773,11 @@ private[samplers] object BigSamplerBigQuery {
     } else {
       log.info(s"Will sample from BigQuery table: $inputTbl, output will be $outputTbl")
       val schema = patchedBigQueryService.getTable(inputTbl).getSchema
-      val schemaStr = JsonSerDe.toJsonString(schema)
-
-      @transient lazy val schemaFields =
-        JsonSerDe.fromJsonString(schemaStr, classOf[TableSchema]).getFields.asScala
 
       val coll = sc.bigQueryTable(inputTbl)
 
-      val sampledCollection = BigSampler.sample(coll, fields, fraction, seed, distribution,
-        distributionFields, precision, hashTableRow(schemaFields),
-        buildKey(schemaFields, distributionFields), sizePerKey)
+      val sampledCollection = sampleTableRow(coll, fraction, schema, fields, seed, distribution,
+        distributionFields, precision, sizePerKey)
 
       val r = sampledCollection
         .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "")

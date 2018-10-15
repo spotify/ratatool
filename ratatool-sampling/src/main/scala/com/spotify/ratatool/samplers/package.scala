@@ -29,57 +29,97 @@ import org.apache.avro.generic.GenericRecord
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
-
 package object samplers {
-  implicit class BigSamplerAvroFn[T <: GenericRecord : ClassTag](coll: SCollection[T]) {
-    def sampleAvro(fraction: Double,
-                   schema: Schema,
-                   fields: Seq[String],
-                   seed: Option[Int] = None,
-                   distribution: Option[SampleDistribution] = None,
-                   distributionFields: Seq[String] = Seq(),
-                   precision: Precision = Approximate,
-                   maxKeySize: Int = 1e6.toInt): SCollection[T] = {
-      val schemaSer = schema.toString(false)
-      @transient lazy val schemaSerDe = new Schema.Parser().parse(schemaSer)
-      BigSampler.sample(coll, fields, fraction, seed, distribution, distributionFields, precision,
-        BigSamplerAvro.hashAvroField(schemaSerDe),
-        BigSamplerAvro.buildKey(schemaSerDe, distributionFields),
-        maxKeySize)
-    }
+  //scalastyle:off parameter.number
+  /**
+   * Sample wrapper function for Avro GenericRecord
+   * @param coll The input SCollection to be sampled
+   * @param fraction The sample rate
+   * @param fields Fields to construct hash over for determinism
+   * @param seed Seed used to salt the deterministic hash
+   * @param distribution Desired output sample distribution
+   * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
+   * @param precision Approximate or Exact precision
+   * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
+   * @tparam T Record Type
+   * @return SCollection containing Sample population
+   */
+  def sampleAvro[T <: GenericRecord : ClassTag](coll: SCollection[T],
+                                                 fraction: Double,
+                                                 schema: => Schema,
+                                                 fields: Seq[String] = Seq(),
+                                                 seed: Option[Int] = None,
+                                                 distribution: Option[SampleDistribution] = None,
+                                                 distributionFields: Seq[String] = Seq(),
+                                                 precision: Precision = Approximate,
+                                                 maxKeySize: Int = 1e6.toInt)
+  : SCollection[T] = {
+    val schemaSer = schema.toString(false)
+    @transient lazy val schemaSerDe = new Schema.Parser().parse(schemaSer)
+
+    BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
+      BigSamplerAvro.hashAvroField(schemaSerDe),
+      BigSamplerAvro.buildKey(schemaSerDe, distributionFields),
+      maxKeySize)
   }
 
-  implicit class BigSamplerTableRowFn(coll: SCollection[TableRow]) {
-    def sampleTableRow(fraction: Double,
-                       schema: TableSchema,
-                       fields: Seq[String] = Seq(),
-                       seed: Option[Int] = None,
-                       distribution: Option[SampleDistribution] = None,
-                       distributionFields: Seq[String] = Seq(),
-                       precision: Precision = Approximate,
-                       maxKeySize: Int = 1e8.toInt): SCollection[TableRow] = {
-      val schemaStr = JsonSerDe.toJsonString(schema)
+  /**
+   * Sample wrapper function for Avro GenericRecord
+   * @param coll The input SCollection to be sampled
+   * @param fraction The sample rate
+   * @param fields Fields to construct hash over for determinism
+   * @param seed Seed used to salt the deterministic hash
+   * @param distribution Desired output sample distribution
+   * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
+   * @param precision Approximate or Exact precision
+   * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
+   * @return SCollection containing Sample population
+   */
+  def sampleTableRow(coll: SCollection[TableRow],
+                     fraction: Double,
+                     schema: TableSchema,
+                     fields: Seq[String] = Seq(),
+                     seed: Option[Int] = None,
+                     distribution: Option[SampleDistribution] = None,
+                     distributionFields: Seq[String] = Seq(),
+                     precision: Precision = Approximate,
+                     maxKeySize: Int = 1e6.toInt)
+  : SCollection[TableRow] = {
+    val schemaStr = JsonSerDe.toJsonString(schema)
+    @transient lazy val schemaFields =
+      JsonSerDe.fromJsonString(schemaStr, classOf[TableSchema]).getFields.asScala
 
-      @transient lazy val schemaFields =
-        JsonSerDe.fromJsonString(schemaStr, classOf[TableSchema]).getFields.asScala
-
-      BigSampler.sample(coll, fields, fraction, seed, distribution, distributionFields, precision,
-        BigSamplerBigQuery.hashTableRow(schemaFields),
-        BigSamplerBigQuery.buildKey(schemaFields, distributionFields), maxKeySize)
-    }
+    BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
+      BigSamplerBigQuery.hashTableRow(schemaFields),
+      BigSamplerBigQuery.buildKey(schemaFields, distributionFields), maxKeySize)
   }
 
-  implicit class BigSamplerProtoFn[T <: AbstractMessage : ClassTag](coll: SCollection[T]) {
-    def sampleProto(fraction: Double,
-                   fields: Seq[String],
-                   seed: Option[Int] = None,
-                   distribution: Option[SampleDistribution] = None,
-                   distributionFields: Seq[String] = Seq(),
-                   precision: Precision = Approximate,
-                   maxKeySize: Int = 1e6.toInt): SCollection[T] = {
-      BigSampler.sample(coll, fields, fraction, seed, distribution, distributionFields, precision,
-        BigSamplerProtobuf.hashProtobufField, BigSamplerProtobuf.buildKey(distributionFields),
-        maxKeySize)
-    }
+  /**
+   * Sample wrapper function for Avro GenericRecord
+   * @param coll The input SCollection to be sampled
+   * @param fraction The sample rate
+   * @param fields Fields to construct hash over for determinism
+   * @param seed Seed used to salt the deterministic hash
+   * @param distribution Desired output sample distribution
+   * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
+   * @param precision Approximate or Exact precision
+   * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
+   * @tparam T Record Type
+   * @return SCollection containing Sample population
+   */
+  def sampleProto[T <: AbstractMessage : ClassTag](coll: SCollection[T],
+                                                   fraction: Double,
+                                                   fields: Seq[String] = Seq(),
+                                                   seed: Option[Int] = None,
+                                                   distribution: Option[SampleDistribution]=None,
+                                                   distributionFields: Seq[String] = Seq(),
+                                                   precision: Precision = Approximate,
+                                                   maxKeySize: Int = 1e6.toInt)
+  : SCollection[T] = {
+    BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
+      BigSamplerProtobuf.hashProtobufField, BigSamplerProtobuf.buildKey(distributionFields),
+      maxKeySize)
   }
+  //scalastyle:on parameter.number
+
 }

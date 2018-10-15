@@ -246,21 +246,21 @@ object SamplerSCollectionFunctions {
     def exactSampleDist(dist: SampleDistribution,
                         keyFn: T => U,
                         prob: Double,
-                        sizePerKey: Int,
+                        maxKeySize: Int,
                         delta: Double = 1e-3)
     : SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
       val (sampled, sampledDiffs) = dist match {
         case StratifiedDistribution =>
-          val thresholdByKey = stratifiedThresholdByKey(s, prob, delta, sizePerKey)
+          val thresholdByKey = stratifiedThresholdByKey(s, prob, delta, maxKeySize)
           val sample = filterByThreshold(s, thresholdByKey)
           val diffs = buildStratifiedDiffs(s.values.keys, sample, keyFn, prob, exact = true)
           (sample, diffs)
 
         case UniformDistribution =>
           val (popPerKey, probPerKey) = uniformParams(s.values.keys, keyFn, prob)
-          val thresholdByKey = uniformThresholdByKey(s, probPerKey, popPerKey, delta, sizePerKey)
+          val thresholdByKey = uniformThresholdByKey(s, probPerKey, popPerKey, delta, maxKeySize)
           val sample = filterByThreshold(s, thresholdByKey)
           val diffs = buildUniformDiffs(s.values.keys, sample, keyFn, prob, popPerKey, exact = true)
           (sample, diffs)
