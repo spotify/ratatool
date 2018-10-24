@@ -20,6 +20,7 @@
                     {"name": "string_field", "type": ["null", "string"], "default": null},
                     {"name": "upper_string_field", "type": ["null", "string"], "default": null},
                     {"name": "fixed_field", "type": ["null", {"type": "fixed", "size": 16, "name": "MD5"}], "default": null},
+                    {"name": "enum_field", "type": ["null", {"type": "enum", "name": "Answer", "symbols": ["YES", "NO"]}], "default": null},
                     {"name": "map_field", "type": ["null", {"type": "map", "values": "int"}], "default": null},
                     {"name": "bytes_field", "type": ["null", "bytes"], "default": null }
                 ]
@@ -40,6 +41,7 @@
                     {"name": "boolean_field", "type": "boolean"},
                     {"name": "string_field", "type": "string"},
                     {"name": "fixed_field", "type": {"type": "fixed", "size": 16, "name": "UUID"}},
+                    {"name": "enum_field", "type": {"type": "enum", "name": "ABTest", "symbols": ["A", "B"]}},
                     {"name": "map_field", "type": {"type": "map", "values": "int"}},
                     {"name": "bytes_field", "type": "bytes" }
                 ]
@@ -58,7 +60,12 @@
                     {"name": "float_field", "type": {"type": "array", "items": "float"}},
                     {"name": "double_field", "type": {"type": "array", "items": "double"}},
                     {"name": "boolean_field", "type": {"type": "array", "items": "boolean"}},
-                    {"name": "string_field", "type": {"type": "array", "items": "string"}}
+                    {"name": "string_field", "type": {"type": "array", "items": "string"}},
+                    {"name": "bytes_field", "type": {"type": "array", "items": "bytes"}},
+                    {"name": "enum_field", "type": {"type": "array", "items":
+                        {"type": "enum", "name": "TestEnum", "symbols": ["ENUM1", "ENUM2"]}}},
+                    {"name": "fixed_field", "type": {"type": "array", "items":
+                        {"type": "fixed", "name": "TestFixed", "size": 1}}}
                 ]
             }
         },

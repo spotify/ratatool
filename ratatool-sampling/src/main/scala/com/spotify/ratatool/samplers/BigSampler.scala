@@ -30,6 +30,7 @@ import com.spotify.scio.io.Tap
 import com.spotify.scio.values.SCollection
 import com.spotify.scio.{ContextAndArgs, ScioContext}
 import org.apache.avro.Schema
+import org.apache.avro.generic.GenericRecord
 import org.apache.beam.runners.dataflow.options.DataflowPipelineWorkerPoolOptions
 import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryHelpers
@@ -139,6 +140,12 @@ object BigSampler extends Command {
     BigSamplerBigQuery.hashTableRow(tblSchemaFields)(r, f, hasher)
 
   private[samplers] def hashAvroField(r: TestRecord,
+                                      f: String,
+                                      avroSchema: Schema,
+                                      hasher: Hasher): Hasher =
+    BigSamplerAvro.hashAvroField(avroSchema)(r, f, hasher)
+
+  private[samplers] def hashAvroField(r: GenericRecord,
                                       f: String,
                                       avroSchema: Schema,
                                       hasher: Hasher): Hasher =
