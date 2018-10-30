@@ -17,6 +17,7 @@
 package com.spotify.ratatool.samplers
 
 import java.io.File
+import java.nio.ByteBuffer
 import java.nio.file.{Files, Path}
 
 import com.google.common.hash.Hasher
@@ -25,9 +26,10 @@ import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.scalacheck._
 import com.spotify.ratatool.io.{AvroIO, FileStorage}
 import org.apache.avro.generic.GenericRecord
+import org.apache.commons.codec.binary.Hex
 import org.scalacheck.Prop.{all, forAll, proved}
 import org.scalacheck.rng.Seed
-import org.scalacheck.{Arbitrary, Gen, Properties}
+import org.scalacheck.{Gen, Properties}
 import org.scalatest.{BeforeAndAfterAllConfigMap, ConfigMap, FlatSpec, Matchers}
 
 import scala.collection.JavaConverters._
@@ -143,21 +145,24 @@ object BigSamplerTest extends Properties("BigSampler") {
   }
 
   private val avroSchema = TestRecord.SCHEMA$
-  private val richAvroGen = specificRecordOf[TestRecord]
+  private val specificAvroGen = specificRecordOf[TestRecord]
   private val supportedAvroTypes = Seq(
     "int_field",
     "float_field",
     "boolean_field",
     "string_field",
     "long_field",
-    "double_field")
+    "double_field",
+    "enum_field",
+    "bytes_field",
+    "fixed_field")
 
   private val richAvroHasherGen = for {
-    r <- richAvroGen
+    r <- specificAvroGen
     hasher <- randomHashGen
   } yield (r, hasher())
 
-  property("should hash on supported required types in Avro") = forAll(richAvroHasherGen) {
+  property("should hash on supported required specific types") = forAll(richAvroHasherGen) {
     case (r, hasher) =>
     all(
       supportedAvroTypes.map(t => s"required_fields.$t").map( f =>
@@ -170,7 +175,7 @@ object BigSamplerTest extends Properties("BigSampler") {
       ): _*)
   }
 
-  property("should hash on supported nullable types in Avro") = forAll(richAvroHasherGen) {
+  property("should hash on supported nullable specific types") = forAll(richAvroHasherGen) {
     case (r, hasher) =>
     all(
       supportedAvroTypes.map(t => s"nullable_fields.$t").map( f =>
@@ -183,7 +188,7 @@ object BigSamplerTest extends Properties("BigSampler") {
       ): _*)
   }
 
-  property("should hash on supported repeated types in Avro") = forAll(richAvroHasherGen) {
+  property("should hash on supported repeated specific types") = forAll(richAvroHasherGen) {
     case (r, hasher) =>
     all(
       supportedAvroTypes.map(t => s"repeated_fields.$t").map( f =>
@@ -196,6 +201,51 @@ object BigSamplerTest extends Properties("BigSampler") {
       ): _*)
   }
 
+  private val genericAvroGen = genericRecordOf(TestRecord.SCHEMA$)
+  private val genericAvroHasherGen = for {
+    r <- genericAvroGen
+    hasher <- randomHashGen
+  } yield (r, hasher())
+
+  property("should hash on supported required generic types") = forAll(genericAvroHasherGen) {
+    case (r, hasher) =>
+      all(
+        supportedAvroTypes.map(t => s"required_fields.$t").map( f =>
+          {
+            BigSampler.hashAvroField(r,
+              f,
+              avroSchema,
+              hasher)
+            proved} :| f
+        ): _*)
+  }
+
+  property("should hash on supported nullable generic types") = forAll(genericAvroHasherGen) {
+    case (r, hasher) =>
+      all(
+        supportedAvroTypes.map(t => s"nullable_fields.$t").map( f =>
+          {
+            BigSampler.hashAvroField(r,
+              f,
+              avroSchema,
+              hasher)
+            proved} :| f
+        ): _*)
+  }
+
+  property("should hash on supported repeated generic types") = forAll(genericAvroHasherGen) {
+    case (r, hasher) =>
+      all(
+        supportedAvroTypes.map(t => s"repeated_fields.$t").map( f =>
+          {
+            BigSampler.hashAvroField(r,
+              f,
+              avroSchema,
+              hasher)
+            proved} :| f
+        ): _*)
+  }
+
   private val supportedCommonFields = Seq(
     "int_field",
     "float_field",
@@ -204,7 +254,7 @@ object BigSamplerTest extends Properties("BigSampler") {
   private val records = Seq("nullable_fields", "repeated_fields", "required_fields")
 
   property("hash of the same single field should match, farmhash") = forAll(
-    Gen.zip(richAvroGen, Gen.oneOf(supportedCommonFields), Gen.oneOf(records)).map {
+    Gen.zip(specificAvroGen, Gen.oneOf(supportedCommonFields), Gen.oneOf(records)).map {
       case (i, f, r) =>
         val tbGen =
           richTableRowGen
@@ -219,7 +269,7 @@ object BigSamplerTest extends Properties("BigSampler") {
     }
 
   property("hash of the same single field should match, kisshash") = forAll(
-    Gen.zip(richAvroGen, Gen.oneOf(supportedCommonFields), Gen.oneOf(records)).map {
+    Gen.zip(specificAvroGen, Gen.oneOf(supportedCommonFields), Gen.oneOf(records)).map {
       case (i, f, r) =>
         val tbGen =
           richTableRowGen
@@ -234,7 +284,7 @@ object BigSamplerTest extends Properties("BigSampler") {
   }
 
   property("hash of the same fields from the same record should match, farmHash") = forAll(
-    Gen.zip(richAvroGen, Gen.someOf(supportedCommonFields), Gen.oneOf(records)).map {
+    Gen.zip(specificAvroGen, Gen.someOf(supportedCommonFields), Gen.oneOf(records)).map {
       case (i, fs, r) =>
         val tbGen = fs.foldLeft(richTableRowGen)((gen, f) => gen.amend(
           Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f)))
@@ -248,7 +298,7 @@ object BigSamplerTest extends Properties("BigSampler") {
   }
 
   property("hash of the same fields from the same record should match, kissHash") = forAll(
-    Gen.zip(richAvroGen, Gen.someOf(supportedCommonFields), Gen.oneOf(records)).map {
+    Gen.zip(specificAvroGen, Gen.someOf(supportedCommonFields), Gen.oneOf(records)).map {
       case (i, fs, r) =>
         val tbGen = fs.foldLeft(richTableRowGen)((gen, f) => gen.amend(
           Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f)))
@@ -263,7 +313,7 @@ object BigSamplerTest extends Properties("BigSampler") {
 
   property("hash of the same fields from multiple record should match, farmHash") = forAll(
     Gen.zip(
-      richAvroGen,
+      specificAvroGen,
       Gen.someOf(supportedCommonFields).suchThat(_.nonEmpty),
       Gen.someOf(records).suchThat(_.nonEmpty)).map {
       case (i, fs, rs) =>
@@ -281,7 +331,7 @@ object BigSamplerTest extends Properties("BigSampler") {
 
   property("hash of the same fields from multiple record should match, kissHash") = forAll(
     Gen.zip(
-      richAvroGen,
+      specificAvroGen,
       Gen.someOf(supportedCommonFields).suchThat(_.nonEmpty),
       Gen.someOf(records).suchThat(_.nonEmpty)).map {
       case (i, fs, rs) =>
@@ -295,6 +345,28 @@ object BigSamplerTest extends Properties("BigSampler") {
         BigSampler.hashAvroField(avro, f, avroSchema, h2))
     }
     hashes._1.hash() == hashes._2.hash()
+  }
+
+  property("hashes of bytes, hex strings, and fixed should be the same") = forAll(
+    specificAvroGen) { case avro =>
+    avro.getRequiredFields.setBytesField(
+      ByteBuffer.wrap(avro.getRequiredFields.getFixedField.bytes))
+    avro.getRequiredFields.setStringField(
+      Hex.encodeHexString(avro.getRequiredFields.getFixedField.bytes))
+
+    val hasher1 = newTestKissHasher(Some(0))
+    val bytesHash =
+      BigSampler.hashAvroField(avro, "required_fields.bytes_field", avroSchema, hasher1).hash()
+
+    val hasher2 = newTestKissHasher(Some(0))
+    val fixedHash =
+      BigSampler.hashAvroField(avro, "required_fields.fixed_field", avroSchema, hasher2).hash()
+
+    val hasher3 = newTestKissHasher(Some(0))
+    val stringHash =
+      BigSampler.hashAvroField(avro, "required_fields.string_field", avroSchema, hasher3).hash()
+
+    bytesHash == fixedHash && fixedHash == stringHash
   }
 }
 

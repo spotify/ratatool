@@ -18,6 +18,7 @@
 package com.spotify.ratatool.samplers
 
 import java.io.IOException
+import java.nio.ByteBuffer
 import java.util.{List => JList}
 
 import com.google.common.hash.Hasher
@@ -27,9 +28,9 @@ import com.spotify.scio.ScioContext
 import com.spotify.scio.io.{Tap, Taps}
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
-import org.apache.avro.generic.GenericRecord
+import org.apache.avro.generic.{GenericData, GenericFixed, GenericRecord}
+import org.apache.commons.codec.binary.Hex
 import org.slf4j.LoggerFactory
-
 
 import scala.collection.JavaConverters._
 import scala.annotation.tailrec
@@ -60,80 +61,89 @@ private[samplers] object BigSamplerAvro {
             v.asInstanceOf[GenericRecord],
             subfields.tail.mkString(BigSampler.fieldSep.toString),
             hasher)
-        case Type.ENUM => hasher.putString(v.asInstanceOf[Enum[_]].name, BigSampler.utf8Charset)
-        case Type.STRING => hasher.putString(v.asInstanceOf[CharSequence], BigSampler.utf8Charset)
-        case Type.BYTES => hasher.putBytes(v.asInstanceOf[Array[Byte]])
-        // to keep it consistent with BigQuery INT - convert int to long
-        case Type.INT => hasher.putLong(v.asInstanceOf[Int].toLong)
-        case Type.LONG => hasher.putLong(v.asInstanceOf[Long])
-        case Type.FLOAT => hasher.putFloat(v.asInstanceOf[Float])
-        case Type.DOUBLE => hasher.putDouble(v.asInstanceOf[Double])
-        case Type.BOOLEAN => hasher.putBoolean(v.asInstanceOf[Boolean])
         case Type.UNION => hashAvroUnionField(field, v, hasher)
         case Type.ARRAY => hashAvroArrayField(field, v, hasher)
-        //  Type.MAP | Type.FIXED =>
-        case t => throw new UnsupportedOperationException(
-          s"Type `${field.schema.getType}` of `${field.name}` is not supported as sampling key!")
+        //  Type.MAP =>
+        case t => hashPrimitive(field, t, v, hasher)
       }
     }
   }
   // scalastyle:on cyclomatic.complexity
+  private def hashBytes(bytes: Array[Byte], hasher: Hasher): Hasher = {
+    // Convert to string to have hex representations of bytes and raw bytes consistent
+    hasher.putString(Hex.encodeHexString(bytes), BigSampler.utf8Charset)
+  }
 
   // scalastyle:off cyclomatic.complexity
   private def hashAvroArrayField(field: Schema.Field, v: AnyRef, hasher: Hasher): Hasher = {
     field.schema.getElementType.getType match {
-      case Type.ENUM => v.asInstanceOf[JList[Enum[_]]].asScala.foldLeft(hasher)((hasher, e) =>
-        hasher.putString(e.name, BigSampler.utf8Charset))
-      case Type.STRING => v.asInstanceOf[JList[CharSequence]].asScala.foldLeft(hasher)(
-        (hasher, e) => hasher.putString(e, BigSampler.utf8Charset))
-      case Type.BYTES => v.asInstanceOf[JList[Array[Byte]]].asScala.foldLeft(hasher)((hasher, e) =>
-        hasher.putBytes(e))
-      case Type.INT => v.asInstanceOf[JList[Int]].asScala.foldLeft(hasher)((hasher, e) =>
-        // to keep it consistent with BigQuery INT - convert int to long
-        hasher.putLong(e.toLong))
-      case Type.LONG => v.asInstanceOf[JList[Long]].asScala.foldLeft(hasher)((hasher, e) =>
-        hasher.putLong(e))
-      case Type.FLOAT => v.asInstanceOf[JList[Float]].asScala.foldLeft(hasher)((hasher, e) =>
-        hasher.putFloat(e))
-      case Type.DOUBLE => v.asInstanceOf[JList[Double]].asScala.foldLeft(hasher)((hasher, e) =>
-        hasher.putDouble(e))
-      case Type.BOOLEAN => v.asInstanceOf[JList[Boolean]].asScala.foldLeft(hasher)((hasher, e) =>
-        hasher.putBoolean(e))
       case Type.NULL =>
         // ignore nulls
         hasher
-      case _ => throw new UnsupportedOperationException(
-        s"Type ${field.schema.getElementType.getType} is not supported as hash for array ")
+      case t => v.asInstanceOf[JList[AnyRef]].asScala.foldLeft(hasher)((hasher, e) =>
+        hashPrimitive(field, t, e, hasher))
     }
   }
 
   // scalastyle:off cyclomatic.complexity
   private def hashAvroUnionField(field: Schema.Field, v: AnyRef, hasher: Hasher): Hasher = {
     val types = field.schema.getTypes.asScala
+
     types.foldLeft(hasher)( (hasher, p) =>
       p.getType match {
-        case Type.ENUM if v.isInstanceOf[Enum[_]] =>
-          hasher.putString(v.asInstanceOf[Enum[_]].name, BigSampler.utf8Charset)
-        case Type.STRING if v.isInstanceOf[CharSequence] =>
-          hasher.putString(v.asInstanceOf[CharSequence], BigSampler.utf8Charset)
-        case Type.BYTES if v.isInstanceOf[Array[Byte]] =>
-          hasher.putBytes(v.asInstanceOf[Array[Byte]])
-        // to keep it consistent with BigQuery INT - convert int to long
-        case Type.INT if v.isInstanceOf[Int] => hasher.putLong(v.asInstanceOf[Int].toLong)
-        case Type.LONG if v.isInstanceOf[Long] => hasher.putLong(v.asInstanceOf[Long])
-        case Type.FLOAT if v.isInstanceOf[Float] => hasher.putFloat(v.asInstanceOf[Float])
-        case Type.DOUBLE if v.isInstanceOf[Double] => hasher.putDouble(v.asInstanceOf[Double])
-        case Type.BOOLEAN if v.isInstanceOf[Boolean] =>
-          hasher.putBoolean(v.asInstanceOf[Boolean])
         case Type.NULL =>
           // ignore nulls
           hasher
-        case _ => throw new UnsupportedOperationException(
-          s"Value `$v` of union ${field.name} has unsupported type `${p.getType}`")
+        case t => hashPrimitive(field, t, v, hasher)
       }
     )
   }
   // scalastyle:on cyclomatic.complexity
+
+  // scalastyle:off cyclomatic.complexity
+  private def hashPrimitive(field: Schema.Field, fieldType: Schema.Type, v: AnyRef, hasher: Hasher)
+  : Hasher = {
+    fieldType match {
+      case Type.ENUM => hashEnum(field, v, hasher)
+      case Type.STRING => hasher.putString(v.asInstanceOf[CharSequence], BigSampler.utf8Charset)
+      case Type.BYTES => hashBytes(field, v, hasher)
+      // to keep it consistent with BigQuery INT - convert int to long
+      case Type.INT => hasher.putLong(v.asInstanceOf[Int].toLong)
+      case Type.LONG => hasher.putLong(v.asInstanceOf[Long])
+      case Type.FLOAT => hasher.putFloat(v.asInstanceOf[Float])
+      case Type.DOUBLE => hasher.putDouble(v.asInstanceOf[Double])
+      case Type.BOOLEAN => hasher.putBoolean(v.asInstanceOf[Boolean])
+      case Type.FIXED => hashBytes(field, v, hasher)
+      //  Type.MAP =>
+      case t => throw new UnsupportedOperationException(
+        s"Type `${field.schema.getType}` of `${field.name}` is not supported as sampling key!")
+    }
+  }
+  // scalastyle:on cyclomatic.complexity
+
+  private def hashEnum(field: Schema.Field, v: AnyRef, hasher: Hasher): Hasher = {
+    // Enum has two possible types depending on if v came from a specific or generic record
+    v match {
+      case sv: Enum[_] => hasher.putString(sv.name, BigSampler.utf8Charset)
+      case gv: GenericData.EnumSymbol => hasher.putString(gv.toString, BigSampler.utf8Charset)
+      case _ => throw new UnsupportedOperationException(
+        s"Internal type of `${field.name}` not consistent with `${field.schema.getType}`!")
+    }
+  }
+
+  private def hashBytes(field: Schema.Field, v: AnyRef, hasher: Hasher): Hasher = {
+    // Convert to string to have hex representations of bytes and raw bytes consistent
+    v match {
+      case sv: Array[Byte] =>
+        hasher.putString(Hex.encodeHexString(sv), BigSampler.utf8Charset)
+      case gv: ByteBuffer =>
+        hasher.putString(Hex.encodeHexString(gv.array()), BigSampler.utf8Charset)
+      case fv: GenericFixed =>
+        hasher.putString(Hex.encodeHexString(fv.bytes()), BigSampler.utf8Charset)
+      case _ => throw new UnsupportedOperationException(
+        s"Internal type of `${field.name}` not consistent with `${field.schema.getType}`!")
+    }
+  }
 
   private def getRecordSchema(schema: Schema): Schema = {
     schema.getType match {
