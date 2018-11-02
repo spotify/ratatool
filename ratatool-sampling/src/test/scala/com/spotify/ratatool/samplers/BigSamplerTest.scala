@@ -50,11 +50,16 @@ object BigSamplerTest extends Properties("BigSampler") {
   property("dice on the same element should match") = forAll { i: Int =>
     val hasher1 = newTestFarmHasher()
     hasher1.putInt(i)
-    val dice1 = BigSampler.diceElement(i, hasher1.hash(), 1.0)
+    val dice1 = BigSampler.diceElement(i, hasher1.hash(), 0.01)
     val hasher2 = newTestFarmHasher()
     hasher2.putInt(i)
-    val dice2 = BigSampler.diceElement(i, hasher2.hash(), 1.0)
+    val dice2 = BigSampler.diceElement(i, hasher2.hash(), 0.01)
     dice1 == dice2
+  }
+
+  property("boundLong should be between 0 and 1") = forAll { i: Long =>
+    val boundedLong = BigSampler.boundLong(i)
+    boundedLong >= 0.0 && boundedLong <= 1.0
   }
 
   private val negativeHashCodeStringGen: Gen[(String, Hasher)] = for {
@@ -71,7 +76,7 @@ object BigSamplerTest extends Properties("BigSampler") {
 
     forAll(negativeHashCodeStringGen){ case (s, hasher) =>
       val hash = hasher.putString(s, BigSampler.utf8Charset).hash()
-      BigSampler.diceElement(s, hash, 100).contains(s)
+      BigSampler.diceElement(s, hash, 1.0).contains(s)
       BigSampler.diceElement(s, hash, 0).isEmpty
     }
 
