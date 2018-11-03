@@ -75,13 +75,24 @@ object BigSampler extends Command {
   }
 
   /**
+    * Maps a long value to a double in [0, 1] such that Long.MinValue -> 0.0 and
+    * Long.MaxValue -> 1.0.
+    *
+    * @param a A long value.
+    * @return The [0, 1] bounded double.
+    */
+  private[samplers] def boundLong(a: Long): Double = {
+    (a.toDouble - Long.MinValue.toDouble) / (Long.MaxValue.toDouble - Long.MinValue.toDouble)
+  }
+
+  /**
    * Internal element dicing method.
    *
-   * @param samplePct (0.0, 100.0]
+   * @param sampleFraction (0.0, 1.0]
    */
-  private[samplers] def diceElement[T](e: T, hash: HashCode, samplePct: Double): Option[T] = {
+  private[samplers] def diceElement[T](e: T, hash: HashCode, sampleFraction: Double): Option[T] = {
     //TODO: for now leave it up to jit/compiler to optimize
-    if (math.abs(hash.asLong) % 100.0 < samplePct) {
+    if (boundLong(hash.asLong) < sampleFraction) {
       Some(e)
     } else {
       None
@@ -276,7 +287,7 @@ object BigSampler extends Command {
       s.map { v =>
         val hasher = BigSampler.hashFun(seed = seed)
         val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
-        (keyFn(v), (v, (math.abs(hash.asLong) % 1000000.0) / 1000000))
+        (keyFn(v), (v, boundLong(hash.asLong)))
       }
     }
 
@@ -290,18 +301,17 @@ object BigSampler extends Command {
         s.sampleDist(d, keyFn, fraction)
 
       case (Deterministic, None, Approximate) =>
-        val samplePct100 = fraction * 100.0
         s.flatMap { e =>
           val hasher = BigSampler.hashFun(seed = seed)
           val hash = fields.foldLeft(hasher)((h, f) => hashFn(e, f, h)).hash
-          BigSampler.diceElement(e, hash, samplePct100)
+          BigSampler.diceElement(e, hash, fraction)
         }
 
       case (Deterministic, Some(StratifiedDistribution), Approximate) =>
         val sampled = s.flatMap { v =>
           val hasher = BigSampler.hashFun(seed = seed)
           val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
-          BigSampler.diceElement(v, hash, fraction * 100.0)
+          BigSampler.diceElement(v, hash, fraction)
         }.keyBy(keyFn(_))
 
         val sampledDiffs = buildStratifiedDiffs(s, sampled, keyFn, fraction)
@@ -314,7 +324,7 @@ object BigSampler extends Command {
           .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
           val hasher = BigSampler.hashFun(seed = seed)
           val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
-          BigSampler.diceElement(v, hash, prob * 100.0).map(e => (k, e))
+          BigSampler.diceElement(v, hash, prob).map(e => (k, e))
         }
 
         val sampledDiffs =
