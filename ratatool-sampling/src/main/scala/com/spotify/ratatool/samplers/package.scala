@@ -19,7 +19,7 @@ package com.spotify.ratatool
 
 import com.google.api.services.bigquery.model.TableSchema
 import com.google.protobuf.AbstractMessage
-import com.spotify.ratatool.samplers.util.{Approximate, Precision, SampleDistribution}
+import com.spotify.ratatool.samplers.util._
 import com.spotify.ratatool.serde.JsonSerDe
 import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.values.SCollection
@@ -41,6 +41,7 @@ package object samplers {
    * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
    * @param precision Approximate or Exact precision
    * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
+   * @param byteEncoding Determines how bytes are encoded prior to hashing.
    * @tparam T Record Type
    * @return SCollection containing Sample population
    */
@@ -52,7 +53,8 @@ package object samplers {
                                                  distribution: Option[SampleDistribution] = None,
                                                  distributionFields: Seq[String] = Seq(),
                                                  precision: Precision = Approximate,
-                                                 maxKeySize: Int = 1e6.toInt)
+                                                 maxKeySize: Int = 1e6.toInt,
+                                                 byteEncoding: ByteEncoding = RawEncoding)
   : SCollection[T] = {
     val schemaSer = schema.toString(false)
     @transient lazy val schemaSerDe = new Schema.Parser().parse(schemaSer)
@@ -60,7 +62,7 @@ package object samplers {
     BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
       BigSamplerAvro.hashAvroField(schemaSerDe),
       BigSamplerAvro.buildKey(schemaSerDe, distributionFields),
-      maxKeySize)
+      maxKeySize, byteEncoding)
   }
 
   /**
@@ -73,6 +75,7 @@ package object samplers {
    * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
    * @param precision Approximate or Exact precision
    * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
+   * @param byteEncoding Determines how bytes are encoded prior to hashing.
    * @return SCollection containing Sample population
    */
   def sampleTableRow(coll: SCollection[TableRow],
@@ -83,7 +86,8 @@ package object samplers {
                      distribution: Option[SampleDistribution] = None,
                      distributionFields: Seq[String] = Seq(),
                      precision: Precision = Approximate,
-                     maxKeySize: Int = 1e6.toInt)
+                     maxKeySize: Int = 1e6.toInt,
+                     byteEncoding: ByteEncoding = RawEncoding)
   : SCollection[TableRow] = {
     val schemaStr = JsonSerDe.toJsonString(schema)
     @transient lazy val schemaFields =
@@ -91,7 +95,7 @@ package object samplers {
 
     BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
       BigSamplerBigQuery.hashTableRow(schemaFields),
-      BigSamplerBigQuery.buildKey(schemaFields, distributionFields), maxKeySize)
+      BigSamplerBigQuery.buildKey(schemaFields, distributionFields), maxKeySize, byteEncoding)
   }
 
   /**
@@ -104,6 +108,7 @@ package object samplers {
    * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
    * @param precision Approximate or Exact precision
    * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
+   * @param byteEncoding Determines how bytes are encoded prior to hashing.
    * @tparam T Record Type
    * @return SCollection containing Sample population
    */
@@ -114,11 +119,12 @@ package object samplers {
                                                    distribution: Option[SampleDistribution]=None,
                                                    distributionFields: Seq[String] = Seq(),
                                                    precision: Precision = Approximate,
-                                                   maxKeySize: Int = 1e6.toInt)
+                                                   maxKeySize: Int = 1e6.toInt,
+                                                   byteEncoding: ByteEncoding = RawEncoding)
   : SCollection[T] = {
     BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
       BigSamplerProto.hashProtobufField, BigSamplerProto.buildKey(distributionFields),
-      maxKeySize)
+      maxKeySize, byteEncoding)
   }
   //scalastyle:on parameter.number
 

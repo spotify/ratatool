@@ -21,12 +21,13 @@ import java.nio.ByteBuffer
 import java.nio.file.{Files, Path}
 
 import com.google.common.hash.Hasher
+import com.google.common.io.BaseEncoding
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.scalacheck._
 import com.spotify.ratatool.io.{AvroIO, FileStorage}
+import com.spotify.ratatool.samplers.util.{ByteHasher, HexEncoding}
 import org.apache.avro.generic.GenericRecord
-import org.apache.commons.codec.binary.Hex
 import org.scalacheck.Prop.{all, forAll, proved}
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Gen, Properties}
@@ -354,22 +355,28 @@ object BigSamplerTest extends Properties("BigSampler") {
 
   property("hashes of bytes, hex strings, and fixed should be the same") = forAll(
     specificAvroGen) { case avro =>
+    val hexEncode = BaseEncoding.base16.lowerCase
     avro.getRequiredFields.setBytesField(
       ByteBuffer.wrap(avro.getRequiredFields.getFixedField.bytes))
     avro.getRequiredFields.setStringField(
-      Hex.encodeHexString(avro.getRequiredFields.getFixedField.bytes))
+      hexEncode.encode(avro.getRequiredFields.getFixedField.bytes))
 
-    val hasher1 = newTestKissHasher(Some(0))
+    val hasher1 =
+      ByteHasher.wrap(newTestKissHasher(Some(0)), HexEncoding, BigSampler.utf8Charset)
     val bytesHash =
-      BigSampler.hashAvroField(avro, "required_fields.bytes_field", avroSchema, hasher1).hash()
+      BigSampler.hashAvroField(avro, "required_fields.bytes_field", avroSchema,
+        hasher1).hash()
 
-    val hasher2 = newTestKissHasher(Some(0))
+    val hasher2 =
+      ByteHasher.wrap(newTestKissHasher(Some(0)), HexEncoding, BigSampler.utf8Charset)
     val fixedHash =
-      BigSampler.hashAvroField(avro, "required_fields.fixed_field", avroSchema, hasher2).hash()
+      BigSampler.hashAvroField(avro, "required_fields.fixed_field", avroSchema,
+        hasher2).hash()
 
     val hasher3 = newTestKissHasher(Some(0))
     val stringHash =
-      BigSampler.hashAvroField(avro, "required_fields.string_field", avroSchema, hasher3).hash()
+      BigSampler.hashAvroField(avro, "required_fields.string_field", avroSchema,
+        hasher3).hash()
 
     bytesHash == fixedHash && fixedHash == stringHash
   }
@@ -636,8 +643,8 @@ class BigSamplerExactDistJobTest extends BigSamplerJobTestRoot {
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.25 +- 125
-    largeStrataCount/totalCount shouldBe 0.5 +- 0.01
-    smallStrataCount/totalCount shouldBe 0.5 +- 0.01
+    largeStrataCount/totalCount shouldBe 0.5 +- 0.02
+    smallStrataCount/totalCount shouldBe 0.5 +- 0.02
   }
 
   it should "sample uniformly across a single field with hash exactly" in withOutFile { outDir =>
@@ -662,7 +669,7 @@ class BigSamplerExactDistJobTest extends BigSamplerJobTestRoot {
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.2 +- 125
-    largeStrataCount/totalCount shouldBe 0.5 +- 0.01
-    smallStrataCount/totalCount shouldBe 0.5 +- 0.01
+    largeStrataCount/totalCount shouldBe 0.5 +- 0.02
+    smallStrataCount/totalCount shouldBe 0.5 +- 0.02
   }
 }

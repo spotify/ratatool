@@ -122,6 +122,7 @@ object BigSampler extends Command {
         |  [--distribution=(uniform|stratified)]      An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
         |  [--distributionFields=<field1,field2,...>] An optional list of fields to sample for distribution. Must provide `distribution`
         |  [--exact]                                  An optional arg for higher precision distribution sampling.
+        |  [--byteEncoding=(raw|hex|base64)]          An optional arg for how to encode fields of type bytes: raw bytes, hex encoded string, or base64 encoded string. Default is to hash raw bytes.
         |
         |Since this runs a Scio/Beam pipeline, Dataflow options will have to be provided. At a
         |minimum, the following should be specified:
@@ -192,6 +193,8 @@ object BigSampler extends Command {
         throw e
     }
 
+    val byteEncoding = ByteEncoding.fromString(args.getOrElse("byteEncoding", "raw"))
+
     if (fields.isEmpty) {
       log.warn("No fields to hash on specified, won't guarantee cohorts between datasets.")
     }
@@ -225,7 +228,8 @@ object BigSampler extends Command {
         distribution,
         distributionFields,
         exact,
-        sizePerKey
+        sizePerKey,
+        byteEncoding
       )
     } else if (parseAsURI(input).isDefined) {
       // right now only support for avro
@@ -243,7 +247,8 @@ object BigSampler extends Command {
         distribution,
         distributionFields,
         exact,
-        sizePerKey
+        sizePerKey,
+        byteEncoding
       )
     } else {
       throw new UnsupportedOperationException(s"Input `$input not supported.")
@@ -265,6 +270,7 @@ object BigSampler extends Command {
    * @param hashFn Function to construct a hash given a record, field, and hasher
    * @param keyFn Function to extract a value given a record
    * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
+   * @param byteEncoding Determines how bytes are encoded prior to hashing.
    * @tparam T Record Type
    * @tparam U Key Type, usually we use Set[String]
    * @return SCollection containing Sample population
@@ -278,14 +284,16 @@ object BigSampler extends Command {
                                         precision: Precision,
                                         hashFn: (T, String, Hasher) => Hasher,
                                         keyFn: T => U,
-                                        maxKeySize: Int = 1e6.toInt): SCollection[T] = {
-
+                                        maxKeySize: Int = 1e6.toInt,
+                                        byteEncoding: ByteEncoding = RawEncoding)
+  : SCollection[T] = {
     def assignHashRoll(s: SCollection[T],
                        seed: Option[Int],
                        fields: Seq[String])
     : SCollection[(U, (T, Double))] = {
       s.map { v =>
-        val hasher = BigSampler.hashFun(seed = seed)
+        val hasher =
+          ByteHasher.wrap(BigSampler.hashFun(seed = seed), byteEncoding, utf8Charset)
         val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
         (keyFn(v), (v, boundLong(hash.asLong)))
       }
@@ -302,14 +310,16 @@ object BigSampler extends Command {
 
       case (Deterministic, None, Approximate) =>
         s.flatMap { e =>
-          val hasher = BigSampler.hashFun(seed = seed)
+          val hasher =
+            ByteHasher.wrap(BigSampler.hashFun(seed = seed), byteEncoding, utf8Charset)
           val hash = fields.foldLeft(hasher)((h, f) => hashFn(e, f, h)).hash
           BigSampler.diceElement(e, hash, fraction)
         }
 
       case (Deterministic, Some(StratifiedDistribution), Approximate) =>
         val sampled = s.flatMap { v =>
-          val hasher = BigSampler.hashFun(seed = seed)
+          val hasher =
+            ByteHasher.wrap(BigSampler.hashFun(seed = seed), byteEncoding, utf8Charset)
           val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
           BigSampler.diceElement(v, hash, fraction)
         }.keyBy(keyFn(_))
@@ -322,7 +332,8 @@ object BigSampler extends Command {
         val (popPerKey, probPerKey) = uniformParams(s, keyFn, fraction)
         val sampled = s.keyBy(keyFn(_))
           .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
-          val hasher = BigSampler.hashFun(seed = seed)
+          val hasher =
+            ByteHasher.wrap(BigSampler.hashFun(seed = seed), byteEncoding, utf8Charset)
           val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
           BigSampler.diceElement(v, hash, prob).map(e => (k, e))
         }
