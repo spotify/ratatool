@@ -411,7 +411,7 @@ object BigDiffy extends Command {
     sys.exit(1)
   }
 
-  private def avroKeyFn(key: String): GenericRecord => String = {
+  private def avroKeyFn(keys: Seq[String]): GenericRecord => String = {
     @tailrec
     def get(xs: Array[String], i: Int, r: GenericRecord): String =
       if (i == xs.length - 1) {
@@ -419,11 +419,10 @@ object BigDiffy extends Command {
       } else {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[GenericRecord])
       }
-    val xs = key.split('.')
-    (r: GenericRecord) => get(xs, 0, r)
+    (r: GenericRecord) =>  keys.map { k => get(k.split('.'), 0, r) }.mkString("_")
   }
 
-  private def tableRowKeyFn(key: String): TableRow => String = {
+  private def tableRowKeyFn(keys: Seq[String]): TableRow => String = {
     @tailrec
     def get(xs: Array[String], i: Int, r: java.util.Map[String, AnyRef]): String =
       if (i == xs.length - 1) {
@@ -431,8 +430,8 @@ object BigDiffy extends Command {
       } else {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[java.util.Map[String, AnyRef]])
       }
-    val xs = key.split('.')
-    (r: TableRow) => get(xs, 0, r)
+
+    (r: TableRow) =>  keys.map { k => get(k.split('.'), 0, r) }.mkString("_")
   }
 
   def pathWithShards(path: String): String = path.replaceAll("\\/+$", "") + "/part"
@@ -456,9 +455,9 @@ object BigDiffy extends Command {
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
-    val (inputMode, key, lhs, rhs, output, header, ignore, unordered, outputMode) = {
+    val (inputMode, keys, lhs, rhs, output, header, ignore, unordered, outputMode) = {
       try {
-        (args("input-mode"), args("key"), args("lhs"), args("rhs"), args("output"),
+        (args("input-mode"), args.list("key"), args("lhs"), args("rhs"), args("output"),
           args.boolean("with-header", false), args.list("ignore").toSet,
           args.list("unordered").toSet, args.optional("output-mode"))
       } catch {
@@ -481,7 +480,7 @@ object BigDiffy extends Command {
         val schema = new AvroSampler(rhs, conf = Some(sc.options))
           .sample(1, head = true).head.getSchema
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered)
-        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(key), diffy, schema)
+        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(keys), diffy, schema)
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQueryClient.defaultInstance()
@@ -489,7 +488,7 @@ object BigDiffy extends Command {
         val rSchema = bq.getTableSchema(rhs)
         val schema = mergeTableSchema(lSchema, rSchema)
         val diffy = new TableRowDiffy(schema, ignore, unordered)
-        BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(key), diffy)
+        BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(keys), diffy)
       case m =>
         throw new IllegalArgumentException(s"input mode $m not supported")
     }
