@@ -17,56 +17,62 @@
 
 package com.spotify.ratatool.samplers
 
-import com.spotify.ratatool.GcsConfiguration
-import org.apache.avro.file.DataFileReader
+import java.nio.channels.Channels
+
+import org.apache.avro.file.{DataFileReader, DataFileStream}
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
-import org.apache.hadoop.fs._
+import org.apache.beam.sdk.io.FileSystems
+import org.apache.beam.sdk.io.fs.ResourceId
+import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.collection.mutable.{ListBuffer, Set => MSet}
+import scala.collection.mutable.{ArrayBuffer, ListBuffer, Set => MSet}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.util.Random
+import scala.collection.JavaConverters._
 
 /** Sampler for Avro files. */
-class AvroSampler(path: Path, protected val seed: Option[Long] = None)
+class AvroSampler(path: String, protected val seed: Option[Long] = None,
+                  protected val conf: Option[PipelineOptions] = None)
   extends Sampler[GenericRecord] {
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[AvroSampler])
 
-  private def getFileContext: FileContext = FileContext.getFileContext(GcsConfiguration.get())
+//  private def getFileContext: FileContext = FileContext.getFileContext(GcsConfiguration.get())
 
   override def sample(n: Long, head: Boolean): Seq[GenericRecord] = {
     require(n > 0, "n must be > 0")
     logger.info("Taking a sample of {} from Avro {}", n, path)
 
-    val fs = FileSystem.get(path.toUri, GcsConfiguration.get())
-    if (fs.isFile(path)) {
-      new AvroFileSampler(getFileContext, path, seed).sample(n, head)
+//    val fs = FileSystem.get(path.toUri, GcsConfiguration.get())
+    FileSystems.setDefaultPipelineOptions(conf.getOrElse(PipelineOptionsFactory.create()))
+    val matches = FileSystems.`match`(path).metadata().asScala
+    if (!FileSystems.hasGlobWildcard(path)) {
+      val resource = matches.head.resourceId()
+      new AvroFileSampler(resource, seed).sample(n, head)
     } else {
-      val filter = new PathFilter {
-        override def accept(path: Path): Boolean = path.getName.endsWith(".avro")
-      }
-      val statuses = fs.listStatus(path, filter).sortBy(_.getPath.toString)
-      val paths = statuses.map(_.getPath)
-
       if (head) {
+        val resources = matches.map(_.resourceId())
+          .sortBy(_.toString)
         // read from the start
         val result = ListBuffer.empty[GenericRecord]
-        val iter = paths.iterator
+        val iter = resources.toIterator
         while (result.size < n && iter.hasNext) {
-          result.appendAll(new AvroFileSampler(getFileContext, iter.next()).sample(n, head))
+          result.appendAll(new AvroFileSampler(iter.next()).sample(n, head))
         }
         result
       } else {
+        val tups = matches
+          .map(md => (md.resourceId(), md.sizeBytes()))
+          .sortBy(_._1.toString).toArray
         // randomly sample from shards
-        val sizes = statuses.map(_.getLen)
+        val sizes = tups.map(_._2)
+        val resources = tups.map(_._1)
         val samples = scaleWeights(sizes, n)
-        val futures = paths.zip(samples).map { case (p, s) =>
-          val fc = getFileContext
-          Future(new AvroFileSampler(fc, p)
-            .sample(s, head))
+        val futures = resources.zip(samples).map { case (r, s) =>
+          Future(new AvroFileSampler(r).sample(s, head))
         }.toSeq
         Await.result(Future.sequence(futures), Duration.Inf).flatten
       }
@@ -92,51 +98,44 @@ class AvroSampler(path: Path, protected val seed: Option[Long] = None)
 
 }
 
-private class AvroFileSampler(fc: FileContext, path: Path, protected val seed: Option[Long] = None)
+private class AvroFileSampler(r: ResourceId, protected val seed: Option[Long] = None)
   extends Sampler[GenericRecord] {
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[AvroFileSampler])
 
   override def sample(n: Long, head: Boolean): Seq[GenericRecord] = {
     require(n > 0, "n must be > 0")
-    logger.debug("Taking a sample of {} from Avro file {}", n, path)
 
-    val input = new AvroFSInput(fc, path)
+    val input = Channels.newInputStream(FileSystems.open(r))
     val datumReader = new GenericDatumReader[GenericRecord]()
-    val fileReader = DataFileReader.openReader(input, datumReader)
+    val fileStream = new DataFileStream[GenericRecord](input, datumReader)
+    fileStream.getBlockCount
 
-    val schema = fileReader.getSchema
+    val schema = fileStream.getSchema
     logger.debug("Avro schema {}", schema)
-    val start = fileReader.tell()
-    val end = input.length()
-    val range = end - start
 
-    val result = ListBuffer.empty[GenericRecord]
+    val result = ArrayBuffer.empty[GenericRecord]
     if (head) {
       // read from the start
-      while (result.size < n && fileReader.hasNext) {
-        result.append(fileReader.next())
+      while (result.size < n && fileStream.hasNext) {
+        result.append(fileStream.next())
       }
     } else {
-      // rejection sampling until n unique samples are obtained
-      val positions = MSet.empty[Long]
-      var collisions = 0
-      while (result.size < n && collisions < 10) {
-        // pick a random offset and move to the next sync point
-        val off = start + nextLong(range)
-        fileReader.sync(off)
-        val pos = fileReader.tell()
+      // Reservoir sample imperative way
+      // Fill result with first n elements
+      while (result.size < n && fileStream.hasNext) {
+        result.append(fileStream.next())
+      }
 
-        // sync position may be sampled already
-        if (positions.contains(pos) || !fileReader.hasNext) {
-          collisions += 1
-          logger.debug("Sync point collision {} at position {}", collisions, pos)
-        } else {
-          collisions = 0
-          positions.add(pos)
-          result.append(fileReader.next())
-          logger.debug("New sample sync point at position {}", pos)
+      // Then randomly select from all other elements in the stream
+      var index = n
+      while (fileStream.hasNext) {
+        val next = fileStream.next()
+        val loc = nextLong(index + 1)
+        if (loc < n) {
+          result(loc.toInt) = next
         }
+        index += 1
       }
     }
     result
