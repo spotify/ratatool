@@ -19,14 +19,14 @@ package com.spotify.ratatool.samplers
 
 import java.nio.channels.Channels
 
-import org.apache.avro.file.{DataFileReader, DataFileStream}
+import org.apache.avro.file.DataFileStream
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.io.fs.ResourceId
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.collection.mutable.{ArrayBuffer, ListBuffer, Set => MSet}
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
@@ -40,13 +40,10 @@ class AvroSampler(path: String, protected val seed: Option[Long] = None,
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[AvroSampler])
 
-//  private def getFileContext: FileContext = FileContext.getFileContext(GcsConfiguration.get())
-
   override def sample(n: Long, head: Boolean): Seq[GenericRecord] = {
     require(n > 0, "n must be > 0")
     logger.info("Taking a sample of {} from Avro {}", n, path)
 
-//    val fs = FileSystem.get(path.toUri, GcsConfiguration.get())
     FileSystems.setDefaultPipelineOptions(conf.getOrElse(PipelineOptionsFactory.create()))
     val matches = FileSystems.`match`(path).metadata().asScala
     if (!FileSystems.hasGlobWildcard(path)) {
