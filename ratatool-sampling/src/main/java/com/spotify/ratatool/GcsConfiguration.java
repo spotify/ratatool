@@ -82,15 +82,15 @@ public class GcsConfiguration {
 
           conf.setIfUnset(
               HadoopCredentialConfiguration.BASE_KEY_PREFIX +
-                  HadoopCredentialConfiguration.ENABLE_SERVICE_ACCOUNTS_SUFFIX,
+              HadoopCredentialConfiguration.ENABLE_SERVICE_ACCOUNTS_SUFFIX,
               "false");
           conf.setIfUnset(
               HadoopCredentialConfiguration.BASE_KEY_PREFIX +
-                  HadoopCredentialConfiguration.CLIENT_ID_SUFFIX,
+              HadoopCredentialConfiguration.CLIENT_ID_SUFFIX,
               clientId);
           conf.setIfUnset(
               HadoopCredentialConfiguration.BASE_KEY_PREFIX +
-                  HadoopCredentialConfiguration.CLIENT_SECRET_SUFFIX,
+              HadoopCredentialConfiguration.CLIENT_SECRET_SUFFIX,
               clientSecret);
         }
       }

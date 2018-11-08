@@ -51,7 +51,7 @@ object Ratatool {
           val o = opts.get
           o.mode match {
             case "avro" =>
-              val data = new AvroSampler(new Path(o.in)).sample(o.n, o.head)
+              val data = new AvroSampler(o.in).sample(o.n, o.head)
               AvroIO.writeToFile(data, data.head.getSchema, o.out)
             case "bigquery" =>
               val sampler = new BigQuerySampler(BigQueryIO.parseTableSpec(o.in))

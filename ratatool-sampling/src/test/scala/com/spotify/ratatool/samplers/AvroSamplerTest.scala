@@ -18,7 +18,7 @@
 package com.spotify.ratatool.samplers
 
 import java.io.File
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.scalacheck._
@@ -35,6 +35,7 @@ class AvroSamplerTest extends FlatSpec with Matchers with BeforeAndAfterAllConfi
   val dir = Files.createTempDirectory("ratatool-")
   val file1 = new File(dir.toString, "part-00000.avro")
   val file2 = new File(dir.toString, "part-00001.avro")
+  val dirWildcard = new File(dir.toString, "*.avro")
 
   override protected def beforeAll(configMap: ConfigMap): Unit = {
     AvroIO.writeToFile(data1, schema, file1)
@@ -46,25 +47,25 @@ class AvroSamplerTest extends FlatSpec with Matchers with BeforeAndAfterAllConfi
   }
 
   "AvroSampler" should "support single file in head mode" in {
-    val result = new AvroSampler(new Path(file1.getAbsolutePath)).sample(10, head = true)
+    val result = new AvroSampler(file1.getAbsolutePath).sample(10, head = true)
     result.size shouldBe 10
     result should equal (data1.take(10))
   }
 
   it should "support single file in random mode" in {
-    val result = new AvroSampler(new Path(file1.getAbsolutePath)).sample(10, head = false)
+    val result = new AvroSampler(file1.getAbsolutePath).sample(10, head = false)
     result.size shouldBe 10
     result.forall(data1.contains(_)) shouldBe true
   }
 
   it should "support multiple files in head mode" in {
-    val result = new AvroSampler(new Path(dir.toString)).sample(10, head = true)
+    val result = new AvroSampler(dirWildcard.getAbsolutePath).sample(10, head = true)
     result.size shouldBe 10
     result should equal (data1.take(10))
   }
 
   it should "support multiple files in random mode" in {
-    val result = new AvroSampler(new Path(dir.toString)).sample(10, head = false)
+    val result = new AvroSampler(dirWildcard.getAbsolutePath).sample(10, head = false)
     result.size shouldBe 10
     result.exists(data1.contains(_)) shouldBe true
     result.exists(data2.contains(_)) shouldBe true

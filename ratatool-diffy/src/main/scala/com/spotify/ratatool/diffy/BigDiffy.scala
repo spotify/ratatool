@@ -17,11 +17,9 @@
 
 package com.spotify.ratatool.diffy
 
-import java.net.URI
-
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.protobuf.AbstractMessage
-import com.spotify.ratatool.{Command, GcsConfiguration}
+import com.spotify.ratatool.Command
 import com.spotify.ratatool.samplers.AvroSampler
 import com.spotify.scio._
 import com.spotify.scio.bigquery.BigQueryClient
@@ -31,8 +29,7 @@ import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
-import org.apache.beam.sdk.io.TextIO
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.beam.sdk.io.{FileSystems, TextIO}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -480,10 +477,9 @@ object BigDiffy extends Command {
 
     val result = inputMode match {
       case "avro" =>
-        // TODO: handle schema evolution
-        val fs = FileSystem.get(new URI(rhs), GcsConfiguration.get())
-        val path = fs.globStatus(new Path(rhs)).head.getPath
-        val schema = new AvroSampler(path).sample(1, true).head.getSchema
+        // TODO: handle schema
+        val schema = new AvroSampler(rhs, conf = Some(sc.options))
+          .sample(1, head = true).head.getSchema
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered)
         BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(key), diffy, schema)
       case "bigquery" =>
