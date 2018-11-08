@@ -29,7 +29,7 @@ import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
-import org.apache.beam.sdk.io.{FileSystems, TextIO}
+import org.apache.beam.sdk.io.TextIO
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -383,7 +383,7 @@ object BigDiffy extends Command {
         |
         |  --input-mode=(avro|bigquery)     Diff-ing Avro or BQ records
         |  [--output-mode=(gcs|bigquery)]   Saves to a text file in GCS or a BigQuery dataset. Defaults to GCS
-        |  --key=<key>                      '.' separated key field
+        |  --key=<key>                      '.' separated key field. Specify multiple --key params for multi key usage.
         |  --lhs=<path>                     LHS File path or BigQuery table
         |  --rhs=<path>                     RHS File path or BigQuery table
         |  --output=<output>                File path prefix for output
@@ -411,7 +411,7 @@ object BigDiffy extends Command {
     sys.exit(1)
   }
 
-  private def avroKeyFn(keys: Seq[String]): GenericRecord => String = {
+  private[diffy] def avroKeyFn(keys: Seq[String]): GenericRecord => String = {
     @tailrec
     def get(xs: Array[String], i: Int, r: GenericRecord): String =
       if (i == xs.length - 1) {
@@ -424,7 +424,7 @@ object BigDiffy extends Command {
     (r: GenericRecord) =>  xs.map { x => get(x, 0, r) }.mkString("_")
   }
 
-  private def tableRowKeyFn(keys: Seq[String]): TableRow => String = {
+  private[diffy] def tableRowKeyFn(keys: Seq[String]): TableRow => String = {
     @tailrec
     def get(xs: Array[String], i: Int, r: java.util.Map[String, AnyRef]): String =
       if (i == xs.length - 1) {

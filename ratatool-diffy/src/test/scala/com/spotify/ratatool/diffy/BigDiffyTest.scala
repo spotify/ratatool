@@ -17,14 +17,17 @@
 
 package com.spotify.ratatool.diffy
 
-import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
-import com.spotify.ratatool.scalacheck._
-import com.spotify.scio.testing.PipelineSpec
 import org.apache.avro.util.Utf8
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
+
+import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
+import com.spotify.ratatool.scalacheck._
+import com.spotify.scio.testing.PipelineSpec
+
+import com.google.api.services.bigquery.model.TableRow
 
 class BigDiffyTest extends PipelineSpec {
 
@@ -116,4 +119,41 @@ class BigDiffyTest extends PipelineSpec {
     }
   }
 
+  "BigDiffy avroKeyFn" should "work with single key" in {
+    val record = specificRecordOf[TestRecord].sample.get
+    val keyValue = BigDiffy.avroKeyFn(Seq("required_fields.int_field"))(record)
+
+    keyValue shouldBe record.getRequiredFields.getIntField.toString
+  }
+
+  "BigDiffy avroKeyFn" should "work with multiple key" in {
+    val record = specificRecordOf[TestRecord].sample.get
+    val keys = Seq("required_fields.int_field", "required_fields.double_field")
+    val keyValues = BigDiffy.avroKeyFn(keys)(record)
+    val expectedKey =
+      s"${record.getRequiredFields.getIntField}_${record.getRequiredFields.getDoubleField}"
+
+    keyValues shouldBe expectedKey
+  }
+
+  "BigDiffy tableRowKeyFn" should "work with single key" in {
+    val record = new TableRow()
+    record.set("key", "foo")
+    val keyValue = BigDiffy.tableRowKeyFn(Seq("key"))(record)
+
+    keyValue shouldBe "foo"
+  }
+
+  "BigDiffy tableRowKeyFn" should "work with multiple key" in {
+    val subRecord = new TableRow()
+    subRecord.set("key", "foo")
+    subRecord.set("other_key", "bar")
+    val record = new TableRow()
+    record.set("record", subRecord)
+
+    val keys = Seq("record.key", "record.other_key")
+    val keyValues = BigDiffy.tableRowKeyFn(keys)(record.asInstanceOf[TableRow])
+
+    keyValues shouldBe "foo_bar"
+  }
 }
