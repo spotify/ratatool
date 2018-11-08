@@ -419,7 +419,9 @@ object BigDiffy extends Command {
       } else {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[GenericRecord])
       }
-    (r: GenericRecord) =>  keys.map { k => get(k.split('.'), 0, r) }.mkString("_")
+
+    val xs = keys.map(_.split('.'))
+    (r: GenericRecord) =>  xs.map { x => get(x, 0, r) }.mkString("_")
   }
 
   private def tableRowKeyFn(keys: Seq[String]): TableRow => String = {
@@ -431,7 +433,8 @@ object BigDiffy extends Command {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[java.util.Map[String, AnyRef]])
       }
 
-    (r: TableRow) =>  keys.map { k => get(k.split('.'), 0, r) }.mkString("_")
+    val xs = keys.map(_.split('.'))
+    (r: TableRow) =>  xs.map { x => get(x, 0, r) }.mkString("_")
   }
 
   def pathWithShards(path: String): String = path.replaceAll("\\/+$", "") + "/part"
