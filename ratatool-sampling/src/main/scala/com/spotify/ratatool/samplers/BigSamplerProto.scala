@@ -28,8 +28,8 @@ private[samplers] object BigSamplerProto {
   private val log = LoggerFactory.getLogger(BigSamplerProto.getClass)
 
   private[samplers] def buildKey(distributionFields: Seq[String])(m: AbstractMessage)
-  : Set[String] = {
-    distributionFields.map(f => getProtobufField(m, f).toString).toSet
+  : Set[Any] = {
+    distributionFields.map(f => getProtobufField(m, f)).toSet
   }
 
   // scalastyle:off cyclomatic.complexity
@@ -80,15 +80,7 @@ private[samplers] object BigSamplerProto {
       field.getJavaType match {
         case JavaType.MESSAGE => getProtobufField(
           v.asInstanceOf[AbstractMessage], subfields.tail.mkString("."))
-        case JavaType.INT => v.asInstanceOf[Int]
-        case JavaType.LONG => v.asInstanceOf[Long]
-        case JavaType.FLOAT => v.asInstanceOf[Float]
-        case JavaType.DOUBLE => v.asInstanceOf[Double]
-        case JavaType.BOOLEAN => v.asInstanceOf[Boolean]
-        case JavaType.STRING => v.asInstanceOf[CharSequence]
-        case JavaType.BYTE_STRING => v.asInstanceOf[ByteString].toByteArray
-        case JavaType.ENUM => v.asInstanceOf[Enum[_]].name
-        // Array, Union
+        case _ => v
       }
     }
   }

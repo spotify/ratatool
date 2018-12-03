@@ -17,6 +17,11 @@
 
 package com.spotify.ratatool.samplers.util
 
+import java.nio.charset.Charset
+
+import com.google.common.hash.{Funnel, HashCode, Hasher}
+import com.google.common.io.BaseEncoding
+
 trait SampleDistribution
 case object StratifiedDistribution extends SampleDistribution
 case object UniformDistribution extends SampleDistribution
@@ -59,6 +64,28 @@ object Precision {
       Exact
     } else {
       Approximate
+    }
+  }
+}
+
+trait ByteEncoding
+case object RawEncoding extends ByteEncoding
+case object HexEncoding extends ByteEncoding
+case object Base64Encoding extends ByteEncoding
+
+object ByteEncoding {
+  def fromString(s: String): ByteEncoding = {
+    if(s == "raw") {
+      RawEncoding
+    }
+    else if(s == "hex") {
+      HexEncoding
+    }
+    else if(s == "base64") {
+      Base64Encoding
+    }
+    else {
+      throw new IllegalArgumentException(s"Invalid byte encoding $s")
     }
   }
 }

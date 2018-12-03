@@ -21,8 +21,7 @@ import java.util.{List => JList}
 
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableReference}
 import com.google.common.hash.Hasher
-import com.google.common.io.BaseEncoding
-import com.spotify.ratatool.samplers.util.{Precision, SampleDistribution}
+import com.spotify.ratatool.samplers.util.{ByteEncoding, Precision, RawEncoding, SampleDistribution}
 import com.spotify.scio.ScioContext
 import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.io.{Tap, Taps}
@@ -39,9 +38,8 @@ private[samplers] object BigSamplerBigQuery {
   private val log = LoggerFactory.getLogger(BigSamplerBigQuery.getClass)
 
   // scalastyle:off cyclomatic.complexity
-  private[samplers] def hashTableRow(tblSchema: => Seq[TableFieldSchema])(r: TableRow,
-                                                                        fieldStr: String,
-                                                                        hasher: Hasher)
+  private[samplers] def hashTableRow(tblSchema: => Seq[TableFieldSchema])
+                                    (r: TableRow, fieldStr: String, hasher: Hasher)
   : Hasher = {
     val subfields = fieldStr.split(BigSampler.fieldSep)
     val field = tblSchema.find(_.getName == subfields.head).getOrElse {
@@ -67,7 +65,7 @@ private[samplers] object BigSamplerBigQuery {
         case "STRING" => vs.foldLeft(hasher)((hasher, v) =>
           hasher.putString(v.toString, BigSampler.utf8Charset))
         case "BYTES" => vs.foldLeft(hasher)((hasher, v) =>
-          hasher.putBytes(BaseEncoding.base64().decode(v.toString)))
+          hasher.putBytes(v.asInstanceOf[Array[Byte]]))
         case "TIMESTAMP" => vs.foldLeft(hasher)((hasher, v) =>
           hasher.putString(v.toString, BigSampler.utf8Charset))
         case "DATE" => vs.foldLeft(hasher)((hasher, v) =>
@@ -106,53 +104,23 @@ private[samplers] object BigSamplerBigQuery {
         s" is null - won't account for hash")
     } else {
       field.getType match {
-        case "BOOLEAN" => v.toString.toBoolean
-        case "INTEGER" => v.toString.toLong
-        case "FLOAT" => v.toString.toFloat
-        case "STRING" => v.toString
-        case "BYTES" => BaseEncoding.base64().decode(v.toString)
-        case "TIMESTAMP" => v.toString
-        case "DATE" => v.toString
-        case "TIME" => v.toString
-        case "DATETIME" => v.toString
         case "RECORD" if fieldStr.nonEmpty =>
           // v is a LinkedHashMap
           getTableRowField(
             TableRow(v.asInstanceOf[java.util.Map[String, AnyRef]].asScala.toList: _*),
             subfields.tail.mkString(BigSampler.fieldSep.toString),
             field.getFields.asScala)
-        case t => throw new UnsupportedOperationException(
-          s"Type `$t` of field `${field.getName}` is not supported as sampling key")
+        case _ => v
       }
     }
   }
   // scalastyle:on cyclomatic.complexity
 
-  @tailrec
-  private def fieldInTblSchema(tblSchema: Seq[TableFieldSchema], fieldStr: String): Boolean = {
-    val subfields = fieldStr.split(BigSampler.fieldSep)
-    val fieldOpt = tblSchema.find(_.getName == subfields.head)
-    if (fieldOpt.isEmpty) {
-      false
-    } else {
-      val field = fieldOpt.get
-      field.getType match {
-        case "RECORD" =>
-          fieldInTblSchema(
-            field.getFields.asScala,
-            subfields.tail.mkString(BigSampler.fieldSep.toString))
-        case "BOOLEAN" | "INTEGER" | "FLOAT" | "STRING" | "BYTES" => true
-        case  t => throw new UnsupportedOperationException(
-          s"Type `$t` of field `${field.getName}` is not supported as sampling key")
-      }
-    }
-  }
-
   private[samplers] def buildKey(schema: => Seq[TableFieldSchema],
                                  distributionFields: Seq[String])(tr: TableRow)
-  : Set[String] = {
+  : Set[Any] = {
     distributionFields.map{ f =>
-      getTableRowField(tr, f, schema).toString
+      getTableRowField(tr, f, schema)
     }.toSet
   }
 
@@ -167,7 +135,8 @@ private[samplers] object BigSamplerBigQuery {
                                distribution: Option[SampleDistribution],
                                distributionFields: List[String],
                                precision: Precision,
-                               sizePerKey: Int)
+                               sizePerKey: Int,
+                               byteEncoding: ByteEncoding = RawEncoding)
   : Future[Tap[TableRow]] = {
     import BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED
     import BigQueryIO.Write.WriteDisposition.WRITE_EMPTY
@@ -184,7 +153,7 @@ private[samplers] object BigSamplerBigQuery {
       val coll = sc.bigQueryTable(inputTbl)
 
       val sampledCollection = sampleTableRow(coll, fraction, schema, fields, seed, distribution,
-        distributionFields, precision, sizePerKey)
+        distributionFields, precision, sizePerKey, byteEncoding)
 
       val r = sampledCollection
         .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "")
