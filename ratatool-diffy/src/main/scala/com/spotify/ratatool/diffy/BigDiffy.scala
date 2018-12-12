@@ -49,6 +49,14 @@ object DiffType extends Enumeration {
   val SAME, DIFFERENT, MISSING_LHS, MISSING_RHS = Value
 }
 
+case class MultiKey(keys: Seq[String]) extends AnyVal {
+  override def toString: String = keys.mkString("_")
+}
+
+object MultiKey {
+  def apply(key: String): MultiKey = MultiKey(Seq(key))
+}
+
 /**
  * Key-field level [[DiffType]] and delta.
  *
@@ -56,14 +64,14 @@ object DiffType extends Enumeration {
  * If DiffType is DIFFERENT, there is one KeyStats for every field that is different for that key
  *  with that field's Delta
  *
- * key - primary being compared.
+ * keys - primary being compared.
  * diffType - how the two records of the given key compares.
  * delta - a single field's difference including field name, values, and distance
  */
-case class KeyStats(key: String, diffType: DiffType.Value, delta: Option[Delta]) {
+case class KeyStats(keys: MultiKey, diffType: DiffType.Value, delta: Option[Delta]) {
   override def toString: String = {
     val deltaStr = delta.map(_.toString).getOrElse("")
-    s"$key\t$diffType\t$deltaStr"
+    s"$keys\t$diffType\t$deltaStr"
   }
 }
 
@@ -120,9 +128,9 @@ case class FieldStats(field: String,
 
 /** Big diff between two data sets given a primary key. */
 class BigDiffy[T](lhs: SCollection[T], rhs: SCollection[T],
-                  diffy: Diffy[T], keyFn: T => String) {
+                  diffy: Diffy[T], keyFn: T => MultiKey) {
 
-  private lazy val _deltas: SCollection[(String, (Seq[Delta], DiffType.Value))] =
+  private lazy val _deltas: BigDiffy.DeltaSCollection =
     BigDiffy.computeDeltas(lhs, rhs, diffy, keyFn)
 
   private lazy val globalAndFieldStats: SCollection[(GlobalStats, Iterable[FieldStats])] =
@@ -133,7 +141,7 @@ class BigDiffy[T](lhs: SCollection[T], rhs: SCollection[T],
    *
    * Output tuples are (key, field, LHS, RHS). Note that LHS and RHS may not be serializable.
    */
-  lazy val deltas: SCollection[(String, String, Any, Any)] =
+  lazy val deltas: SCollection[(MultiKey, String, Any, Any)] =
     _deltas.flatMap { case (k, (ds, dt)) =>
       ds.map(d => (k, d.field, d.left, d.right))
     }
@@ -164,10 +172,10 @@ object BigDiffy extends Command {
   val command: String = "bigDiffy"
 
   // (field, deltas, diff type)
-  type DeltaSCollection = SCollection[(String, (Seq[Delta], DiffType.Value))]
+  type DeltaSCollection = SCollection[(MultiKey, (Seq[Delta], DiffType.Value))]
 
   private def computeDeltas[T](lhs: SCollection[T], rhs: SCollection[T],
-                               d: Diffy[T], keyFn: T => String): DeltaSCollection = {
+                               d: Diffy[T], keyFn: T => MultiKey): DeltaSCollection = {
     // extract keys and prefix records with L/R sub-key
     val lKeyed = lhs.map(t => (keyFn(t), ("l", t)))
     val rKeyed = rhs.map(t => (keyFn(t), ("r", t)))
@@ -253,13 +261,13 @@ object BigDiffy extends Command {
 
   /** Diff two data sets. */
   def diff[T: ClassTag](lhs: SCollection[T], rhs: SCollection[T],
-                        d: Diffy[T], keyFn: T => String): BigDiffy[T] =
+                        d: Diffy[T], keyFn: T => MultiKey): BigDiffy[T] =
     new BigDiffy[T](lhs, rhs, d, keyFn)
 
   /** Diff two Avro data sets. */
   def diffAvro[T <: GenericRecord : ClassTag](sc: ScioContext,
                                               lhs: String, rhs: String,
-                                              keyFn: T => String,
+                                              keyFn: T => MultiKey,
                                               diffy: AvroDiffy[T],
                                               schema: Schema = null): BigDiffy[T] =
     diff(sc.avroFile[T](lhs, schema), sc.avroFile[T](rhs, schema), diffy, keyFn)
@@ -267,14 +275,14 @@ object BigDiffy extends Command {
   /** Diff two ProtoBuf data sets. */
   def diffProtoBuf[T <: AbstractMessage : ClassTag](sc: ScioContext,
                                                      lhs: String, rhs: String,
-                                                     keyFn: T => String,
+                                                     keyFn: T => MultiKey,
                                                      diffy: ProtoBufDiffy[T]): BigDiffy[T] =
     diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
 
   /** Diff two TableRow data sets. */
   def diffTableRow(sc: ScioContext,
                    lhs: String, rhs: String,
-                   keyFn: TableRow => String,
+                   keyFn: TableRow => MultiKey,
                    diffy: TableRowDiffy): BigDiffy[TableRow] =
     diff(sc.bigQueryTable(lhs), sc.bigQueryTable(rhs), diffy, keyFn)
 
@@ -327,7 +335,7 @@ object BigDiffy extends Command {
       case BQ =>
         // Saving to BQ, header irrelevant
         bigDiffy.keyStats.map(stat =>
-          KeyStatsBigQuery(stat.key, stat.diffType.toString, stat.delta.map(d => {
+          KeyStatsBigQuery(stat.keys.toString, stat.diffType.toString, stat.delta.map(d => {
             val dv = d.delta match {
               case TypedDelta(dt, v) =>
                 DeltaValueBigQuery(dt.toString, Option(v))
@@ -411,7 +419,7 @@ object BigDiffy extends Command {
     sys.exit(1)
   }
 
-  private[diffy] def avroKeyFn(keys: Seq[String]): GenericRecord => String = {
+  private[diffy] def avroKeyFn(keys: Seq[String]): GenericRecord => MultiKey = {
     @tailrec
     def get(xs: Array[String], i: Int, r: GenericRecord): String =
       if (i == xs.length - 1) {
@@ -421,10 +429,10 @@ object BigDiffy extends Command {
       }
 
     val xs = keys.map(_.split('.'))
-    (r: GenericRecord) =>  xs.map { x => get(x, 0, r) }.mkString("_")
+    (r: GenericRecord) =>  MultiKey(xs.map(x => get(x, 0, r)))
   }
 
-  private[diffy] def tableRowKeyFn(keys: Seq[String]): TableRow => String = {
+  private[diffy] def tableRowKeyFn(keys: Seq[String]): TableRow => MultiKey = {
     @tailrec
     def get(xs: Array[String], i: Int, r: java.util.Map[String, AnyRef]): String =
       if (i == xs.length - 1) {
@@ -434,7 +442,7 @@ object BigDiffy extends Command {
       }
 
     val xs = keys.map(_.split('.'))
-    (r: TableRow) =>  xs.map { x => get(x, 0, r) }.mkString("_")
+    (r: TableRow) =>  MultiKey(xs.map(x => get(x, 0, r)))
   }
 
   def pathWithShards(path: String): String = path.replaceAll("\\/+$", "") + "/part"

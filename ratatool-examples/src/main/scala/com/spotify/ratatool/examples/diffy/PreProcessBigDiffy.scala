@@ -18,14 +18,14 @@
 package com.spotify.ratatool.examples.diffy
 
 import com.spotify.ratatool.avro.specific.ExampleRecord
-import com.spotify.ratatool.diffy.{AvroDiffy, BigDiffy}
+import com.spotify.ratatool.diffy.{AvroDiffy, BigDiffy, MultiKey}
 import com.spotify.scio.ContextAndArgs
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
 
 object PreProcessBigDiffy {
-  def recordKeyFn(r: ExampleRecord): String = {
-    r.getRecordId.toString
+  def recordKeyFn(r: ExampleRecord): MultiKey = {
+    MultiKey(r.getRecordId.toString)
   }
 
   def mapFn(coder: => AvroCoder[ExampleRecord])(r: ExampleRecord): ExampleRecord = {

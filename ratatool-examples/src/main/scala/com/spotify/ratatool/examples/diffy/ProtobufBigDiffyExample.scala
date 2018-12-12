@@ -20,14 +20,15 @@ package com.spotify.ratatool.examples.diffy
 import java.net.URI
 
 import com.spotify.ratatool.GcsConfiguration
-import com.spotify.ratatool.diffy.{BigDiffy, ProtoBufDiffy}
+import com.spotify.ratatool.diffy.{BigDiffy, MultiKey, ProtoBufDiffy}
 import com.spotify.ratatool.examples.proto.Schemas.ExampleRecord
 import org.apache.hadoop.fs.{FileSystem, Path}
+
 import com.spotify.scio._
 
 object ProtobufBigDiffyExample {
-  def recordKeyFn(t: ExampleRecord): String = {
-    t.getStringField
+  def recordKeyFn(t: ExampleRecord): MultiKey = {
+    MultiKey(t.getStringField)
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
