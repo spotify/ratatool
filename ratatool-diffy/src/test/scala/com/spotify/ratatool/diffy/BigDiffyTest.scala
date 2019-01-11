@@ -17,18 +17,21 @@
 
 package com.spotify.ratatool.diffy
 
-import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
-import com.spotify.ratatool.scalacheck._
-import com.spotify.scio.testing.PipelineSpec
 import org.apache.avro.util.Utf8
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 
+import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
+import com.spotify.ratatool.scalacheck._
+import com.spotify.scio.testing.PipelineSpec
+
+import com.google.api.services.bigquery.model.TableRow
+
 class BigDiffyTest extends PipelineSpec {
 
-  val keys = (1 to 1000).map("key" + _)
+  val keys = (1 to 1000).map(k => MultiKey("key" + k))
   val coder = AvroCoder.of(classOf[TestRecord])
 
   /** Fixed to a small range so that Std. Dev. & Variance calculations are easier to predict */
@@ -50,7 +53,7 @@ class BigDiffyTest extends PipelineSpec {
       val rhs = lhs.map(CoderUtils.clone(coder, _))
       val result = BigDiffy.diff[TestRecord](
         sc.parallelize(lhs), sc.parallelize(rhs),
-        new AvroDiffy[TestRecord](), _.getRequiredFields.getStringField.toString)
+        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString))
       result.globalStats should containSingleValue (GlobalStats(1000L, 1000L, 0L, 0L, 0L))
       result.deltas should beEmpty
       result.keyStats should containInAnyOrder (keys.map(KeyStats(_, DiffType.SAME, None)))
@@ -60,19 +63,20 @@ class BigDiffyTest extends PipelineSpec {
 
   it should "work with deltas" in {
     runWithContext { sc =>
-      val keyedDoubles = lhs.map(i =>
-        (i.getRequiredFields.getStringField.toString , i.getRequiredFields.getDoubleField))
+      val keyedDoubles = lhs.map { i =>
+        (MultiKey(i.getRequiredFields.getStringField.toString), i.getRequiredFields.getDoubleField)
+      }
       val rhs = lhs.map(CoderUtils.clone(coder, _)).map { r =>
         r.getRequiredFields.setDoubleField(r.getRequiredFields.getDoubleField + 10.0)
         r
       }
       val result = BigDiffy.diff[TestRecord](
         sc.parallelize(lhs), sc.parallelize(rhs),
-        new AvroDiffy[TestRecord](), _.getRequiredFields.getStringField.toString)
+        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString))
       result.globalStats should containSingleValue (GlobalStats(1000L, 0L, 1000L, 0L, 0L))
       result.deltas.map(d => (d._1, d._2)) should containInAnyOrder (
         keys.map((_, field)))
-      result.keyStats should containInAnyOrder (keyedDoubles.map{case (k, d) =>
+      result.keyStats should containInAnyOrder (keyedDoubles.map { case (k, d) =>
         KeyStats(k, DiffType.DIFFERENT, Option(Delta("required_fields.double_field", d, d + 10.0,
           TypedDelta(DeltaType.NUMERIC, 10.0))))})
       result.fieldStats.map(f => (f.field, f.count, f.fraction)) should containSingleValue (
@@ -91,12 +95,12 @@ class BigDiffyTest extends PipelineSpec {
       val rhs = lhs.map(CoderUtils.clone(coder, _))
       val result = BigDiffy.diff[TestRecord](
         sc.parallelize(lhs2), sc.parallelize(rhs),
-        new AvroDiffy[TestRecord](), _.getRequiredFields.getStringField.toString)
+        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString))
       result.globalStats should containSingleValue (GlobalStats(1000L, 500L, 0L, 500L, 0L))
       result.deltas should beEmpty
       result.keyStats should containInAnyOrder (
-        (1 to 500).map(i => KeyStats("key" + i, DiffType.SAME, None)) ++
-          (501 to 1000).map(i => KeyStats("key" + i, DiffType.MISSING_LHS, None)))
+        (1 to 500).map(i => KeyStats(MultiKey("key" + i), DiffType.SAME, None)) ++
+          (501 to 1000).map(i => KeyStats(MultiKey("key" + i), DiffType.MISSING_LHS, None)))
       result.fieldStats should beEmpty
     }
   }
@@ -106,14 +110,51 @@ class BigDiffyTest extends PipelineSpec {
       val rhs = lhs.filter(_.getRequiredFields.getIntField <= 500).map(CoderUtils.clone(coder, _))
       val result = BigDiffy.diff[TestRecord](
         sc.parallelize(lhs), sc.parallelize(rhs),
-        new AvroDiffy[TestRecord](), _.getRequiredFields.getStringField.toString)
+        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString))
       result.globalStats should containSingleValue (GlobalStats(1000L, 500L, 0L, 0L, 500L))
       result.deltas should beEmpty
       result.keyStats should containInAnyOrder (
-        (1 to 500).map(i => KeyStats("key" + i, DiffType.SAME, None)) ++
-          (501 to 1000).map(i => KeyStats("key" + i, DiffType.MISSING_RHS, None)))
+        (1 to 500).map(i => KeyStats(MultiKey("key" + i), DiffType.SAME, None)) ++
+          (501 to 1000).map(i => KeyStats(MultiKey("key" + i), DiffType.MISSING_RHS, None)))
       result.fieldStats should beEmpty
     }
   }
 
+  "BigDiffy avroKeyFn" should "work with single key" in {
+    val record = specificRecordOf[TestRecord].sample.get
+    val keyValue = BigDiffy.avroKeyFn(Seq("required_fields.int_field"))(record)
+
+    keyValue.toString shouldBe record.getRequiredFields.getIntField.toString
+  }
+
+  "BigDiffy avroKeyFn" should "work with multiple key" in {
+    val record = specificRecordOf[TestRecord].sample.get
+    val keys = Seq("required_fields.int_field", "required_fields.double_field")
+    val keyValues = BigDiffy.avroKeyFn(keys)(record)
+    val expectedKey =
+      s"${record.getRequiredFields.getIntField}_${record.getRequiredFields.getDoubleField}"
+
+    keyValues.toString shouldBe expectedKey
+  }
+
+  "BigDiffy tableRowKeyFn" should "work with single key" in {
+    val record = new TableRow()
+    record.set("key", "foo")
+    val keyValue = BigDiffy.tableRowKeyFn(Seq("key"))(record)
+
+    keyValue.toString shouldBe "foo"
+  }
+
+  "BigDiffy tableRowKeyFn" should "work with multiple key" in {
+    val subRecord = new TableRow()
+    subRecord.set("key", "foo")
+    subRecord.set("other_key", "bar")
+    val record = new TableRow()
+    record.set("record", subRecord)
+
+    val keys = Seq("record.key", "record.other_key")
+    val keyValues = BigDiffy.tableRowKeyFn(keys)(record.asInstanceOf[TableRow])
+
+    keyValues.toString shouldBe "foo_bar"
+  }
 }

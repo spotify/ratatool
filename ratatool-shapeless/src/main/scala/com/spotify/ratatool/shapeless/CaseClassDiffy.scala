@@ -18,12 +18,11 @@
 package com.spotify.ratatool.shapeless
 
 import com.spotify.ratatool.Command
-import com.spotify.ratatool.diffy.{BigDiffy, Delta, Diffy}
+import com.spotify.ratatool.diffy.{BigDiffy, Delta, Diffy, MultiKey}
 import com.spotify.ratatool.diffy.BigDiffy.diff
 import com.spotify.scio.values.SCollection
 import shapeless._
 import shapeless.labelled.FieldType
-
 import scala.reflect.ClassTag
 
 @SerialVersionUID(42L)
@@ -173,7 +172,7 @@ object CaseClassDiffy {
   /** Diff two SCollection[T] **/
   def diffCaseClass[T : ClassTag : MapEncoder](lhs: SCollection[T],
                                                rhs: SCollection[T],
-                                               keyFn: T => String,
+                                               keyFn: T => MultiKey,
                                                diffy: CaseClassDiffy[T]) : BigDiffy[T] =
     diff(lhs, rhs, diffy, keyFn)
 }

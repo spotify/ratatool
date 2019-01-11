@@ -29,7 +29,7 @@ import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
-import org.apache.beam.sdk.io.{FileSystems, TextIO}
+import org.apache.beam.sdk.io.TextIO
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -49,6 +49,14 @@ object DiffType extends Enumeration {
   val SAME, DIFFERENT, MISSING_LHS, MISSING_RHS = Value
 }
 
+case class MultiKey(keys: Seq[String]) extends AnyVal {
+  override def toString: String = keys.mkString("_")
+}
+
+object MultiKey {
+  def apply(key: String): MultiKey = MultiKey(Seq(key))
+}
+
 /**
  * Key-field level [[DiffType]] and delta.
  *
@@ -56,14 +64,14 @@ object DiffType extends Enumeration {
  * If DiffType is DIFFERENT, there is one KeyStats for every field that is different for that key
  *  with that field's Delta
  *
- * key - primary being compared.
+ * keys - primary being compared.
  * diffType - how the two records of the given key compares.
  * delta - a single field's difference including field name, values, and distance
  */
-case class KeyStats(key: String, diffType: DiffType.Value, delta: Option[Delta]) {
+case class KeyStats(keys: MultiKey, diffType: DiffType.Value, delta: Option[Delta]) {
   override def toString: String = {
     val deltaStr = delta.map(_.toString).getOrElse("")
-    s"$key\t$diffType\t$deltaStr"
+    s"$keys\t$diffType\t$deltaStr"
   }
 }
 
@@ -120,9 +128,9 @@ case class FieldStats(field: String,
 
 /** Big diff between two data sets given a primary key. */
 class BigDiffy[T](lhs: SCollection[T], rhs: SCollection[T],
-                  diffy: Diffy[T], keyFn: T => String) {
+                  diffy: Diffy[T], keyFn: T => MultiKey) {
 
-  private lazy val _deltas: SCollection[(String, (Seq[Delta], DiffType.Value))] =
+  private lazy val _deltas: BigDiffy.DeltaSCollection =
     BigDiffy.computeDeltas(lhs, rhs, diffy, keyFn)
 
   private lazy val globalAndFieldStats: SCollection[(GlobalStats, Iterable[FieldStats])] =
@@ -133,7 +141,7 @@ class BigDiffy[T](lhs: SCollection[T], rhs: SCollection[T],
    *
    * Output tuples are (key, field, LHS, RHS). Note that LHS and RHS may not be serializable.
    */
-  lazy val deltas: SCollection[(String, String, Any, Any)] =
+  lazy val deltas: SCollection[(MultiKey, String, Any, Any)] =
     _deltas.flatMap { case (k, (ds, dt)) =>
       ds.map(d => (k, d.field, d.left, d.right))
     }
@@ -164,10 +172,10 @@ object BigDiffy extends Command {
   val command: String = "bigDiffy"
 
   // (field, deltas, diff type)
-  type DeltaSCollection = SCollection[(String, (Seq[Delta], DiffType.Value))]
+  type DeltaSCollection = SCollection[(MultiKey, (Seq[Delta], DiffType.Value))]
 
   private def computeDeltas[T](lhs: SCollection[T], rhs: SCollection[T],
-                               d: Diffy[T], keyFn: T => String): DeltaSCollection = {
+                               d: Diffy[T], keyFn: T => MultiKey): DeltaSCollection = {
     // extract keys and prefix records with L/R sub-key
     val lKeyed = lhs.map(t => (keyFn(t), ("l", t)))
     val rKeyed = rhs.map(t => (keyFn(t), ("r", t)))
@@ -253,13 +261,13 @@ object BigDiffy extends Command {
 
   /** Diff two data sets. */
   def diff[T: ClassTag](lhs: SCollection[T], rhs: SCollection[T],
-                        d: Diffy[T], keyFn: T => String): BigDiffy[T] =
+                        d: Diffy[T], keyFn: T => MultiKey): BigDiffy[T] =
     new BigDiffy[T](lhs, rhs, d, keyFn)
 
   /** Diff two Avro data sets. */
   def diffAvro[T <: GenericRecord : ClassTag](sc: ScioContext,
                                               lhs: String, rhs: String,
-                                              keyFn: T => String,
+                                              keyFn: T => MultiKey,
                                               diffy: AvroDiffy[T],
                                               schema: Schema = null): BigDiffy[T] =
     diff(sc.avroFile[T](lhs, schema), sc.avroFile[T](rhs, schema), diffy, keyFn)
@@ -267,14 +275,14 @@ object BigDiffy extends Command {
   /** Diff two ProtoBuf data sets. */
   def diffProtoBuf[T <: AbstractMessage : ClassTag](sc: ScioContext,
                                                      lhs: String, rhs: String,
-                                                     keyFn: T => String,
+                                                     keyFn: T => MultiKey,
                                                      diffy: ProtoBufDiffy[T]): BigDiffy[T] =
     diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
 
   /** Diff two TableRow data sets. */
   def diffTableRow(sc: ScioContext,
                    lhs: String, rhs: String,
-                   keyFn: TableRow => String,
+                   keyFn: TableRow => MultiKey,
                    diffy: TableRowDiffy): BigDiffy[TableRow] =
     diff(sc.bigQueryTable(lhs), sc.bigQueryTable(rhs), diffy, keyFn)
 
@@ -327,7 +335,7 @@ object BigDiffy extends Command {
       case BQ =>
         // Saving to BQ, header irrelevant
         bigDiffy.keyStats.map(stat =>
-          KeyStatsBigQuery(stat.key, stat.diffType.toString, stat.delta.map(d => {
+          KeyStatsBigQuery(stat.keys.toString, stat.diffType.toString, stat.delta.map(d => {
             val dv = d.delta match {
               case TypedDelta(dt, v) =>
                 DeltaValueBigQuery(dt.toString, Option(v))
@@ -383,7 +391,7 @@ object BigDiffy extends Command {
         |
         |  --input-mode=(avro|bigquery)     Diff-ing Avro or BQ records
         |  [--output-mode=(gcs|bigquery)]   Saves to a text file in GCS or a BigQuery dataset. Defaults to GCS
-        |  --key=<key>                      '.' separated key field
+        |  --key=<key>                      '.' separated key field. Specify multiple --key params for multi key usage.
         |  --lhs=<path>                     LHS File path or BigQuery table
         |  --rhs=<path>                     RHS File path or BigQuery table
         |  --output=<output>                File path prefix for output
@@ -411,7 +419,7 @@ object BigDiffy extends Command {
     sys.exit(1)
   }
 
-  private def avroKeyFn(key: String): GenericRecord => String = {
+  private[diffy] def avroKeyFn(keys: Seq[String]): GenericRecord => MultiKey = {
     @tailrec
     def get(xs: Array[String], i: Int, r: GenericRecord): String =
       if (i == xs.length - 1) {
@@ -419,11 +427,12 @@ object BigDiffy extends Command {
       } else {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[GenericRecord])
       }
-    val xs = key.split('.')
-    (r: GenericRecord) => get(xs, 0, r)
+
+    val xs = keys.map(_.split('.'))
+    (r: GenericRecord) =>  MultiKey(xs.map(x => get(x, 0, r)))
   }
 
-  private def tableRowKeyFn(key: String): TableRow => String = {
+  private[diffy] def tableRowKeyFn(keys: Seq[String]): TableRow => MultiKey = {
     @tailrec
     def get(xs: Array[String], i: Int, r: java.util.Map[String, AnyRef]): String =
       if (i == xs.length - 1) {
@@ -431,8 +440,9 @@ object BigDiffy extends Command {
       } else {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[java.util.Map[String, AnyRef]])
       }
-    val xs = key.split('.')
-    (r: TableRow) => get(xs, 0, r)
+
+    val xs = keys.map(_.split('.'))
+    (r: TableRow) =>  MultiKey(xs.map(x => get(x, 0, r)))
   }
 
   def pathWithShards(path: String): String = path.replaceAll("\\/+$", "") + "/part"
@@ -456,9 +466,9 @@ object BigDiffy extends Command {
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
-    val (inputMode, key, lhs, rhs, output, header, ignore, unordered, outputMode) = {
+    val (inputMode, keys, lhs, rhs, output, header, ignore, unordered, outputMode) = {
       try {
-        (args("input-mode"), args("key"), args("lhs"), args("rhs"), args("output"),
+        (args("input-mode"), args.list("key"), args("lhs"), args("rhs"), args("output"),
           args.boolean("with-header", false), args.list("ignore").toSet,
           args.list("unordered").toSet, args.optional("output-mode"))
       } catch {
@@ -481,7 +491,7 @@ object BigDiffy extends Command {
         val schema = new AvroSampler(rhs, conf = Some(sc.options))
           .sample(1, head = true).head.getSchema
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered)
-        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(key), diffy, schema)
+        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(keys), diffy, schema)
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQueryClient.defaultInstance()
@@ -489,7 +499,7 @@ object BigDiffy extends Command {
         val rSchema = bq.getTableSchema(rhs)
         val schema = mergeTableSchema(lSchema, rSchema)
         val diffy = new TableRowDiffy(schema, ignore, unordered)
-        BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(key), diffy)
+        BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(keys), diffy)
       case m =>
         throw new IllegalArgumentException(s"input mode $m not supported")
     }
