@@ -38,8 +38,7 @@ minimum, the following should be specified:
 
    --project=<gcp-project-id>                GCP Project used to run your job
    --runner=DataflowRunner                   Executes the job on Google Cloud Dataflow
-   --stagingLocation=<gcs-path>              Location to stage jars for the job. GCS bucket must be created prior to running job.
-   --gcpTempLocation=<gcs-path>              Location for temporary files. GCS bucket must be created prior to running job.
+   --tempLocation=<gcs-path>                 Location for temporary files. GCS bucket must be created prior to running job.
 
 The following options are recommended, but may not be necessary.
 
