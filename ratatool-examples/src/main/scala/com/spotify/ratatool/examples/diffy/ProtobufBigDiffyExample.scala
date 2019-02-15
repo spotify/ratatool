@@ -17,13 +17,8 @@
 
 package com.spotify.ratatool.examples.diffy
 
-import java.net.URI
-
-import com.spotify.ratatool.GcsConfiguration
 import com.spotify.ratatool.diffy.{BigDiffy, MultiKey, ProtoBufDiffy}
 import com.spotify.ratatool.examples.proto.Schemas.ExampleRecord
-import org.apache.hadoop.fs.{FileSystem, Path}
-
 import com.spotify.scio._
 
 object ProtobufBigDiffyExample {
@@ -39,8 +34,6 @@ object ProtobufBigDiffyExample {
           args.boolean("with-header", false), args.list("ignore").toSet,
           args.list("unordered").toSet)
 
-    val fs = FileSystem.get(new URI(rhs), GcsConfiguration.get())
-    val path = fs.globStatus(new Path(rhs)).head.getPath
     val diffy = new ProtoBufDiffy[ExampleRecord](ignore, unordered)
     val result = BigDiffy.diffProtoBuf[ExampleRecord](sc, lhs, rhs, recordKeyFn, diffy)
 
