@@ -37,11 +37,4 @@ class DirectSamplerParserTest extends FlatSpec with Matchers {
     parse("bigquery --in in --out out -n 1000 --head --tableOut table:out ") should equal (
       Some(c.copy(head = true, tableOut = "table:out")))
   }
-
-  it should "parse parquet command" in {
-    val c = config.copy(mode = "parquet")
-    parse("parquet --in in --out out -n 1000") should equal (None)
-    parse("parquet --in in --out out -n 1000 --head") should equal (Some(c.copy(head = true)))
-  }
-
 }

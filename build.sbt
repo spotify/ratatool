@@ -120,7 +120,7 @@ lazy val ratatoolSampling = project
       "joda-time" % "joda-time" % jodaTimeVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-      "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
+      "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
@@ -213,8 +213,7 @@ lazy val ratatoolCli = project
   .dependsOn(
     ratatoolCommon % "compile->compile;test->test",
     ratatoolSampling,
-    ratatoolDiffy,
-    ratatoolExtras
+    ratatoolDiffy
   )
   .settings(protoBufSettings)
 
