@@ -62,6 +62,11 @@ object Ratatool {
                 val table = BigQueryIO.parseTableSpec(o.tableOut)
                 BigQueryIO.writeToTable(data, sampler.schema, table)
               }
+            case "parquet" =>
+              throw new NotImplementedError(
+                """We have moved ParquetSampler to the ratatool-extras
+                  | project. If this causes any problems for you please open an issue
+                  | on github and let us know.""".stripMargin)
             case _ =>
               throw new NotImplementedError(s"${o.mode} not implemented")
           }
