@@ -7,7 +7,7 @@ as shown below. Please open an issue if the change has caused problems for you.
 
 ## Usage
 ```scala
-  val data = new ParquetSampler(pathToInputFile).sample(numberToSample, true)
-  ParquetIO.writeToFile(data, data.head.getSchema, pathToOutputFile)
+  val data = new ParquetSampler(stringPathToInputFile).sample(numberToSample, true)
+  ParquetIO.writeToFile(data, data.head.getSchema, stringPathToOutputFile)
 ```
 
