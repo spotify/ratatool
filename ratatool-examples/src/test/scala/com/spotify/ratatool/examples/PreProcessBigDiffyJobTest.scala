@@ -24,6 +24,7 @@ import com.spotify.scio.testing._
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Gen
+import com.spotify.scio.avro._
 
 class PreProcessBigDiffyJobTest extends PipelineSpec {
   val lhs = Gen.listOfN(1000, ExampleAvroGen.exampleRecordGen).sample.get.map{ r =>
@@ -47,8 +48,8 @@ class PreProcessBigDiffyJobTest extends PipelineSpec {
         "--rhs=rhs.avro",
         "--output=output.txt"
       )
-      .input(AvroIO("lhs.avro"), lhs)
-      .input(AvroIO("rhs.avro"), rhs)
+      .input(AvroIO[ExampleRecord]("lhs.avro"), lhs)
+      .input(AvroIO[ExampleRecord]("rhs.avro"), rhs)
       .output(TextIO("output.txt/keys"))(_ should containInAnyOrder(expectedKeys))
       .output(TextIO("output.txt/fields"))(_ should containInAnyOrder(expectedFieldsCounts))
       .output(TextIO("output.txt/global"))(_ should containInAnyOrder(expectedTotals))

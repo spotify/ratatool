@@ -21,6 +21,7 @@ import com.spotify.ratatool.proto.Schemas.TestRecord
 import com.spotify.scio._
 import com.spotify.ratatool.samplers._
 import com.spotify.ratatool.samplers.util.StratifiedDistribution
+import com.spotify.scio.avro._
 
 
 object ProtoSamplerExample {

@@ -21,6 +21,7 @@ import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.scio.ContextAndArgs
 import com.spotify.ratatool.scalacheck._
 import org.scalacheck.Gen
+import com.spotify.scio.avro._
 
 object DataGenAvro {
   def main(args: Array[String]): Unit = {

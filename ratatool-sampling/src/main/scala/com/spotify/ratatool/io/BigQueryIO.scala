@@ -33,6 +33,7 @@ import org.apache.beam.sdk.values.ValueInSingleWindow
 import org.joda.time.Instant
 
 import scala.collection.JavaConverters._
+import com.spotify.scio.bigquery.client.BigQuery
 
 /** Utilities for BigQuery IO. */
 object BigQueryIO {
@@ -73,7 +74,7 @@ object BigQueryIO {
     val tbl = new Table()
       .setTableReference(tableRef)
       .setSchema(schema)
-    ds.createTable(tbl)
+    ds.tables.create(tbl)
     ds.insertAll(tableRef, rows.asJava, null, InsertRetryPolicy.alwaysRetry(), failures)
   }
 

@@ -32,6 +32,8 @@ import org.slf4j.LoggerFactory
 import scala.collection.JavaConverters._
 import scala.annotation.tailrec
 import scala.concurrent.Future
+import com.spotify.scio.bigquery._
+import com.spotify.scio.bigquery.client.BigQuery
 
 private[samplers] object BigSamplerBigQuery {
 
@@ -143,12 +145,12 @@ private[samplers] object BigSamplerBigQuery {
 
     val patchedBigQueryService = new PatchedBigQueryServicesImpl()
       .getDatasetService(sc.optionsAs[BigQueryOptions])
-    if (patchedBigQueryService.getTable(outputTbl) != null) {
+    if (patchedBigQueryService.tables.table(outputTbl) != null) {
       log.info(s"Reuse previous sample at $outputTbl")
       Taps().bigQueryTable(outputTbl)
     } else {
       log.info(s"Will sample from BigQuery table: $inputTbl, output will be $outputTbl")
-      val schema = patchedBigQueryService.getTable(inputTbl).getSchema
+      val schema = patchedBigQueryService.tables.table(inputTbl).getSchema
 
       val coll = sc.bigQueryTable(inputTbl)
 

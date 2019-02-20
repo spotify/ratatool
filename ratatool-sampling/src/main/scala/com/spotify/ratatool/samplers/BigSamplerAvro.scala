@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
+import com.spotify.scio.avro._
 
 private[samplers] object BigSamplerAvro {
   private val log = LoggerFactory.getLogger(BigSamplerAvro.getClass)

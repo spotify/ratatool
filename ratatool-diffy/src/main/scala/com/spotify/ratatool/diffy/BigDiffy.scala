@@ -22,7 +22,6 @@ import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.samplers.AvroSampler
 import com.spotify.scio._
-import com.spotify.scio.bigquery.BigQueryClient
 import com.spotify.scio.bigquery.types.BigQueryType
 import com.spotify.scio.io.Tap
 import com.spotify.scio.values.SCollection
@@ -36,6 +35,9 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.reflect.ClassTag
+import com.spotify.scio.avro._
+import com.spotify.scio.bigquery._
+import com.spotify.scio.bigquery.client.BigQuery
 
 /**
  * Diff type between two records of the same key.
@@ -493,9 +495,9 @@ object BigDiffy extends Command {
         BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(keys), diffy, schema)
       case "bigquery" =>
         // TODO: handle schema evolution
-        val bq = BigQueryClient.defaultInstance()
-        val lSchema = bq.getTableSchema(lhs)
-        val rSchema = bq.getTableSchema(rhs)
+        val bq = BigQuery.defaultInstance()
+        val lSchema = bq.tables.schema(lhs)
+        val rSchema = bq.tables.schema(rhs)
         val schema = mergeTableSchema(lSchema, rSchema)
         val diffy = new TableRowDiffy(schema, ignore, unordered)
         BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(keys), diffy)
