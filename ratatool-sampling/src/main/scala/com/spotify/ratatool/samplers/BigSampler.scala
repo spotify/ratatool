@@ -29,6 +29,7 @@ import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.io.Tap
 import com.spotify.scio.values.SCollection
 import com.spotify.scio.{ContextAndArgs, ScioContext}
+import com.spotify.scio.coders.Coder
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.runners.dataflow.options.DataflowPipelineWorkerPoolOptions
@@ -285,6 +286,9 @@ object BigSampler extends Command {
                                         keyFn: T => U,
                                         maxKeySize: Int = 1e6.toInt,
                                         byteEncoding: ByteEncoding = RawEncoding)
+                                      (implicit coder0: Coder[T],
+                                       coder1: Coder[U],
+                                       coder2: Coder[(U, T)])
   : SCollection[T] = {
     def assignHashRoll(s: SCollection[T],
                        seed: Option[Int],

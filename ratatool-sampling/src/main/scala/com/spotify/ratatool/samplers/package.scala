@@ -23,6 +23,7 @@ import com.spotify.ratatool.samplers.util._
 import com.spotify.ratatool.serde.JsonSerDe
 import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.values.SCollection
+import com.spotify.scio.coders.Coder
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 
@@ -55,6 +56,7 @@ package object samplers {
                                                  precision: Precision = Approximate,
                                                  maxKeySize: Int = 1e6.toInt,
                                                  byteEncoding: ByteEncoding = RawEncoding)
+                                               (implicit coder: Coder[T])
   : SCollection[T] = {
     val schemaSer = schema.toString(false)
     @transient lazy val schemaSerDe = new Schema.Parser().parse(schemaSer)

@@ -19,6 +19,7 @@ package com.spotify.ratatool.samplers.util
 
 import com.spotify.scio.Random.{BernoulliValueSampler, RandomValueAssigner, RandomValueSampler}
 import com.spotify.scio.values.{SCollection, SideInput}
+import com.spotify.scio.coders.Coder
 import org.apache.beam.sdk.transforms.ParDo
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -40,7 +41,10 @@ object SamplerSCollectionFunctions {
   }
 
   private[samplers] def assignRandomRoll[T: ClassTag, U: ClassTag](s: SCollection[T],
-                                                                   keyFn: T => U) = {
+                                                                   keyFn: T => U)
+                                                                  (implicit coder0: Coder[(U, T)],
+                                                                   coder1: Coder[(U, (T, Double))])
+  = {
     s.keyBy(keyFn).applyTransform(ParDo.of(new RandomValueAssigner[U, T]))
   }
 
@@ -49,6 +53,8 @@ object SamplerSCollectionFunctions {
                                                                        keyFn: T => U,
                                                                        prob: Double,
                                                                        exact: Boolean = false)
+                                                                      (implicit coder0: Coder[T],
+                                                                       coder1: Coder[U])
   : SCollection[(Double, Map[U, Double])] = {
     val targets = s.map(t => (1L, Map[U, Long](keyFn(t) -> 1L))).sum
       .map{case (total, m) =>
@@ -85,6 +91,8 @@ object SamplerSCollectionFunctions {
                                                                     prob: Double,
                                                                     popPerKey: SideInput[Double],
                                                                     exact: Boolean = false)
+                                                                   (implicit coder0: Coder[T],
+                                                                    coder1: Coder[U])
   : SCollection[(Double, Map[U, Double])] = {
     sampled.keys.map(k => (1L, Map[U, Long](k -> 1L))).sum
       .withSideInputs(popPerKey).map{ case (res, sic) =>
@@ -112,6 +120,9 @@ object SamplerSCollectionFunctions {
   private[samplers] def uniformParams[T: ClassTag, U: ClassTag](s: SCollection[T],
                                                                 keyFn: T => U,
                                                                 prob: Double)
+                                                               (implicit coder0: Coder[T],
+                                                                coder1: Coder[U],
+                                                                coder2: Coder[(U, T)])
   : (SideInput[Double], SCollection[(U, Double)]) = {
     val keyed = s.keyBy(keyFn)
     val keys = keyed.keys.distinct
@@ -147,6 +158,9 @@ object SamplerSCollectionFunctions {
 
   private def filterByThreshold[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
                                                           thresholdByKey: SCollection[(U, Double)])
+                                                         (implicit coder0: Coder[U],
+                                                          coder1: Coder[(T, Double)],
+                                                          coder2: Coder[(U, T)])
   : SCollection[(U, T)] = {
     s.hashJoin(thresholdByKey)
       .filter{case (_, ((_, d), t)) => d <= t}
@@ -158,6 +172,9 @@ object SamplerSCollectionFunctions {
                                                                  prob: Double,
                                                                  delta: Double,
                                                                  sizePerKey: Int)
+                                                                (implicit coder0: Coder[U],
+                                                                 coder1: Coder[(U, Double)],
+                                                                 coder2: Coder[(T, Double)])
   : SCollection[(U, Double)] = {
     val countByKey = s.countByKey
     val targetByKey = countByKey.map { case (k, c) => (k, (c * prob).toLong) }
@@ -202,6 +219,9 @@ object SamplerSCollectionFunctions {
                                                               popPerKey: SideInput[Double],
                                                               delta: Double,
                                                               sizePerKey: Int)
+                                                             (implicit coder0: Coder[U],
+                                                              coder1: Coder[(U, Double)],
+                                                              coder2: Coder[(T, Double)])
   : SCollection[(U, Double)] = {
     val countByKey = s.countByKey
     val boundsByKey =  probByKey.hashJoin(countByKey)
@@ -248,6 +268,7 @@ object SamplerSCollectionFunctions {
                         prob: Double,
                         maxKeySize: Int,
                         delta: Double = 1e-3)
+                       (implicit coder0: Coder[T], coder1: Coder[U], coder2: Coder[(T, Double)])
     : SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
@@ -277,6 +298,7 @@ object SamplerSCollectionFunctions {
      * sampling use `exactSampleDist` instead
      */
     def sampleDist[U: ClassTag](dist: SampleDistribution, keyFn: T => U, prob: Double)
+                               (implicit coder0: Coder[T], coder1: Coder[U], coder2: Coder[(U, T)])
     : SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
