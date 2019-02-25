@@ -26,7 +26,7 @@ after_success:
 
 notifications:
   email:
-    - idrees@spotify.com
+    - blizzard@spotify.com
 
 before_deploy: sbt ++$TRAVIS_SCALA_VERSION clean packArchive
 deploy:
