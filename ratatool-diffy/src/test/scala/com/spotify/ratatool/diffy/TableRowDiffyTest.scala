@@ -19,7 +19,6 @@ package com.spotify.ratatool.diffy
 
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import org.scalatest.{FlatSpec, Matchers}
-import com.spotify.ratatool.scalacheck._
 
 import scala.collection.JavaConverters._
 

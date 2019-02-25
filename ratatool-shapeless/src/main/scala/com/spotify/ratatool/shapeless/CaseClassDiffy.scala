@@ -17,7 +17,6 @@
 
 package com.spotify.ratatool.shapeless
 
-import com.spotify.ratatool.Command
 import com.spotify.ratatool.diffy.{BigDiffy, Delta, Diffy, MultiKey}
 import com.spotify.ratatool.diffy.BigDiffy.diff
 import com.spotify.scio.coders.Coder

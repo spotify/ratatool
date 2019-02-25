@@ -18,7 +18,7 @@
 package com.spotify.ratatool
 
 import com.google.api.services.bigquery.model.TableRow
-import com.google.protobuf.{AbstractMessage, Message, MessageOrBuilder}
+import com.google.protobuf.Message
 import org.apache.avro.specific.SpecificRecord
 import org.scalacheck.Gen
 
