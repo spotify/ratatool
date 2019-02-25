@@ -18,12 +18,11 @@
 package com.spotify.ratatool.samplers
 
 import java.io.File
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 
 import com.spotify.ratatool.Schemas
-import com.spotify.ratatool.scalacheck._
 import com.spotify.ratatool.io.AvroIO
-import org.apache.hadoop.fs.Path
+import com.spotify.ratatool.scalacheck._
 import org.scalacheck.Gen
 import org.scalatest._
 

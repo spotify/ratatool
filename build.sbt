@@ -118,11 +118,8 @@ lazy val ratatoolSampling = project
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "com.twitter" %% "algebird-core" % algebirdVersion,
       "joda-time" % "joda-time" % jodaTimeVersion,
-      "org.apache.parquet" % "parquet-avro" % parquetVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-      "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
-      "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12")
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
@@ -178,6 +175,26 @@ lazy val ratatoolShapeless = project
   .dependsOn(
     ratatoolDiffy,
     ratatoolSampling
+  )
+
+lazy val ratatoolExtras = project
+  .in(file("ratatool-extras"))
+  .settings(commonSettings)
+  .settings(
+    name := "ratatool-extras",
+    libraryDependencies ++= Seq(
+      "org.apache.parquet" % "parquet-avro" % parquetVersion,
+      "org.apache.avro" % "avro" % avroVersion,
+      "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
+      "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+),
+    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
+  )
+  .dependsOn(
+    ratatoolSampling % "compile->compile;test->test",
+    ratatoolCommon % "test->test",
+    ratatoolScalacheck % "test"
   )
 
 lazy val ratatoolCli = project
@@ -242,6 +259,7 @@ val root = project.in(file("."))
     ratatoolDiffy,
     ratatoolSampling,
     ratatoolShapeless,
+    ratatoolExtras,
     ratatoolCli,
     ratatoolExamples
   )

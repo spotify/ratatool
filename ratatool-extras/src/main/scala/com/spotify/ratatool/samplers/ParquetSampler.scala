@@ -19,7 +19,6 @@ package com.spotify.ratatool.samplers
 
 import com.spotify.ratatool.io.ParquetIO
 import org.apache.avro.generic.GenericRecord
-import org.apache.hadoop.fs.Path
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
@@ -30,7 +29,7 @@ import scala.collection.mutable.ListBuffer
  * Records are represented as Avro [[GenericRecord]].
  * Only head mode is supported.
  */
-class ParquetSampler(path: Path, protected val seed: Option[Long] = None)
+class ParquetSampler(path: String, protected val seed: Option[Long] = None)
   extends Sampler[GenericRecord] {
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[ParquetSampler])

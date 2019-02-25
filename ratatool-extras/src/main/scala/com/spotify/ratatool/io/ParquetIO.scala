@@ -1,20 +1,3 @@
-/*
- * Copyright 2016 Spotify AB.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
 package com.spotify.ratatool.io
 
 import java.io.{File, InputStream, OutputStream}
@@ -25,7 +8,6 @@ import org.apache.avro.Schema
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
 import org.apache.parquet.avro.{AvroParquetReader, AvroParquetWriter}
-import org.apache.parquet.hadoop.{ParquetReader, ParquetWriter}
 
 /**
  * Utilities for Parquet IO.
@@ -40,7 +22,7 @@ object ParquetIO {
     val reader = AvroParquetReader.builder[T](path)
       .withConf(conf)
       .build()
-      .asInstanceOf[ParquetReader[T]]
+
     new Iterator[T] {
       private var item = reader.read()
       override def hasNext: Boolean = item != null
@@ -79,7 +61,6 @@ object ParquetIO {
       .withConf(conf)
       .withSchema(schema)
       .build()
-      .asInstanceOf[ParquetWriter[T]]
     data.foreach(writer.write)
     writer.close()
   }
