@@ -145,12 +145,12 @@ private[samplers] object BigSamplerBigQuery {
 
     val patchedBigQueryService = new PatchedBigQueryServicesImpl()
       .getDatasetService(sc.optionsAs[BigQueryOptions])
-    if (patchedBigQueryService.tables.table(outputTbl) != null) {
+    if (patchedBigQueryService.getTable(outputTbl) != null) {
       log.info(s"Reuse previous sample at $outputTbl")
-      Taps().bigQueryTable(outputTbl)
+      BigQueryTaps(Taps()).bigQueryTable(outputTbl)
     } else {
       log.info(s"Will sample from BigQuery table: $inputTbl, output will be $outputTbl")
-      val schema = patchedBigQueryService.tables.table(inputTbl).getSchema
+      val schema = patchedBigQueryService.getTable(inputTbl).getSchema
 
       val coll = sc.bigQueryTable(inputTbl)
 
@@ -158,7 +158,8 @@ private[samplers] object BigSamplerBigQuery {
         distributionFields, precision, sizePerKey, byteEncoding)
 
       val r = sampledCollection
-        .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "")
+        .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "",
+          TimePartitioning("DAY"))
       sc.close().waitUntilDone()
       r
     }

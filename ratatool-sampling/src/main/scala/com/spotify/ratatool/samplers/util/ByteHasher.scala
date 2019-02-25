@@ -46,6 +46,10 @@ class ByteHasher(hasher: Hasher, encoding: BaseEncoding, charset: Charset) exten
     hasher.putString(encoding.encode(bytes, off, len), charset)
   }
 
+  override def putBytes(bytes: java.nio.ByteBuffer): Hasher = {
+    hasher.putBytes(bytes)
+  }
+
   override def putShort(s: Short): Hasher = hasher.putShort(s)
 
   override def putInt(i: Int): Hasher = hasher.putInt(i)

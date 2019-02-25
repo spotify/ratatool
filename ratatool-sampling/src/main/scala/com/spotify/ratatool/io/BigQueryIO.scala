@@ -74,7 +74,7 @@ object BigQueryIO {
     val tbl = new Table()
       .setTableReference(tableRef)
       .setSchema(schema)
-    ds.tables.create(tbl)
+    ds.createTable(tbl)
     ds.insertAll(tableRef, rows.asJava, null, InsertRetryPolicy.alwaysRetry(), failures)
   }
 

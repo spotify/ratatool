@@ -194,7 +194,7 @@ object SamplerSCollectionFunctions {
         d < getUpperBound(c, prob, delta) && d >= getLowerBound(c, prob, delta)}
       .map{case (k, (d, _)) => (k, d)}
       //TODO: Clean up magic number
-      .topByKey(sizePerKey)(Ordering.by(identity[Double]).reverse)
+      .topByKey(sizePerKey, Ordering.by(identity[Double]).reverse)
       .hashJoin(boundCountsByKey)
       .hashJoin(boundsByKey)
       .hashJoin(targetByKey)
@@ -238,7 +238,7 @@ object SamplerSCollectionFunctions {
       .filter{ case (_, (d, (l, u))) => d >= l && d < u }
       .map{ case (k, (d, _)) => (k, d) }
       //TODO: Clean up magic number
-      .topByKey(sizePerKey)(Ordering.by(identity[Double]).reverse)
+      .topByKey(sizePerKey, Ordering.by(identity[Double]).reverse)
       .hashJoin(boundCountsByKey)
       .hashJoin(boundsByKey)
       .withSideInputs(popPerKey)
