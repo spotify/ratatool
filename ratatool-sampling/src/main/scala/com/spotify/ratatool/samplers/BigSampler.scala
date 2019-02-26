@@ -275,7 +275,7 @@ object BigSampler extends Command {
    * @tparam U Key Type, usually we use Set[String]
    * @return SCollection containing Sample population
    */
-  def sample[T: ClassTag, U: ClassTag](s: SCollection[T],
+  def sample[T: ClassTag : Coder, U: ClassTag : Coder](s: SCollection[T],
                                         fraction: Double,
                                         fields: Seq[String],
                                         seed: Option[Int],
@@ -286,9 +286,6 @@ object BigSampler extends Command {
                                         keyFn: T => U,
                                         maxKeySize: Int = 1e6.toInt,
                                         byteEncoding: ByteEncoding = RawEncoding)
-                                      (implicit coder0: Coder[T],
-                                       coder1: Coder[U],
-                                       coder2: Coder[(U, T)])
   : SCollection[T] = {
     def assignHashRoll(s: SCollection[T],
                        seed: Option[Int],

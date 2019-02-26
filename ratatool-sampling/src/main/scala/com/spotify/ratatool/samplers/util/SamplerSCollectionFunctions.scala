@@ -40,22 +40,17 @@ object SamplerSCollectionFunctions {
     }
   }
 
-  private[samplers] def assignRandomRoll[T: ClassTag, U: ClassTag](s: SCollection[T],
-                                                                   keyFn: T => U)
-                                                                  (implicit coder0: Coder[(U, T)],
-                                                                   coder1: Coder[(U, (T, Double))])
-  = {
+  private[samplers] def assignRandomRoll[T: ClassTag : Coder, U: ClassTag : Coder]
+    (s: SCollection[T], keyFn: T => U) = {
     s.keyBy(keyFn).applyTransform(ParDo.of(new RandomValueAssigner[U, T]))
   }
 
-  private[samplers] def buildStratifiedDiffs[T: ClassTag, U: ClassTag](s: SCollection[T],
-                                                                       sampled: SCollection[(U, T)],
-                                                                       keyFn: T => U,
-                                                                       prob: Double,
-                                                                       exact: Boolean = false)
-                                                                      (implicit coder0: Coder[T],
-                                                                       coder1: Coder[U])
-  : SCollection[(Double, Map[U, Double])] = {
+  private[samplers] def buildStratifiedDiffs[T: ClassTag : Coder, U: ClassTag : Coder]
+    (s: SCollection[T],
+     sampled: SCollection[(U, T)],
+     keyFn: T => U,
+     prob: Double,
+     exact: Boolean = false): SCollection[(Double, Map[U, Double])] = {
     val targets = s.map(t => (1L, Map[U, Long](keyFn(t) -> 1L))).sum
       .map{case (total, m) =>
         (total * prob,
@@ -85,15 +80,13 @@ object SamplerSCollectionFunctions {
     }.toSCollection
   }
 
-  private[samplers] def buildUniformDiffs[T: ClassTag, U: ClassTag](s: SCollection[T],
-                                                                    sampled: SCollection[(U, T)],
-                                                                    keyFn: T => U,
-                                                                    prob: Double,
-                                                                    popPerKey: SideInput[Double],
-                                                                    exact: Boolean = false)
-                                                                   (implicit coder0: Coder[T],
-                                                                    coder1: Coder[U])
-  : SCollection[(Double, Map[U, Double])] = {
+  private[samplers] def buildUniformDiffs[T: ClassTag : Coder, U: ClassTag : Coder]
+    (s: SCollection[T],
+     sampled: SCollection[(U, T)],
+     keyFn: T => U,
+     prob: Double,
+     popPerKey: SideInput[Double],
+     exact: Boolean = false): SCollection[(Double, Map[U, Double])] = {
     sampled.keys.map(k => (1L, Map[U, Long](k -> 1L))).sum
       .withSideInputs(popPerKey).map{ case (res, sic) =>
         val pop = sic(popPerKey)
@@ -117,12 +110,9 @@ object SamplerSCollectionFunctions {
     }.toSCollection
   }
 
-  private[samplers] def uniformParams[T: ClassTag, U: ClassTag](s: SCollection[T],
+  private[samplers] def uniformParams[T: ClassTag : Coder, U: ClassTag : Coder](s: SCollection[T],
                                                                 keyFn: T => U,
                                                                 prob: Double)
-                                                               (implicit coder0: Coder[T],
-                                                                coder1: Coder[U],
-                                                                coder2: Coder[(U, T)])
   : (SideInput[Double], SCollection[(U, Double)]) = {
     val keyed = s.keyBy(keyFn)
     val keys = keyed.keys.distinct
@@ -156,11 +146,8 @@ object SamplerSCollectionFunctions {
     min(1.0, f + gamma - sqrt(pow(gamma, 2) + (2 * gamma * f)))
   }
 
-  private def filterByThreshold[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
-                                                          thresholdByKey: SCollection[(U, Double)])
-                                                         (implicit coder0: Coder[U],
-                                                          coder1: Coder[(T, Double)],
-                                                          coder2: Coder[(U, T)])
+  private def filterByThreshold[T: ClassTag : Coder, U: ClassTag : Coder]
+    (s: SCollection[(U, (T, Double))], thresholdByKey: SCollection[(U, Double)])
   : SCollection[(U, T)] = {
     s.hashJoin(thresholdByKey)
       .filter{case (_, ((_, d), t)) => d <= t}
@@ -168,14 +155,11 @@ object SamplerSCollectionFunctions {
   }
 
   //scalastyle:off cyclomatic.complexity
-  private def stratifiedThresholdByKey[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
-                                                                 prob: Double,
-                                                                 delta: Double,
-                                                                 sizePerKey: Int)
-                                                                (implicit coder0: Coder[U],
-                                                                 coder1: Coder[(U, Double)],
-                                                                 coder2: Coder[(T, Double)])
-  : SCollection[(U, Double)] = {
+  private def stratifiedThresholdByKey[T: ClassTag : Coder, U: ClassTag : Coder]
+    (s: SCollection[(U, (T, Double))],
+     prob: Double,
+     delta: Double,
+     sizePerKey: Int): SCollection[(U, Double)] = {
     val countByKey = s.countByKey
     val targetByKey = countByKey.map { case (k, c) => (k, (c * prob).toLong) }
     val boundsByKey =  countByKey
@@ -214,15 +198,12 @@ object SamplerSCollectionFunctions {
   //scalastyle:on cyclomatic.complexity
 
   //scalastyle:off cyclomatic.complexity
-  private def uniformThresholdByKey[T: ClassTag, U: ClassTag](s: SCollection[(U, (T, Double))],
-                                                              probByKey: SCollection[(U, Double)],
-                                                              popPerKey: SideInput[Double],
-                                                              delta: Double,
-                                                              sizePerKey: Int)
-                                                             (implicit coder0: Coder[U],
-                                                              coder1: Coder[(U, Double)],
-                                                              coder2: Coder[(T, Double)])
-  : SCollection[(U, Double)] = {
+  private def uniformThresholdByKey[T: ClassTag : Coder, U: ClassTag : Coder]
+    (s: SCollection[(U, (T, Double))],
+     probByKey: SCollection[(U, Double)],
+     popPerKey: SideInput[Double],
+     delta: Double,
+     sizePerKey: Int): SCollection[(U, Double)] = {
     val countByKey = s.countByKey
     val boundsByKey =  probByKey.hashJoin(countByKey)
       .map{case (k, (p, c)) => (k, (getLowerBound(c, p, delta), getUpperBound(c, p, delta)))}
@@ -268,7 +249,7 @@ object SamplerSCollectionFunctions {
                         prob: Double,
                         maxKeySize: Int,
                         delta: Double = 1e-3)
-                       (implicit coder0: Coder[T], coder1: Coder[U], coder2: Coder[(T, Double)])
+                       (implicit coder0: Coder[T], coder1: Coder[U])
     : SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 
@@ -297,8 +278,8 @@ object SamplerSCollectionFunctions {
      * done approximately using a Bernoulli probability (coin toss) per element. For more precision
      * sampling use `exactSampleDist` instead
      */
-    def sampleDist[U: ClassTag](dist: SampleDistribution, keyFn: T => U, prob: Double)
-                               (implicit coder0: Coder[T], coder1: Coder[U], coder2: Coder[(U, T)])
+    def sampleDist[U: ClassTag : Coder](dist: SampleDistribution, keyFn: T => U, prob: Double)
+                                       (implicit coder: Coder[T])
     : SCollection[T] = {
       @transient lazy val logSerDe = LoggerFactory.getLogger(this.getClass)
 

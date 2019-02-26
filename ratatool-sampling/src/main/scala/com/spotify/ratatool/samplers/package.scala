@@ -46,7 +46,7 @@ package object samplers {
    * @tparam T Record Type
    * @return SCollection containing Sample population
    */
-  def sampleAvro[T <: GenericRecord : ClassTag](coll: SCollection[T],
+  def sampleAvro[T <: GenericRecord : ClassTag : Coder](coll: SCollection[T],
                                                  fraction: Double,
                                                  schema: => Schema,
                                                  fields: Seq[String] = Seq(),
@@ -56,7 +56,6 @@ package object samplers {
                                                  precision: Precision = Approximate,
                                                  maxKeySize: Int = 1e6.toInt,
                                                  byteEncoding: ByteEncoding = RawEncoding)
-                                               (implicit coder: Coder[T])
   : SCollection[T] = {
     val schemaSer = schema.toString(false)
     @transient lazy val schemaSerDe = new Schema.Parser().parse(schemaSer)

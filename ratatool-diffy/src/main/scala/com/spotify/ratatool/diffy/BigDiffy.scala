@@ -130,10 +130,8 @@ case class FieldStats(field: String,
 }
 
 /** Big diff between two data sets given a primary key. */
-class BigDiffy[T](lhs: SCollection[T], rhs: SCollection[T],
-                  diffy: Diffy[T], keyFn: T => MultiKey)
-                 (implicit coder0: Coder[(String, T)],
-                  coder1: Coder[(MultiKey, (String, T))]) {
+class BigDiffy[T : Coder](lhs: SCollection[T], rhs: SCollection[T],
+                  diffy: Diffy[T], keyFn: T => MultiKey) {
 
   private lazy val _deltas: BigDiffy.DeltaSCollection =
     BigDiffy.computeDeltas(lhs, rhs, diffy, keyFn)
@@ -179,10 +177,8 @@ object BigDiffy extends Command {
   // (field, deltas, diff type)
   type DeltaSCollection = SCollection[(MultiKey, (Seq[Delta], DiffType.Value))]
 
-  private def computeDeltas[T](lhs: SCollection[T], rhs: SCollection[T],
-                               d: Diffy[T], keyFn: T => MultiKey)
-                              (implicit coder0: Coder[(String, T)],
-                               coder1: Coder[(MultiKey, (String, T))]): DeltaSCollection = {
+  private def computeDeltas[T : Coder](lhs: SCollection[T], rhs: SCollection[T],
+                               d: Diffy[T], keyFn: T => MultiKey): DeltaSCollection = {
     // extract keys and prefix records with L/R sub-key
     val lKeyed = lhs.map(t => (keyFn(t), ("l", t)))
     val rKeyed = rhs.map(t => (keyFn(t), ("r", t)))
@@ -267,20 +263,16 @@ object BigDiffy extends Command {
   }
 
   /** Diff two data sets. */
-  def diff[T: ClassTag](lhs: SCollection[T], rhs: SCollection[T],
-                        d: Diffy[T], keyFn: T => MultiKey)
-                       (implicit coder0: Coder[(String, T)],
-                        coder1: Coder[(MultiKey, (String, T))])
-  : BigDiffy[T] =
+  def diff[T: ClassTag : Coder](lhs: SCollection[T], rhs: SCollection[T],
+                        d: Diffy[T], keyFn: T => MultiKey): BigDiffy[T] =
     new BigDiffy[T](lhs, rhs, d, keyFn)
 
   /** Diff two Avro data sets. */
-  def diffAvro[T <: GenericRecord : ClassTag](sc: ScioContext,
+  def diffAvro[T <: GenericRecord : ClassTag : Coder](sc: ScioContext,
                                               lhs: String, rhs: String,
                                               keyFn: T => MultiKey,
                                               diffy: AvroDiffy[T],
-                                              schema: Schema = null)
-                                             (implicit coder: Coder[T]): BigDiffy[T] =
+                                              schema: Schema = null): BigDiffy[T] =
     diff(sc.avroFile[T](lhs, schema), sc.avroFile[T](rhs, schema), diffy, keyFn)
 
   /** Diff two ProtoBuf data sets. */

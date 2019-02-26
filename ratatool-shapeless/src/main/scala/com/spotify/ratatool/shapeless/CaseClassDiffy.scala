@@ -171,10 +171,9 @@ object CaseClassDiffy {
   private def asMap[T](in : T)(implicit diff: MapEncoder[T]) = diff.toMap(in)
 
   /** Diff two SCollection[T] **/
-  def diffCaseClass[T : ClassTag : MapEncoder](lhs: SCollection[T],
+  def diffCaseClass[T : ClassTag : MapEncoder : Coder](lhs: SCollection[T],
                                                rhs: SCollection[T],
                                                keyFn: T => MultiKey,
-                                               diffy: CaseClassDiffy[T])
-                                              (implicit coder: Coder[(String, T)]): BigDiffy[T] =
+                                               diffy: CaseClassDiffy[T]): BigDiffy[T] =
     diff(lhs, rhs, diffy, keyFn)
 }
