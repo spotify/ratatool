@@ -1,15 +1,14 @@
-addSbtPlugin("com.cavorite" % "sbt-avro-1-8" % "1.1.3")
-addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.10.1")
+addSbtPlugin("com.cavorite" % "sbt-avro-1-8" % "1.1.5")
+addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.12")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.3")
-addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.7")
-addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.1.0")
+addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.10")
+addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.1.2-1")
 addSbtPlugin("org.scalastyle" % "scalastyle-sbt-plugin" % "1.0.0")
-addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.0")
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.1")
-addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "2.0")
+addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "2.4")
 
 libraryDependencies ++= Seq(
-  "com.github.os72" % "protoc-jar" % "3.3.0.1"
+  "com.github.os72" % "protoc-jar" % "3.6.0.1"
 )
 
 libraryDependencies ++= Seq(
