@@ -133,7 +133,7 @@ case class FieldStats(field: String,
 class BigDiffy[T](lhs: SCollection[T], rhs: SCollection[T],
                   diffy: Diffy[T], keyFn: T => MultiKey)
                  (implicit coder0: Coder[(String, T)],
-                  coder1: Coder[(com.spotify.ratatool.diffy.MultiKey, (String, T))]) {
+                  coder1: Coder[(MultiKey, (String, T))]) {
 
   private lazy val _deltas: BigDiffy.DeltaSCollection =
     BigDiffy.computeDeltas(lhs, rhs, diffy, keyFn)
@@ -182,8 +182,7 @@ object BigDiffy extends Command {
   private def computeDeltas[T](lhs: SCollection[T], rhs: SCollection[T],
                                d: Diffy[T], keyFn: T => MultiKey)
                               (implicit coder0: Coder[(String, T)],
-                               coder1: Coder[(com.spotify.ratatool.diffy.MultiKey,
-                                (String, T))]): DeltaSCollection = {
+                               coder1: Coder[(MultiKey, (String, T))]): DeltaSCollection = {
     // extract keys and prefix records with L/R sub-key
     val lKeyed = lhs.map(t => (keyFn(t), ("l", t)))
     val rKeyed = rhs.map(t => (keyFn(t), ("r", t)))
@@ -271,7 +270,7 @@ object BigDiffy extends Command {
   def diff[T: ClassTag](lhs: SCollection[T], rhs: SCollection[T],
                         d: Diffy[T], keyFn: T => MultiKey)
                        (implicit coder0: Coder[(String, T)],
-                        coder1: Coder[(com.spotify.ratatool.diffy.MultiKey, (String, T))])
+                        coder1: Coder[(MultiKey, (String, T))])
   : BigDiffy[T] =
     new BigDiffy[T](lhs, rhs, d, keyFn)
 
