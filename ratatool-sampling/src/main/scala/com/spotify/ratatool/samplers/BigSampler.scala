@@ -29,6 +29,7 @@ import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.io.Tap
 import com.spotify.scio.values.SCollection
 import com.spotify.scio.{ContextAndArgs, ScioContext}
+import com.spotify.scio.coders.Coder
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.runners.dataflow.options.DataflowPipelineWorkerPoolOptions
@@ -274,7 +275,7 @@ object BigSampler extends Command {
    * @tparam U Key Type, usually we use Set[String]
    * @return SCollection containing Sample population
    */
-  def sample[T: ClassTag, U: ClassTag](s: SCollection[T],
+  def sample[T: ClassTag : Coder, U: ClassTag : Coder](s: SCollection[T],
                                         fraction: Double,
                                         fields: Seq[String],
                                         seed: Option[Int],

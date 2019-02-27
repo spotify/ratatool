@@ -23,6 +23,7 @@ import com.spotify.ratatool.samplers.util._
 import com.spotify.ratatool.serde.JsonSerDe
 import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.values.SCollection
+import com.spotify.scio.coders.Coder
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 
@@ -45,7 +46,7 @@ package object samplers {
    * @tparam T Record Type
    * @return SCollection containing Sample population
    */
-  def sampleAvro[T <: GenericRecord : ClassTag](coll: SCollection[T],
+  def sampleAvro[T <: GenericRecord : ClassTag : Coder](coll: SCollection[T],
                                                  fraction: Double,
                                                  schema: => Schema,
                                                  fields: Seq[String] = Seq(),

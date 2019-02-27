@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
+import com.spotify.scio.avro._
 
 private[samplers] object BigSamplerAvro {
   private val log = LoggerFactory.getLogger(BigSamplerAvro.getClass)
@@ -205,7 +206,7 @@ private[samplers] object BigSamplerAvro {
     val outputParts = if (output.endsWith("/")) output + "part*" else output + "/part*"
     if (FileStorage(outputParts).isDone) {
       log.info(s"Reuse previous sample at $outputParts")
-      Taps().avroFile(outputParts, schema = schema)
+      AvroTaps(Taps()).avroFile(outputParts, schema = schema)
     } else {
       log.info(s"Will sample from: $input, output will be $output")
       val schemaSer = schema.toString(false)

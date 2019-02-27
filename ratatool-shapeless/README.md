@@ -16,7 +16,7 @@ def diffCaseClass[T : ClassTag : MapEncoder](lhs: SCollection[T],
 Add the following dependency to your `sbt` build file:
 
 ```
-libraryDependencies += "com.spotify" %% "ratatool-shapeless" % "0.3.6"
+libraryDependencies += "com.spotify" %% "ratatool-shapeless" % "0.3.10"
 ```
 
 ## CaseClassDiffy Examples 

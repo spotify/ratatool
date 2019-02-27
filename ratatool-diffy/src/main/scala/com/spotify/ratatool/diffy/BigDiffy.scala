@@ -22,10 +22,10 @@ import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.samplers.AvroSampler
 import com.spotify.scio._
-import com.spotify.scio.bigquery.BigQueryClient
 import com.spotify.scio.bigquery.types.BigQueryType
 import com.spotify.scio.io.Tap
 import com.spotify.scio.values.SCollection
+import com.spotify.scio.coders.Coder
 import com.twitter.algebird._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
@@ -36,6 +36,9 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.reflect.ClassTag
+import com.spotify.scio.avro._
+import com.spotify.scio.bigquery._
+import com.spotify.scio.bigquery.client.BigQuery
 
 /**
  * Diff type between two records of the same key.
@@ -127,7 +130,7 @@ case class FieldStats(field: String,
 }
 
 /** Big diff between two data sets given a primary key. */
-class BigDiffy[T](lhs: SCollection[T], rhs: SCollection[T],
+class BigDiffy[T : Coder](lhs: SCollection[T], rhs: SCollection[T],
                   diffy: Diffy[T], keyFn: T => MultiKey) {
 
   private lazy val _deltas: BigDiffy.DeltaSCollection =
@@ -174,7 +177,7 @@ object BigDiffy extends Command {
   // (field, deltas, diff type)
   type DeltaSCollection = SCollection[(MultiKey, (Seq[Delta], DiffType.Value))]
 
-  private def computeDeltas[T](lhs: SCollection[T], rhs: SCollection[T],
+  private def computeDeltas[T : Coder](lhs: SCollection[T], rhs: SCollection[T],
                                d: Diffy[T], keyFn: T => MultiKey): DeltaSCollection = {
     // extract keys and prefix records with L/R sub-key
     val lKeyed = lhs.map(t => (keyFn(t), ("l", t)))
@@ -260,12 +263,12 @@ object BigDiffy extends Command {
   }
 
   /** Diff two data sets. */
-  def diff[T: ClassTag](lhs: SCollection[T], rhs: SCollection[T],
+  def diff[T: ClassTag : Coder](lhs: SCollection[T], rhs: SCollection[T],
                         d: Diffy[T], keyFn: T => MultiKey): BigDiffy[T] =
     new BigDiffy[T](lhs, rhs, d, keyFn)
 
   /** Diff two Avro data sets. */
-  def diffAvro[T <: GenericRecord : ClassTag](sc: ScioContext,
+  def diffAvro[T <: GenericRecord : ClassTag : Coder](sc: ScioContext,
                                               lhs: String, rhs: String,
                                               keyFn: T => MultiKey,
                                               diffy: AvroDiffy[T],
@@ -493,9 +496,9 @@ object BigDiffy extends Command {
         BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(keys), diffy, schema)
       case "bigquery" =>
         // TODO: handle schema evolution
-        val bq = BigQueryClient.defaultInstance()
-        val lSchema = bq.getTableSchema(lhs)
-        val rSchema = bq.getTableSchema(rhs)
+        val bq = BigQuery.defaultInstance()
+        val lSchema = bq.tables.schema(lhs)
+        val rSchema = bq.tables.schema(rhs)
         val schema = mergeTableSchema(lSchema, rSchema)
         val diffy = new TableRowDiffy(schema, ignore, unordered)
         BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(keys), diffy)

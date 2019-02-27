@@ -21,6 +21,7 @@ import com.spotify.ratatool.proto.Schemas.TestRecord
 import com.spotify.ratatool.scalacheck._
 import com.spotify.scio._
 import org.scalacheck.Gen
+import com.spotify.scio.avro._
 
 object DataGenProto {
   def main(args: Array[String]): Unit = {

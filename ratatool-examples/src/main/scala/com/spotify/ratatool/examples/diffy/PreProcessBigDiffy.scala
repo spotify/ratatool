@@ -22,6 +22,7 @@ import com.spotify.ratatool.diffy.{AvroDiffy, BigDiffy, MultiKey}
 import com.spotify.scio.ContextAndArgs
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
+import com.spotify.scio.avro._
 
 object PreProcessBigDiffy {
   def recordKeyFn(r: ExampleRecord): MultiKey = {
