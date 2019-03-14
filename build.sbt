@@ -31,7 +31,7 @@ val scioVersion = "0.7.3"
 val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.25"
 val bigqueryVersion = "v2-rev374-1.23.0"
-val beamVersion = "2.11.0"
+val beamVersion = "2.10.0"
 val guavaVersion = "25.1-jre"
 val shapelessVersion = "2.3.3"
 
