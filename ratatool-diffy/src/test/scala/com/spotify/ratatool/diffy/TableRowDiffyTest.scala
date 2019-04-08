@@ -38,8 +38,8 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
     val d = new TableRowDiffy(schema)
     d(x, y) should equal (Nil)
     d(x, z) should equal (Seq(
-      Delta("field2", 20, 200, NumericDelta(180.0)),
-      Delta("field3", 30, 300, NumericDelta(270.0))))
+      Delta("field2", Option(20), Option(200), NumericDelta(180.0)),
+      Delta("field3", Option(30), Option(300), NumericDelta(270.0))))
   }
 
   it should "support nested fields" in {
@@ -60,10 +60,10 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
     val d = new TableRowDiffy(schema)
     d(x, y) should equal (Nil)
     d(x, z1) should equal (Seq(
-      Delta("field1.field1b", 20, 200, NumericDelta(180.0)),
-      Delta("field1.field1c", "hello", "Hello", StringDelta(1.0))))
+      Delta("field1.field1b", Option(20), Option(200), NumericDelta(180.0)),
+      Delta("field1.field1c", Option("hello"), Option("Hello"), StringDelta(1.0))))
     d(x, z2) should equal (Seq(
-      Delta("field1", x.get("field1"), null, UnknownDelta)))
+      Delta("field1", Option(x.get("field1")), None, UnknownDelta)))
     d(z2, z3) should equal (Nil)
   }
 
@@ -82,8 +82,8 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
     val d = new TableRowDiffy(schema)
     d(x, y) should equal (Nil)
     d(x, z) should equal (Seq(
-      Delta("field2", jl(20, 21), jl(-20, -21), VectorDelta(2.0)),
-      Delta("field3", jl("hello", "world"), jl("Hello", "World"), UnknownDelta)))
+      Delta("field2", Option(jl(20, 21)), Option(jl(-20, -21)), VectorDelta(2.0)),
+      Delta("field3", Option(jl("hello", "world")), Option(jl("Hello", "World")), UnknownDelta)))
   }
 
   it should "support ignore" in {
@@ -98,8 +98,8 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
     val di = new TableRowDiffy(schema, Set("field1"))
     di(x, y) should equal (Nil)
     di(x, z) should equal (Seq(
-      Delta("field2", 20, 200, NumericDelta(180.0)),
-      Delta("field3", 30, 300, NumericDelta(270.0))))
+      Delta("field2", Option(20), Option(200), NumericDelta(180.0)),
+      Delta("field3", Option(30), Option(300), NumericDelta(270.0))))
   }
 
   it should "support unordered" in {
@@ -122,7 +122,7 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
     du(x, z) should equal (Nil)
     val d = new TableRowDiffy(schema)
     d(x, z) should equal (Seq(
-      Delta("field1", jl(a, b, c), jl(a, c, b), UnknownDelta)))
+      Delta("field1", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta)))
   }
 
   it should "support unordered nested" in {
@@ -166,10 +166,6 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
     du(x, y) should equal (Nil)
     du(x, z) should equal (Nil)
     d(x, z) should equal (Seq(
-      Delta(
-        "repeated_record",
-        jl(a, b, c),
-        jl(a, c, b),
-        UnknownDelta)))
+      Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta)))
   }
 }

@@ -40,40 +40,42 @@ class CaseClassDiffyTest extends FlatSpec with Matchers {
   "CaseClassDiffy" should "support primitive fields" in {
     val result = dFoo.apply(f1, f2)
 
-    result should contain (Delta("f1", "foo1", "foo2", StringDelta(1.0)))
-    result should contain (Delta("f2", 1, 1, NumericDelta(0.0)))
-    result should contain (Delta("f3", 3,3, NumericDelta(0.0)))
-    result should contain (Delta("f5", Vector("foo1"), Vector("foo2"), UnknownDelta))
+    result should contain (Delta("f1", Option("foo1"), Option("foo2"), StringDelta(1.0)))
+    result should contain (Delta("f2", Option(1), Option(1), NumericDelta(0.0)))
+    result should contain (Delta("f3", Option(3), Option(3), NumericDelta(0.0)))
+    result should contain (Delta("f5", Option(Vector("foo1")), Option(Vector("foo2")),
+      UnknownDelta))
   }
 
   "CaseClassDiffy" should "support nested fields" in {
     val result = dBar.apply(b1, b2)
 
-    result should contain (Delta("b1", 1, 2, NumericDelta(1.0)))
-    result should contain (Delta("b2.f1", "foo1", "foo2", StringDelta(1.0)))
-    result should contain (Delta("b2.f2", 1, 1, NumericDelta(0.0)))
-    result should contain (Delta("b2.f3", 3,3, NumericDelta(0.0)))
+    result should contain (Delta("b1", Option(1), Option(2), NumericDelta(1.0)))
+    result should contain (Delta("b2.f1", Option("foo1"), Option("foo2"), StringDelta(1.0)))
+    result should contain (Delta("b2.f2", Option(1), Option(1), NumericDelta(0.0)))
+    result should contain (Delta("b2.f3", Option(3), Option(3), NumericDelta(0.0)))
     result should contain
-      (Delta("b2.f5", Vector("foo1"), Vector("foo2"), UnknownDelta))
+      (Delta("b2.f5", Option(Vector("foo1")), Option(Vector("foo2")), UnknownDelta))
   }
 
   "CaseClassDiffy" should "support ignore with exact match case" in {
     val result = dFooWithIgnore.apply(f1, f2)
     result.map(_.field) shouldNot contain ("f2")
 
-    result should contain (Delta("f1", "foo1", "foo2", StringDelta(1.0)))
-    result should contain (Delta("f3", 3,3, NumericDelta(0.0)))
-    result should contain (Delta("f5", Vector("foo1"), Vector("foo2"), UnknownDelta))
+    result should contain (Delta("f1", Option("foo1"), Option("foo2"), StringDelta(1.0)))
+    result should contain (Delta("f3", Option(3), Option(3), NumericDelta(0.0)))
+    result should contain (Delta("f5", Option(Vector("foo1")), Option(Vector("foo2")),
+      UnknownDelta))
   }
 
   "CaseClassDiffy" should "support ignore with nested field case" in {
     val result = dBarWithIgnore.apply(b1, b2)
     result.map(_.field) shouldNot contain ("f2")
 
-    result should contain (Delta("b1", 1, 2, NumericDelta(1.0)))
-    result should contain (Delta("b2.f1", "foo1", "foo2", StringDelta(1.0)))
-    result should contain (Delta("b2.f3", 3,3, NumericDelta(0.0)))
+    result should contain (Delta("b1", Option(1), Option(2), NumericDelta(1.0)))
+    result should contain (Delta("b2.f1", Option("foo1"), Option("foo2"), StringDelta(1.0)))
+    result should contain (Delta("b2.f3", Option(3), Option(3), NumericDelta(0.0)))
     result should contain
-    (Delta("b2.f5", Vector("foo1"), Vector("foo2"), UnknownDelta))
+    (Delta("b2.f5", Option(Vector("foo1")), Option(Vector("foo2")), UnknownDelta))
   }
 }

@@ -60,11 +60,11 @@ object VectorDelta {
  * Delta of a single field between two records.
  *
  * @param field "." separated field identifier
- * @param left  left hand side value
- * @param right right hand side value
+ * @param left  Option(left hand side value), None if null
+ * @param right Option(right hand side value), None if null
  * @param delta delta of numerical values
  */
-case class Delta(field: String, left: Any, right: Any, delta: DeltaValue) {
+case class Delta(field: String, left: Option[Any], right: Option[Any], delta: DeltaValue) {
   override def toString: String = s"$field\t$delta\t$left\t$right"
 }
 

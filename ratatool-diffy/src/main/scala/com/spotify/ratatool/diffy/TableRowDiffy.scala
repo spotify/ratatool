@@ -62,7 +62,7 @@ class TableRowDiffy(tableSchema: TableSchema,
         if (a == null && b == null) {
           Nil
         } else if (a == null || b == null) {
-          Seq(Delta(fullName, a, b, UnknownDelta))
+          Seq(Delta(fullName, Option(a), Option(b), UnknownDelta))
         } else {
           diff(a, b, f.getFields.asScala, fullName)
         }
@@ -80,12 +80,12 @@ class TableRowDiffy(tableSchema: TableSchema,
         else {
           val a = sortList(x.get(name).asInstanceOf[java.util.List[AnyRef]])
           val b = sortList(y.get(name).asInstanceOf[java.util.List[AnyRef]])
-          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+          if (a == b) Nil else Seq(Delta(fullName, Option(a), Option(b), delta(a, b)))
         }
       } else {
         val a = x.get(name)
         val b = y.get(name)
-        if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+        if (a == b) Nil else Seq(Delta(fullName, Option(a), Option(b), delta(a, b)))
       }
     }
     .filter(d => !ignore.contains(d.field))

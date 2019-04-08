@@ -49,7 +49,7 @@ class AvroDiffy[T <: GenericRecord](ignore: Set[String] = Set.empty,
           if (a == null && b == null) {
             Nil
           } else if (a == null || b == null) {
-            Seq(Delta(fullName, a, b, UnknownDelta))
+            Seq(Delta(fullName, Option(a), Option(b), UnknownDelta))
           } else {
             diff(a, b, fullName)
           }
@@ -68,12 +68,12 @@ class AvroDiffy[T <: GenericRecord](ignore: Set[String] = Set.empty,
           else {
             val a = sortList(x.get(name).asInstanceOf[java.util.List[GenericRecord]])
             val b = sortList(y.get(name).asInstanceOf[java.util.List[GenericRecord]])
-            if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+            if (a == b) Nil else Seq(Delta(fullName, Option(a), Option(b), delta(a, b)))
           }
         case _ =>
           val a = x.get(name)
           val b = y.get(name)
-          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+          if (a == b) Nil else Seq(Delta(fullName, Option(a), Option(b), delta(a, b)))
       }
     }
     .filter(d => !ignore.contains(d.field))
