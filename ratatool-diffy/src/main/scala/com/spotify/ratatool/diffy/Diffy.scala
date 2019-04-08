@@ -65,7 +65,8 @@ object VectorDelta {
  * @param delta delta of numerical values
  */
 case class Delta(field: String, left: Option[Any], right: Option[Any], delta: DeltaValue) {
-  override def toString: String = s"$field\t$delta\t$left\t$right"
+  override def toString: String = s"$field\t$delta\t" +
+    s"${left.map(_.toString).getOrElse("null")}\t${right.map(_.toString).getOrElse("null")}"
 }
 
 /**
