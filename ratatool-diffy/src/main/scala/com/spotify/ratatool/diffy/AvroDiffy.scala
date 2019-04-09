@@ -29,7 +29,6 @@ class AvroDiffy[T <: GenericRecord](ignore: Set[String] = Set.empty,
   extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
 
   override def apply(x: T, y: T): Seq[Delta] = {
-    require(x.getSchema == y.getSchema)
     diff(x, y, "")
   }
 
