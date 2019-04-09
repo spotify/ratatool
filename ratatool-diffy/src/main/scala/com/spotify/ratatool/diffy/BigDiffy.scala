@@ -178,7 +178,7 @@ object BigDiffy extends Command {
   type DeltaSCollection = SCollection[(MultiKey, (Seq[Delta], DiffType.Value))]
 
   private def computeDeltas[T : Coder](lhs: SCollection[T], rhs: SCollection[T],
-                               d: Diffy[T], keyFn: T => MultiKey): DeltaSCollection = {
+                                       diffy: Diffy[T], keyFn: T => MultiKey): DeltaSCollection = {
     // extract keys and prefix records with L/R sub-key
     val lKeyed = lhs.map(t => (keyFn(t), ("l", t)))
     val rKeyed = rhs.map(t => (keyFn(t), ("r", t)))
@@ -191,15 +191,15 @@ object BigDiffy extends Command {
 
     (lKeyed ++ rKeyed)
       .groupByKey
-      .map { case (k, vs) =>
-        val m = vs.toMap // L/R -> record
-        if (m.size == 2) {
-          val ds = d(m("l"), m("r"))
-          val dt = if (ds.isEmpty) DiffType.SAME else DiffType.DIFFERENT
-          (k, (ds, dt))
+      .map { case (key, values) => // values is a list of tuples: "l" -> record or "r" -> record
+        val valuesMap = values.toMap // L/R -> record
+        if (valuesMap.size == 2) {
+          val deltas: Seq[Delta] = diffy(valuesMap("l"), valuesMap("r"))
+          val diffType = if (deltas.isEmpty) DiffType.SAME else DiffType.DIFFERENT
+          (key, (deltas, diffType))
         } else {
-          val dt = if (m.contains("l")) DiffType.MISSING_RHS else DiffType.MISSING_LHS
-          (k, (Nil, dt))
+          val diffType = if (valuesMap.contains("l")) DiffType.MISSING_RHS else DiffType.MISSING_LHS
+          (key, (Nil, diffType))
         }
       }
       .map { x =>
@@ -345,7 +345,10 @@ object BigDiffy extends Command {
               case _ =>
               DeltaValueBigQuery("UNKNOWN", None)
             }
-            DeltaBigQuery(d.field, d.left.toString, d.right.toString, dv)})
+            DeltaBigQuery(d.field,
+              d.left.map(_.toString).getOrElse("null"),
+              d.right.map(_.toString).getOrElse("null"),
+              dv)})
           ))
           .saveAsTypedBigQuery(s"${output}_keys")
         bigDiffy.fieldStats.map(stat =>

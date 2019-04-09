@@ -162,7 +162,7 @@ class CaseClassDiffy[T](ignore: Set[String] = Set.empty,
 
     (left, right) match {
       case (Some(l: Map[String, Any]), Some(r: Map[String, Any])) => diffMap(l, r, pref)
-      case (Some(l), Some(r)) => Seq(Delta(pref, l, r, delta(l, r)))
+      case (Some(l), Some(r)) => Seq(Delta(pref, Option(l), Option(r), delta(l, r)))
     }
   }
 }

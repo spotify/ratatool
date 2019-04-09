@@ -70,7 +70,7 @@ extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
               case (l, r) => diff(l, r, f.getMessageType.getFields.asScala, fullName)}
         }
         else {
-          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+          if (a == b) Nil else Seq(Delta(fullName, Option(a), Option(b), delta(a, b)))
         }
       } else {
         f.getJavaType match {
@@ -80,14 +80,14 @@ extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
             if (a == null && b == null) {
               Nil
             } else if (a == null || b == null) {
-              Seq(Delta(fullName, a, b, UnknownDelta))
+              Seq(Delta(fullName, Option(a), Option(b), UnknownDelta))
             } else {
               diff(a, b, f.getMessageType.getFields.asScala, fullName)
             }
           case _ =>
             val a = x.getField(f)
             val b = y.getField(f)
-            if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a, b)))
+            if (a == b) Nil else Seq(Delta(fullName, Option(a), Option(b), delta(a, b)))
         }
       }
     }
