@@ -188,8 +188,8 @@ class AvroDiffyTest extends FlatSpec with Matchers {
 
     val d = new AvroDiffy[GenericRecord]()
     val di = new AvroDiffy[GenericRecord](ignore = Set("nullable_fields.string_field"))
-    di(x, y) should equal (Nil)
-    d(x, y) should equal(Seq(
+    di(y, x) should equal (Nil)
+    d(y, x) should equal(Seq(
       Delta(
         "nullable_fields.string_field",
         null,

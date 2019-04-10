@@ -40,7 +40,7 @@ class AvroDiffy[T <: GenericRecord](ignore: Set[String] = Set.empty,
       x.get(f)
     }
 
-    x.getSchema.getFields.asScala.flatMap { f =>
+    y.getSchema.getFields.asScala.flatMap { f =>
       val name = f.name()
       val fullName = if (root.isEmpty) name else root + "." + name
       getRawType(f.schema()).getType match {
