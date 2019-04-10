@@ -25,9 +25,14 @@ import org.apache.avro.Schema
 
 object Schemas {
 
-  val avroSchema = new Schema.Parser().parse(this.getClass.getResourceAsStream("/schema.avsc"))
+  val avroSchema: Schema =
+    new Schema.Parser().parse(this.getClass.getResourceAsStream("/schema.avsc"))
+  val simpleAvroSchema: Schema =
+    new Schema.Parser().parse(this.getClass.getResourceAsStream("/SimpleRecord.avsc"))
+  val evolvedSimpleAvroSchema: Schema =
+    new Schema.Parser().parse(this.getClass.getResourceAsStream("/EvolvedSimpleRecord.avsc"))
 
-  val tableSchema = new JsonObjectParser(new JacksonFactory)
+  val tableSchema: TableSchema = new JsonObjectParser(new JacksonFactory)
     .parseAndClose(
       this.getClass.getResourceAsStream("/schema.json"),
       Charsets.UTF_8,

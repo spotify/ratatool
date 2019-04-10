@@ -490,14 +490,10 @@ object BigDiffy extends Command {
 
     val result = inputMode match {
       case "avro" =>
-        val schemaRhs = new AvroSampler(rhs, conf = Some(sc.options))
+        val schema = new AvroSampler(rhs, conf = Some(sc.options))
           .sample(1, head = true).head.getSchema
-        val schemaLhs = new AvroSampler(lhs, conf = Some(sc.options))
-          .sample(1, head = true).head.getSchema
-        new SchemaValidatorBuilder().canReadStrategy.validateLatest()
-          .validate(schemaRhs, Seq(schemaLhs).toList.asJava)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered)
-        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(keys), diffy, schemaRhs)
+        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(keys), diffy, schema)
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQuery.defaultInstance()

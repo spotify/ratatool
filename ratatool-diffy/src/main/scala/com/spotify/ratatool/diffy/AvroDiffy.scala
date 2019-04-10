@@ -17,7 +17,7 @@
 
 package com.spotify.ratatool.diffy
 
-import org.apache.avro.Schema
+import org.apache.avro.{Schema, SchemaValidatorBuilder}
 import org.apache.avro.generic.GenericRecord
 
 import scala.collection.JavaConverters._
@@ -29,6 +29,8 @@ class AvroDiffy[T <: GenericRecord](ignore: Set[String] = Set.empty,
   extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
 
   override def apply(x: T, y: T): Seq[Delta] = {
+    new SchemaValidatorBuilder().canReadStrategy.validateLatest()
+      .validate(y.getSchema, List(x.getSchema).asJava)
     diff(x, y, "")
   }
 

@@ -17,11 +17,14 @@
 
 package com.spotify.ratatool.diffy
 
+import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific._
+import com.spotify.ratatool.diffy.BigDiffy.DeltaValueBigQuery
 import com.spotify.ratatool.scalacheck._
-import org.apache.avro.generic.GenericRecord
+import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder}
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
+import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.{FlatSpec, Matchers}
 
 import scala.collection.JavaConverters._
@@ -153,5 +156,47 @@ class AvroDiffyTest extends FlatSpec with Matchers {
         jl(a, b, c),
         jl(a, c, b),
         UnknownDelta)))
+  }
+
+  it should "support schema evolution if ignored" in {
+    val inner = avroOf(Schemas.evolvedSimpleAvroSchema.getField("nullable_fields").schema())
+        .flatMap(r => Arbitrary.arbString.arbitrary.map { s =>
+          r.put("string_field", s)
+          r
+        })
+    val x = avroOf(Schemas.evolvedSimpleAvroSchema).flatMap(r => inner.map { i =>
+      r.put("nullable_fields", i)
+      r
+    }).sample.get
+    val y = new GenericRecordBuilder(Schemas.simpleAvroSchema)
+      .set(
+        "nullable_fields",
+        new GenericRecordBuilder(Schemas.simpleAvroSchema.getField("nullable_fields").schema())
+          .set("int_field", x.get("nullable_fields").asInstanceOf[GenericRecord].get("int_field"))
+          .set("long_field", x.get("nullable_fields").asInstanceOf[GenericRecord].get("long_field"))
+          .build()
+      )
+      .set(
+        "required_fields",
+        new GenericRecordBuilder(Schemas.simpleAvroSchema.getField("required_fields").schema())
+          .set("boolean_field",
+            x.get("required_fields").asInstanceOf[GenericRecord].get("boolean_field"))
+          .set("string_field",
+            x.get("required_fields").asInstanceOf[GenericRecord].get("string_field"))
+          .build()
+      ).build()
+
+    val d = new AvroDiffy[GenericRecord]()
+    val di = new AvroDiffy[GenericRecord](ignore = Set("nullable_fields.string_field"))
+    di(x, y) should equal (Nil)
+    d(x, y) should equal(Seq(
+      Delta(
+        "nullable_fields.string_field",
+        null,
+        x.get("nullable_fields").asInstanceOf[GenericRecord].get("string_field")
+          .asInstanceOf[String],
+        UnknownDelta
+      )
+    ))
   }
 }
