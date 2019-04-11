@@ -70,12 +70,13 @@ private[samplers] object BigSamplerAvro {
                                  distributionFields: Seq[String])(gr: GenericRecord)
   : Set[Any] = {
     distributionFields.map{f =>
-      val field = getAvroField(gr, f.split(BigSampler.fieldSep).toList, schema)
+      val fieldValue = getAvroField(gr, f.split(BigSampler.fieldSep).toList, schema)
       // Avro caches toString in the Utf8 class which results in an IllegalMutationException
       // later on if we don't materialize the string once before. Ignoring this prevents us
       // from printing the key in e.g. SamplerSCollectionFunctions.logDistributionDiffs.
-      field.toString
-      field
+      // Of course, if it's null we can't call toString on it, so we wrap.
+      Option(fieldValue).map(_.toString)
+      fieldValue
     }.toSet
   }
 
