@@ -1,0 +1,34 @@
+{
+    "type": "record",
+    "name": "SimpleRecord",
+    "namespace": "com.spotify.ratatool.avro.generic",
+    "doc": "Record for testing",
+    "fields": [
+        {
+            "name": "nullable_fields",
+            "type": {
+                "type": "record",
+                "name": "SimpleNullableNestedRecord",
+                "namespace": "com.spotify.ratatool.avro.generic",
+                "doc": "Record for testing",
+                "fields": [
+                    {"name": "int_field", "type": ["null", "int"], "default": null},
+                    {"name": "long_field", "type": ["null", "long"], "default": null}
+                ]
+            }
+        },
+        {
+            "name": "required_fields",
+            "type": {
+                "type": "record",
+                "name": "SimpleRequiredNestedRecord",
+                "namespace": "com.spotify.ratatool.avro.generic",
+                "doc": "Record for testing",
+                "fields": [
+                    {"name": "boolean_field", "type": "boolean"},
+                    {"name": "string_field", "type": "string"}
+                ]
+            }
+        }
+    ]
+}

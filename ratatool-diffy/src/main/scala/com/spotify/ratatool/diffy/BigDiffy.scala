@@ -28,6 +28,7 @@ import com.spotify.scio.values.SCollection
 import com.spotify.scio.coders.Coder
 import com.twitter.algebird._
 import org.apache.avro.Schema
+import org.apache.avro.SchemaValidatorBuilder
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.io.TextIO
 
@@ -492,7 +493,6 @@ object BigDiffy extends Command {
 
     val result = inputMode match {
       case "avro" =>
-        // TODO: handle schema
         val schema = new AvroSampler(rhs, conf = Some(sc.options))
           .sample(1, head = true).head.getSchema
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered)
