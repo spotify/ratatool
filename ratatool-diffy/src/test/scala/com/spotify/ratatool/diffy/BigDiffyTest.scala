@@ -77,8 +77,8 @@ class BigDiffyTest extends PipelineSpec {
       result.deltas.map(d => (d._1, d._2)) should containInAnyOrder (
         keys.map((_, field)))
       result.keyStats should containInAnyOrder (keyedDoubles.map { case (k, d) =>
-        KeyStats(k, DiffType.DIFFERENT, Option(Delta("required_fields.double_field", d, d + 10.0,
-          TypedDelta(DeltaType.NUMERIC, 10.0))))})
+        KeyStats(k, DiffType.DIFFERENT, Option(Delta("required_fields.double_field", Option(d),
+          Option(d + 10.0), TypedDelta(DeltaType.NUMERIC, 10.0))))})
       result.fieldStats.map(f => (f.field, f.count, f.fraction)) should containSingleValue (
         (field, 1000L, 1.0))
       // Double.NaN comparison is always false

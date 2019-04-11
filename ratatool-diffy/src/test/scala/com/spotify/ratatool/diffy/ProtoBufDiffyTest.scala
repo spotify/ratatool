@@ -35,7 +35,7 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
     val d = new ProtoBufDiffy[OptionalNestedRecord]()
     d(x, y) should equal (Nil)
     d(x, z) should equal (Seq(
-      Delta("int64_field", 20L, 200L, NumericDelta(180.0))))
+      Delta("int64_field", Option(20L), Option(200L), NumericDelta(180.0))))
   }
 
   it should "support nested fields" in {
@@ -63,10 +63,11 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
     val d = new ProtoBufDiffy[TestRecord]()
     d(x, y) should equal (Nil)
     d(x, z1) should equal (Seq(
-      Delta("optional_nested_field.int64_field", 20L, 200L, NumericDelta(180.0)),
-      Delta("optional_nested_field.string_field", "hello", "Hello", StringDelta(1.0))))
+      Delta("optional_nested_field.int64_field", Option(20L), Option(200L), NumericDelta(180.0)),
+      Delta("optional_nested_field.string_field", Option("hello"), Option("Hello"),
+        StringDelta(1.0))))
     d(x, z2) should equal (Seq(
-      Delta("optional_nested_field", onr, null, UnknownDelta)))
+      Delta("optional_nested_field", Option(onr), None, UnknownDelta)))
     d(z2, z3) should equal (Nil)
   }
 
@@ -97,10 +98,10 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
     val d = new ProtoBufDiffy[TestRecord]()
     d(x, y) should equal (Nil)
     d(x, z) should equal (Seq(
-      Delta("repeated_fields.int64_field",
-        jl(20L, 21L), jl(-20L, -21L), VectorDelta(2.0)),
-      Delta("repeated_fields.string_field",
-        jl("hello", "world"), jl("Hello", "World"), UnknownDelta)))
+      Delta("repeated_fields.int64_field", Option(jl(20L, 21L)), Option(jl(-20L, -21L)),
+        VectorDelta(2.0)),
+      Delta("repeated_fields.string_field", Option(jl("hello", "world")),
+        Option(jl("Hello", "World")), UnknownDelta)))
   }
 
   it should "support ignore" in {
@@ -111,7 +112,7 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
     val di = new ProtoBufDiffy[OptionalNestedRecord](Set("int32_field"))
     di(x, y) should equal (Nil)
     di(x, z) should equal (Seq(
-      Delta("int64_field", 20L, 200L, NumericDelta(180.0))))
+      Delta("int64_field", Option(20L), Option(200L), NumericDelta(180.0))))
   }
 
   it should "support unordered" in {
@@ -138,7 +139,7 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
     du(x, z) should equal (Nil)
     val d = new ProtoBufDiffy[TestRecord]
     d(x, z) should equal (Seq(
-      Delta("repeated_nested_field", jl(a, b, c), jl(a, c, b), UnknownDelta)))
+      Delta("repeated_nested_field", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta)))
   }
 
   it should "support unordered nested" in {
@@ -164,10 +165,6 @@ class ProtoBufDiffyTest extends FlatSpec with Matchers {
     du(x, y) should equal (Nil)
     du(x, z) should equal (Nil)
     d(x, z) should equal (Seq(
-      Delta(
-        "repeated_record",
-        jl(a, b, c),
-        jl(a, c, b),
-        UnknownDelta)))
+      Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta)))
   }
 }

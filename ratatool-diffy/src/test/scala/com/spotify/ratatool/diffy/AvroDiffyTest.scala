@@ -42,7 +42,7 @@ class AvroDiffyTest extends FlatSpec with Matchers {
 
     d(x, y) should equal (Nil)
     d(x, z) should equal (Seq(
-      Delta("long_field", 20L, 200L, NumericDelta(180.0))))
+      Delta("long_field", Option(20L), Option(200L), NumericDelta(180.0))))
   }
 
   it should "support nested fields" in {
@@ -66,10 +66,11 @@ class AvroDiffyTest extends FlatSpec with Matchers {
 
     d(x, y) should equal (Nil)
     d(x, z1) should equal (Seq(
-      Delta("nullable_nested_field.long_field", 20L, 200L, NumericDelta(180.0)),
-      Delta("nullable_nested_field.string_field", "hello", "Hello", StringDelta(1.0))))
+      Delta("nullable_nested_field.long_field", Option(20L), Option(200L), NumericDelta(180.0)),
+      Delta("nullable_nested_field.string_field", Option("hello"), Option("Hello"), StringDelta
+      (1.0))))
     d(x, z2) should equal (Seq(
-      Delta("nullable_nested_field", nnr, null, UnknownDelta)))
+      Delta("nullable_nested_field", Option(nnr), None, UnknownDelta)))
     d(z2, z3) should equal (Nil)
   }
 
@@ -89,10 +90,11 @@ class AvroDiffyTest extends FlatSpec with Matchers {
 
     d(x, y) should equal (Nil)
     d(x, z) should equal (Seq(
-      Delta("repeated_fields.long_field",
-        jl(20L, 21L), jl(-20L, -21L), VectorDelta(2.0)),
+      Delta("repeated_fields.long_field", Option(jl(20L, 21L)), Option(jl(-20L, -21L)),
+        VectorDelta(2.0)),
       Delta("repeated_fields.string_field",
-        jl("hello", "world"), jl("Hello", "World"), UnknownDelta)))
+        Option(jl("hello", "world")), Option(jl("Hello", "World")),
+        UnknownDelta)))
   }
 
   it should "support ignore" in {
@@ -103,7 +105,7 @@ class AvroDiffyTest extends FlatSpec with Matchers {
     val di = new AvroDiffy[GenericRecord](Set("int_field"))
     di(x, y) should equal (Nil)
     di(x, z) should equal (Seq(
-      Delta("long_field", 20L, 200L, NumericDelta(180.0))))
+      Delta("long_field", Option(20L), Option(200L), NumericDelta(180.0))))
   }
 
   it should "support unordered" in {
@@ -123,7 +125,7 @@ class AvroDiffyTest extends FlatSpec with Matchers {
     du(x, y) should equal (Nil)
     du(x, z) should equal (Nil)
     d(x, z) should equal (Seq(
-      Delta("repeated_nested_field", jl(a, b, c), jl(a, c, b), UnknownDelta)))
+      Delta("repeated_nested_field", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta)))
   }
 
   it should "support unordered nested" in {
@@ -151,11 +153,7 @@ class AvroDiffyTest extends FlatSpec with Matchers {
     du(x, y) should equal (Nil)
     du(x, z) should equal (Nil)
     d(x, z) should equal (Seq(
-      Delta(
-        "repeated_record",
-        jl(a, b, c),
-        jl(a, c, b),
-        UnknownDelta)))
+      Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta)))
   }
 
   it should "support schema evolution if ignored" in {
