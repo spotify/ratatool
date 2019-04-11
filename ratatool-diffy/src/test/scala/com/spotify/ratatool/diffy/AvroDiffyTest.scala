@@ -190,9 +190,9 @@ class AvroDiffyTest extends FlatSpec with Matchers {
     d(y, x) should equal(Seq(
       Delta(
         "nullable_fields.string_field",
-        null,
-        x.get("nullable_fields").asInstanceOf[GenericRecord].get("string_field")
-          .asInstanceOf[String],
+        None,
+        Option(x.get("nullable_fields").asInstanceOf[GenericRecord].get("string_field")
+          .asInstanceOf[String]),
         UnknownDelta
       )
     ))
