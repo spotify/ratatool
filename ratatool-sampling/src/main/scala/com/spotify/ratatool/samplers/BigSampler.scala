@@ -361,8 +361,6 @@ object BigSampler extends Command {
     this.singleInput(argv)
   }
 
-  /** makes it easier to test this in SBT and in JobTests */
-  def main(argv: Array[String]): Unit = run(argv)
 }
 
 
