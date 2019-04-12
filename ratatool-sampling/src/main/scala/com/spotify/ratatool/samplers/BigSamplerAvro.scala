@@ -68,15 +68,17 @@ private[samplers] object BigSamplerAvro {
 
   private[samplers] def buildKey(schema: => Schema,
                                  distributionFields: Seq[String])(gr: GenericRecord)
-  : Set[Any] = {
+  : Set[String] = {
     distributionFields.map{f =>
       val fieldValue = getAvroField(gr, f.split(BigSampler.fieldSep).toList, schema)
       // Avro caches toString in the Utf8 class which results in an IllegalMutationException
       // later on if we don't materialize the string once before. Ignoring this prevents us
       // from printing the key in e.g. SamplerSCollectionFunctions.logDistributionDiffs.
+
+      // It's not possible to derive compile-time coders for Any or AnyRef/Object, so we return a
+      // Set[String] with the toString values for each field to use as our key.
       // Of course, if it's null we can't call toString on it, so we wrap.
-      Option(fieldValue).map(_.toString)
-      fieldValue
+      Option(fieldValue).map(_.toString).getOrElse("null")
     }.toSet
   }
 
