@@ -123,8 +123,7 @@ private[samplers] object BigSamplerBigQuery {
   : Set[String] = {
     distributionFields.map{ f =>
       getTableRowField(tr, f, schema)
-    }
-      .map(_.toString).toSet
+    }.map(_.toString).toSet
   }
 
   //scalastyle:off method.length cyclomatic.complexity parameter.number

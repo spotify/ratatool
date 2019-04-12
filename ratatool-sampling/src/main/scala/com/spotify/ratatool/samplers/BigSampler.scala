@@ -360,7 +360,6 @@ object BigSampler extends Command {
   def run(argv: Array[String]): Unit = {
     this.singleInput(argv)
   }
-
 }
 
 
