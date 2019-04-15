@@ -268,7 +268,7 @@ object BigSampler extends Command {
    * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
    * @param precision Approximate or Exact precision
    * @param hashFn Function to construct a hash given a record, field, and hasher
-   * @param keyFn Function to extract a value given a record
+   * @param keyFn Function to extract a value that's safe to serialize and key on, given a record
    * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
    * @param byteEncoding Determines how bytes are encoded prior to hashing.
    * @tparam T Record Type

@@ -120,10 +120,10 @@ private[samplers] object BigSamplerBigQuery {
 
   private[samplers] def buildKey(schema: => Seq[TableFieldSchema],
                                  distributionFields: Seq[String])(tr: TableRow)
-  : Set[Any] = {
+  : Set[String] = {
     distributionFields.map{ f =>
       getTableRowField(tr, f, schema)
-    }.toSet
+    }.map(_.toString).toSet
   }
 
   //scalastyle:off method.length cyclomatic.complexity parameter.number
