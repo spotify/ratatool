@@ -17,13 +17,16 @@
 
 package com.spotify.ratatool
 
-import com.google.api.services.bigquery.model.TableRow
-import com.google.protobuf.Message
+import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
+import com.google.protobuf.{AbstractMessage, Message}
+import org.apache.avro.Schema
+import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecord
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
 
 import scala.util.Try
 import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
 package object scalacheck extends AvroGeneratorOps
   with ProtoBufGeneratorOps
@@ -132,7 +135,7 @@ package object scalacheck extends AvroGeneratorOps
 
   implicit class RichTableRowTupGen(gen: Gen[(TableRow, TableRow)]) {
     def amend2[U](a: Gen[U])(f: TableRow => (AnyRef => Record),
-                            g: TableRow => (AnyRef => Record)): Gen[(TableRow, TableRow)] = {
+                             g: TableRow => (AnyRef => Record)): Gen[(TableRow, TableRow)] = {
       for ((r1, r2) <- gen; v <- a) yield {
         f(r1)(v.asInstanceOf[AnyRef])
         g(r2)(v.asInstanceOf[AnyRef])
@@ -141,7 +144,7 @@ package object scalacheck extends AvroGeneratorOps
     }
 
     def tryAmend2[U](a: Gen[U])(f: TableRow => (AnyRef => Record),
-                               g: TableRow => (AnyRef => Record)): Gen[(TableRow, TableRow)] = {
+                                g: TableRow => (AnyRef => Record)): Gen[(TableRow, TableRow)] = {
       for ((r1, r2) <- gen; v <- a) yield {
         Try(f(r1)(v.asInstanceOf[AnyRef]))
         Try(g(r2)(v.asInstanceOf[AnyRef]))
@@ -165,4 +168,19 @@ package object scalacheck extends AvroGeneratorOps
     }
   }
 
+  implicit def arbSpecificRec[T <: SpecificRecord : ClassTag]: Arbitrary[T] = {
+    Arbitrary(specificRecordOf[T])
+  }
+
+  implicit def arbProtobuf[T <: AbstractMessage : ClassTag]: Arbitrary[T] = {
+    Arbitrary(protoBufOf[T])
+  }
+
+  def arbTableRow(schema: TableSchema): Arbitrary[TableRow] = {
+    Arbitrary(tableRowOf(schema))
+  }
+
+  def arbGenericRecord(schema: Schema): Arbitrary[GenericRecord] = {
+    Arbitrary(genericRecordOf(schema))
+  }
 }
