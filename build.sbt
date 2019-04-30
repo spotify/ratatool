@@ -229,7 +229,8 @@ lazy val ratatoolScalacheck = project
       "org.apache.avro" % "avro" % avroVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
-      "org.apache.beam" % "beam-sdks-java-core" % beamVersion
+      "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     )
   )
   .enablePlugins(ProtobufPlugin)

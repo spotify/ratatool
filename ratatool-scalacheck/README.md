@@ -33,3 +33,11 @@ val keyGen = Arbitrary.arbString.arbitrary
 
 (avroGen, otherGen).tupled.amend2(keyGen)(_.setMyIntField, _.setOtherIntField)
 ```
+
+Implicit Arbitrary instances are also available for Avro and Protobuf records. Explicit functions
+ are provided for GenericRecord and TableRow
+
+```scala
+val avroArb: Arbitrary[MyRecord] = implicitly[Arbitrary[MyRecord]]
+
+```
