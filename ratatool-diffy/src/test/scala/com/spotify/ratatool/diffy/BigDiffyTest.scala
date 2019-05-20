@@ -120,6 +120,14 @@ class BigDiffyTest extends PipelineSpec {
     }
   }
 
+  "BigDiffy avroKeyFn" should "work with nullable key" in {
+    val record = specificRecordOf[TestRecord].sample.get
+    record.getNullableFields.setIntField(null)
+    val keyValue = BigDiffy.avroKeyFn(Seq("nullable_fields.int_field"))(record)
+
+    keyValue.toString shouldBe "null"
+  }
+
   "BigDiffy avroKeyFn" should "work with single key" in {
     val record = specificRecordOf[TestRecord].sample.get
     val keyValue = BigDiffy.avroKeyFn(Seq("required_fields.int_field"))(record)
