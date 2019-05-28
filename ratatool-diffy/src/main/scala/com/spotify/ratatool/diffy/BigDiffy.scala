@@ -199,7 +199,12 @@ object BigDiffy extends Command {
           val deltas: Seq[Delta] = diffy(valuesMap("l"), valuesMap("r"))
           val diffType = if (deltas.isEmpty) DiffType.SAME else DiffType.DIFFERENT
           (key, (deltas, diffType))
-        } else {
+        } else if (valuesMap.size > 2) {
+         throw new RuntimeException(
+           s"""More than two values found for key: $key.
+              | Your key must be unique in both SCollections""".stripMargin)
+        }
+        else {
           val diffType = if (valuesMap.contains("l")) DiffType.MISSING_RHS else DiffType.MISSING_LHS
           (key, (Nil, diffType))
         }
