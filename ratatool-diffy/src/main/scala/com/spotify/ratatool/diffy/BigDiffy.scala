@@ -194,17 +194,18 @@ object BigDiffy extends Command {
     (lKeyed ++ rKeyed)
       .groupByKey
       .map { case (key, values) => // values is a list of tuples: "l" -> record or "r" -> record
+        if (values.size > 2) {
+          throw new RuntimeException(
+            s"""More than two values found for key: $key.
+               | Your key must be unique in both SCollections""".stripMargin)
+        }
+
         val valuesMap = values.toMap // L/R -> record
         if (valuesMap.size == 2) {
           val deltas: Seq[Delta] = diffy(valuesMap("l"), valuesMap("r"))
           val diffType = if (deltas.isEmpty) DiffType.SAME else DiffType.DIFFERENT
           (key, (deltas, diffType))
-        } else if (valuesMap.size > 2) {
-         throw new RuntimeException(
-           s"""More than two values found for key: $key.
-              | Your key must be unique in both SCollections""".stripMargin)
-        }
-        else {
+        } else {
           val diffType = if (valuesMap.contains("l")) DiffType.MISSING_RHS else DiffType.MISSING_LHS
           (key, (Nil, diffType))
         }
