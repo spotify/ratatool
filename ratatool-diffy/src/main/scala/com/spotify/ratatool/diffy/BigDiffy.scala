@@ -440,7 +440,7 @@ object BigDiffy extends Command {
         if (valueOfKey == null) {
           logger.warn(
             s"""Null value found for key: ${xs.mkString(".")}.
-               | If this is not expected check your or use a different key.""".stripMargin)
+               | If this is not expected check your data or use a different key.""".stripMargin)
         }
         String.valueOf(valueOfKey)
       } else {
