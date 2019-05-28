@@ -40,6 +40,7 @@ import scala.reflect.ClassTag
 import com.spotify.scio.avro._
 import com.spotify.scio.bigquery._
 import com.spotify.scio.bigquery.client.BigQuery
+import org.slf4j.{Logger, LoggerFactory}
 
 /**
  * Diff type between two records of the same key.
@@ -174,6 +175,7 @@ case object BQ extends OutputMode
 /** Big diff between two data sets given a primary key. */
 object BigDiffy extends Command {
   val command: String = "bigDiffy"
+  private val logger: Logger = LoggerFactory.getLogger(BigDiffy.getClass)
 
   // (field, deltas, diff type)
   type DeltaSCollection = SCollection[(MultiKey, (Seq[Delta], DiffType.Value))]
@@ -429,7 +431,13 @@ object BigDiffy extends Command {
     @tailrec
     def get(xs: Array[String], i: Int, r: GenericRecord): String =
       if (i == xs.length - 1) {
-        String.valueOf(r.get(xs(i)))
+        val valueOfKey = r.get((xs(i)))
+        if (valueOfKey == null) {
+          logger.warn(
+            s"""Null value found for key: ${xs.mkString(".")}.
+               | If this is not expected check you data or use a different key.""".stripMargin)
+        }
+        String.valueOf(valueOfKey)
       } else {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[GenericRecord])
       }
