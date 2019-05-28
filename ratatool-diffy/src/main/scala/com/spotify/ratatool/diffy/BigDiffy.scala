@@ -429,7 +429,7 @@ object BigDiffy extends Command {
     @tailrec
     def get(xs: Array[String], i: Int, r: GenericRecord): String =
       if (i == xs.length - 1) {
-        r.get(xs(i)).toString
+        String.valueOf(r.get(xs(i)))
       } else {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[GenericRecord])
       }
