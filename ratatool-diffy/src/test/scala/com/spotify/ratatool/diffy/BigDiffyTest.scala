@@ -120,7 +120,7 @@ class BigDiffyTest extends PipelineSpec {
     }
   }
 
-  a [RuntimeException] shouldBe thrownBy {
+  a[RuntimeException] shouldBe thrownBy {
     runWithContext { sc =>
       val lhsDuplicate = Gen.listOfN(2, specificGen).sample.get
         .map(r => {
