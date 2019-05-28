@@ -22,25 +22,24 @@ import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.samplers.AvroSampler
 import com.spotify.scio._
+import com.spotify.scio.avro._
+import com.spotify.scio.bigquery._
+import com.spotify.scio.bigquery.client.BigQuery
 import com.spotify.scio.bigquery.types.BigQueryType
+import com.spotify.scio.coders.Coder
 import com.spotify.scio.io.Tap
 import com.spotify.scio.values.SCollection
-import com.spotify.scio.coders.Coder
 import com.twitter.algebird._
 import org.apache.avro.Schema
-import org.apache.avro.SchemaValidatorBuilder
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.io.TextIO
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.reflect.ClassTag
-import com.spotify.scio.avro._
-import com.spotify.scio.bigquery._
-import com.spotify.scio.bigquery.client.BigQuery
-import org.slf4j.{Logger, LoggerFactory}
 
 /**
  * Diff type between two records of the same key.
