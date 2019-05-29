@@ -120,6 +120,27 @@ class BigDiffyTest extends PipelineSpec {
     }
   }
 
+  a[RuntimeException] shouldBe thrownBy {
+    runWithContext { sc =>
+      val lhsDuplicate = Gen.listOfN(2, specificGen).sample.get
+        .map(r => {
+          r.getRequiredFields.setIntField(10)
+          r.getRequiredFields.setStringField("key")
+          r
+        })
+      val rhs = Gen.listOfN(1, specificGen).sample.get
+        .map(r => {
+          r.getRequiredFields.setIntField(10)
+          r.getRequiredFields.setStringField("key")
+          r
+        })
+      val result = BigDiffy.diff[TestRecord](
+        sc.parallelize(lhsDuplicate), sc.parallelize(rhs),
+        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString))
+      val res = result.deltas.map(_._1)
+    }
+  }
+
   "BigDiffy avroKeyFn" should "work with nullable key" in {
     val record = specificRecordOf[TestRecord].sample.get
     record.getNullableFields.setIntField(null)

@@ -22,24 +22,24 @@ import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.samplers.AvroSampler
 import com.spotify.scio._
+import com.spotify.scio.avro._
+import com.spotify.scio.bigquery._
+import com.spotify.scio.bigquery.client.BigQuery
 import com.spotify.scio.bigquery.types.BigQueryType
+import com.spotify.scio.coders.Coder
 import com.spotify.scio.io.Tap
 import com.spotify.scio.values.SCollection
-import com.spotify.scio.coders.Coder
 import com.twitter.algebird._
 import org.apache.avro.Schema
-import org.apache.avro.SchemaValidatorBuilder
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.io.TextIO
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.reflect.ClassTag
-import com.spotify.scio.avro._
-import com.spotify.scio.bigquery._
-import com.spotify.scio.bigquery.client.BigQuery
 
 /**
  * Diff type between two records of the same key.
@@ -174,6 +174,7 @@ case object BQ extends OutputMode
 /** Big diff between two data sets given a primary key. */
 object BigDiffy extends Command {
   val command: String = "bigDiffy"
+  private val logger: Logger = LoggerFactory.getLogger(BigDiffy.getClass)
 
   // (field, deltas, diff type)
   type DeltaSCollection = SCollection[(MultiKey, (Seq[Delta], DiffType.Value))]
@@ -193,6 +194,12 @@ object BigDiffy extends Command {
     (lKeyed ++ rKeyed)
       .groupByKey
       .map { case (key, values) => // values is a list of tuples: "l" -> record or "r" -> record
+        if (values.size > 2) {
+          throw new RuntimeException(
+            s"""More than two values found for key: $key.
+               | Your key must be unique in both SCollections""".stripMargin)
+        }
+
         val valuesMap = values.toMap // L/R -> record
         if (valuesMap.size == 2) {
           val deltas: Seq[Delta] = diffy(valuesMap("l"), valuesMap("r"))
@@ -429,7 +436,13 @@ object BigDiffy extends Command {
     @tailrec
     def get(xs: Array[String], i: Int, r: GenericRecord): String =
       if (i == xs.length - 1) {
-        String.valueOf(r.get(xs(i)))
+        val valueOfKey = r.get((xs(i)))
+        if (valueOfKey == null) {
+          logger.warn(
+            s"""Null value found for key: ${xs.mkString(".")}.
+               | If this is not expected check your data or use a different key.""".stripMargin)
+        }
+        String.valueOf(valueOfKey)
       } else {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[GenericRecord])
       }
