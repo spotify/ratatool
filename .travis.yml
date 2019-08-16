@@ -1,9 +1,14 @@
+dist: bionic
+addons:
+  apt:
+    packages:
+      - oracle-java8-installer
+jdk: oraclejdk8
+
 language: scala
 scala:
   - 2.11.12
   - 2.12.6
-jdk: oraclejdk8
-
 cache:
   directories:
     - $HOME/.sbt/boot
@@ -19,6 +24,7 @@ env:
   - TEST_PROJECT=ratatoolExamples
 
 script:
+  - jdk_switcher use oraclejdk8
   - sbt ++$TRAVIS_SCALA_VERSION clean "project $TEST_PROJECT" scalastyle test:scalastyle coverage test "project root" coverageReport
 
 after_success:
