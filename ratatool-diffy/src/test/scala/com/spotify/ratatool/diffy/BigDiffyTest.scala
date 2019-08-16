@@ -186,4 +186,18 @@ class BigDiffyTest extends PipelineSpec {
 
     keyValues.toString shouldBe "foo_bar"
   }
+
+  it should "throw an exception when in GCS output mode and output is not gs://" in {
+    val exc = the[Exception] thrownBy {
+      val args = Array(
+        "--runner=DataflowRunner", "--project=fake", "--tempLocation=gs://tmp/tmp", // dataflow args
+        "--input-mode=avro", "--key=tmp", "--lhs=gs://tmp/lhs", "--rhs=gs://tmp/rhs",
+        "--output=abc" // no gs:// prefix
+        // if no output-mode. defaults to GCS
+         )
+      BigDiffy.run(args)
+    }
+
+    exc.getMessage shouldBe "Output mode is GCS, but output abc is not a valid GCS location"
+  }
 }
