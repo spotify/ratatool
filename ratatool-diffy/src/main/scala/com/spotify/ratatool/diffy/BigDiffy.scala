@@ -482,6 +482,7 @@ object BigDiffy extends Command {
   def main(cmdlineArgs: Array[String]): Unit = run(cmdlineArgs)
 
   /** Scio pipeline for BigDiffy. */
+  //scalastyle:off cyclomatic.complexity
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
@@ -504,6 +505,13 @@ object BigDiffy extends Command {
       case m => throw new IllegalArgumentException(s"output mode $m not supported")
     }
 
+    if (om == GCS && !output.startsWith("gs://")) {
+      // if combo of inputs is invalid, error out early
+      throw new IllegalArgumentException(s"Output mode is GCS, " +
+        s"but output $output is not a valid GCS location")
+    }
+
+    // validity checks passed, ok to run the diff
     val result = inputMode match {
       case "avro" =>
         val schema = new AvroSampler(rhs, conf = Some(sc.options))
@@ -525,5 +533,6 @@ object BigDiffy extends Command {
 
     sc.close().waitUntilDone()
   }
+  //scalastyle:on cyclomatic.complexity
 
 }
