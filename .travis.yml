@@ -23,6 +23,7 @@ env:
   - TEST_PROJECT=ratatoolExamples
 
 script:
+  - source /opt/jdk_switcher/jdk_switcher
   - jdk_switcher use openjdk8
   - sbt ++$TRAVIS_SCALA_VERSION clean "project $TEST_PROJECT" scalastyle test:scalastyle coverage test "project root" coverageReport
 
