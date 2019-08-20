@@ -31,12 +31,7 @@ commands:
           - v4-dependencies-
       - run:
           command: |
-            sbt clean "project $TEST_PROJECT" \
-              scalastyle \ 
-              test:scalastyle \
-              coverage \
-              test \
-              "project root" coverageReport
+            sbt clean "project $TEST_PROJECT" scalastyle test:scalastyle coverage test "project root" coverageReport
       - run:
           command: bash <(curl -s https://codecov.io/bash) -cF $TEST_PROJECT
       - save_cache:
