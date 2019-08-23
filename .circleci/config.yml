@@ -1,0 +1,158 @@
+version: 2.1
+
+####################
+# Templates
+####################
+
+executors:
+  scala_212:
+    docker:
+      - image: circleci/openjdk:8-jdk
+    environment:
+      SCALA_VERSION: 2.12.8
+  scala_211: 
+    docker:
+      - image: circleci/openjdk:8-jdk
+    environment:
+      SCALA_VERSION: 2.11.12
+
+commands:
+  build:
+    parameters:
+      build-steps:
+        description: "build steps"
+        type: steps
+        default: []
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - v4-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "build.sbt" }}
+          - v4-dependencies-
+      - run:
+          command: |
+            sbt clean "project $TEST_PROJECT" scalastyle test:scalastyle coverage test "project root" coverageReport
+      - run:
+          command: bash <(curl -s https://codecov.io/bash) -cF $TEST_PROJECT
+      - save_cache:
+          key: v4-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "build.sbt" }}
+          paths:
+            - "~/.ivy2/cache"
+            - "~/.sbt"
+
+
+####################
+# Jobs
+####################
+
+jobs: 
+  common_212:
+    executor: scala_212
+    environment:
+      TEST_PROJECT=ratatoolCommon
+    steps:
+      - build
+  scalacheck_212:
+    executor: scala_212
+    environment: 
+      TEST_PROJECT=ratatoolScalacheck
+    steps:
+      - build
+  diffy_212:
+    executor: scala_212
+    environment: 
+      TEST_PROJECT=ratatoolDiffy
+    steps:
+      - build
+  sampling_212:
+    executor: scala_212
+    environment:
+      TEST_PROJECT=ratatoolSampling
+    steps:
+      - build
+  shapeless_212:
+    executor: scala_212
+    environment:
+      TEST_PROJECT=ratatoolShapeless
+    steps:
+      - build
+  cli_212:
+    executor: scala_212
+    environment: 
+      TEST_PROJECT=ratatoolCli
+    steps:
+      - build
+  examples_212:
+    executor: scala_212
+    environment: 
+      TEST_PROJECT=ratatoolExamples
+    steps:
+      - build
+  common_211:
+    executor: scala_211
+    environment:
+      TEST_PROJECT=ratatoolCommon
+    steps:
+      - build
+  scalacheck_211:
+    executor: scala_211
+    environment: 
+      TEST_PROJECT=ratatoolScalacheck
+    steps:
+      - build
+  diffy_211:
+    executor: scala_211
+    environment: 
+      TEST_PROJECT=ratatoolDiffy
+    steps:
+      - build
+  sampling_211:
+    executor: scala_211
+    environment:
+      TEST_PROJECT=ratatoolSampling
+    steps:
+      - build
+  shapeless_211:
+    executor: scala_211
+    environment:
+      TEST_PROJECT=ratatoolShapeless
+    steps:
+      - build
+  cli_211:
+    executor: scala_211
+    environment: 
+      TEST_PROJECT=ratatoolCli
+    steps:
+      - build
+  examples_211:
+    executor: scala_211
+    environment: 
+      TEST_PROJECT=ratatoolExamples
+    steps:
+      -  build
+
+
+####################
+# Workflows
+####################
+
+workflows:
+  version: 2.1
+
+  # Per commit build
+  build:
+    jobs:
+      - common_212
+      - scalacheck_212
+      - diffy_212
+      - sampling_212
+      - shapeless_212
+      - cli_212
+      - examples_212
+      - common_211
+      - scalacheck_211
+      - diffy_211
+      - sampling_211
+      - shapeless_211
+      - cli_211
+      - examples_211

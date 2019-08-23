@@ -40,8 +40,12 @@
                     {"name": "double_field", "type": "double"},
                     {"name": "boolean_field", "type": "boolean"},
                     {"name": "string_field", "type": "string"},
-                    {"name": "fixed_field", "type": {"type": "fixed", "size": 16, "name": "UUID"}},
-                    {"name": "enum_field", "type": {"type": "enum", "name": "ABTest", "symbols": ["A", "B"]}},
+                    {"name": "fixed_field", "type": {"type": "fixed",
+                      "namespace": "com.spotify.ratatool.avro.specific",
+                      "size": 16, "name": "UUID"}},
+                    {"name": "enum_field", "type": {"type": "enum",
+                      "namespace": "com.spotify.ratatool.avro.specific",
+                      "name": "ABTest", "symbols": ["A", "B"]}},
                     {"name": "map_field", "type": {"type": "map", "values": "int"}},
                     {"name": "bytes_field", "type": "bytes" }
                 ]
