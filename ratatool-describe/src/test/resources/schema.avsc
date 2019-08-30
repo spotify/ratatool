@@ -1,0 +1,50 @@
+{
+  "type": "record",
+  "name": "TestRecord",
+  "namespace": "com.spotify.ratatool.avro.testing",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string"
+    },
+    {
+      "name": "enum",
+      "type": "string"
+    },
+    {
+      "name": "nullable_long",
+      "type": ["null", "long"],
+      "default": null
+    },
+    {
+      "name": "some_int",
+      "type": "int"
+    },
+    {
+      "name": "some_long",
+      "type": "long"
+    },
+    {
+      "name": "true_false_switch",
+      "type": "boolean",
+      "doc": "Is this is a dry-run message, ie it will not actually be sent to the user."
+    },
+    {
+      "name": "nested_field",
+      "type": [
+        "null",
+        {
+          "name": "NestedRecord",
+          "type": "record",
+          "fields": [
+            {
+              "name": "platform",
+              "type": "long"
+            }
+          ]
+        }
+      ],
+      "default": null
+    }
+  ]
+}

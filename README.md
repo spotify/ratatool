@@ -13,6 +13,7 @@ A tool for random data sampling and generation
 - [ScalaCheck Generators](https://github.com/spotify/ratatool/tree/master/ratatool-scalacheck) - [ScalaCheck](http://scalacheck.org/) generators (`Gen[T]`) for property-based testing for [Avro](https://avro.apache.org/), [Protocol Buffers](https://developers.google.com/protocol-buffers/) and [BigQuery](https://cloud.google.com/bigquery/) [TableRow](https://developers.google.com/resources/api-libraries/documentation/bigquery/v2/java/latest/com/google/api/services/bigquery/model/TableRow.html)
 - [IO](https://github.com/spotify/ratatool/tree/master/ratatool-sampling/src/main/scala/com/spotify/ratatool/io) - utilities for reading and writing records in Avro, [Parquet](http://parquet.apache.org/) (via Avro GenericRecord), BigQuery and TableRow JSON files. Local file system, HDFS and [Google Cloud Storage](https://cloud.google.com/storage/) are supported.
 - [Samplers](https://github.com/spotify/ratatool/tree/master/ratatool-sampling) - random data samplers for Avro, BigQuery and Parquet. True random sampling is supported for Avro only while head mode (sampling from the start) is supported for all sources.
+- [Describe](https://github.com/spotify/ratatool/tree/master/ratatool-describe) - descriptive statistics for Avro.
 - [Diffy](https://github.com/spotify/ratatool/tree/master/ratatool-diffy) - field-level record diff tool for Avro, Protobuf and BigQuery TableRow.
 - [BigDiffy](https://github.com/spotify/ratatool/blob/master/ratatool-diffy) - [Scio](https://github.com/spotify/scio) library for pairwise field-level statistical diff of data sets. See [slides](http://www.lyh.me/slides/bigdiffy.html) for more.
 - [Command line tool](https://github.com/spotify/ratatool/tree/master/ratatool-cli/src/main/scala/com/spotify/ratatool/tool) - command line tool for local sampler, or executing BigDiffy and BigSampler.
@@ -72,8 +73,18 @@ bin/ratatool bigDiffy --mode avro --key record.key \
     --runner DataflowRunner ....
 ```
 
+# Contribution
+
+In order to prepare ratatool for release or manual testing run:
+
+```bash
+sbt package pack
+```
+
+Then your package will be available in `./ratatool-cli/target/pack/`.
+
 # License
 
-Copyright 2016-2018 Spotify AB.
+Copyright 2016-2019 Spotify AB.
 
 Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0

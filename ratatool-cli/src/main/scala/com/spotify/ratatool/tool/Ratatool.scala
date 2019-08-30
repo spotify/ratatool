@@ -18,19 +18,20 @@
 package com.spotify.ratatool.tool
 
 import com.spotify.ratatool.Command
+import com.spotify.ratatool.describe.BigDescribe
 import com.spotify.ratatool.diffy.BigDiffy
 import com.spotify.ratatool.io.{AvroIO, BigQueryIO, TableRowJsonIO}
 import com.spotify.ratatool.samplers.{AvroSampler, BigQuerySampler, BigSampler}
 
 object Ratatool {
   private def commandSet[T <: Command](xs: T*): Set[String] = xs.map(_.command).toSet
-  private val commands = commandSet(DirectSamplerParser, BigDiffy, BigSampler)
+  private val commands = commandSet(BigDescribe, DirectSamplerParser, BigDiffy, BigSampler)
 
   //scalastyle:off cyclomatic.complexity
   def main(args: Array[String]): Unit = {
     val usage = """
       | Ratatool - a tool for random data generation, sampling, and diff-ing
-      | Usage: ratatool [bigDiffy|bigSampler|directSampler] [args]
+      | Usage: ratatool [bigDescribe|bigDiffy|bigSampler|directSampler] [args]
     """.stripMargin
 
     if (args.isEmpty || !commands.contains(args.head)) {
@@ -39,6 +40,7 @@ object Ratatool {
     }
     else {
       args.head match {
+        case BigDescribe.command => BigDescribe.run(args.tail)
         case BigDiffy.command => BigDiffy.run(args.tail)
         case BigSampler.command => BigSampler.run(args.tail)
         case DirectSamplerParser.command =>

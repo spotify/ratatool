@@ -100,7 +100,7 @@ lazy val ratatoolCommon = project
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "com.google.guava" % "guava" % guavaVersion
-    ), 
+    ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
@@ -161,6 +161,35 @@ lazy val ratatoolDiffy = project
   )
   .settings(protoBufSettings)
 
+lazy val ratatoolDescribe = project
+  .in(file("ratatool-describe"))
+  .settings(commonSettings)
+  .settings(
+    name := "ratatool-describe",
+    libraryDependencies ++= Seq(
+      "com.spotify" %% "scio-core" % scioVersion,
+      "com.spotify" %% "scio-avro" % scioVersion,
+      "com.spotify" %% "scio-test" % scioVersion % "test",
+      "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
+      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
+      "com.twitter" %% "algebird-core" % algebirdVersion
+    ),
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core",
+      "io.circe" %% "circe-generic",
+      "io.circe" %% "circe-parser"
+    ).map(_ % "0.11.1"),
+      // In case of scalacheck failures print more info
+    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
+    parallelExecution in Test := false,
+    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+  )
+  .dependsOn(
+    ratatoolCommon % "compile->compile;test->test",
+    ratatoolSampling,
+    ratatoolScalacheck % "test"
+  )
+
 lazy val ratatoolShapeless = project
   .in(file("ratatool-shapeless"))
   .settings(commonSettings)
@@ -216,7 +245,8 @@ lazy val ratatoolCli = project
   .dependsOn(
     ratatoolCommon % "compile->compile;test->test",
     ratatoolSampling,
-    ratatoolDiffy
+    ratatoolDiffy,
+    ratatoolDescribe
   )
   .settings(protoBufSettings)
 
@@ -260,6 +290,7 @@ val root = project.in(file("."))
   .aggregate(
     ratatoolCommon,
     ratatoolScalacheck,
+    ratatoolDescribe,
     ratatoolDiffy,
     ratatoolSampling,
     ratatoolShapeless,
