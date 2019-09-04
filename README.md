@@ -67,9 +67,13 @@ bin/ratatool bigSampler avro \
 Or execute BigDiffy directly
 
 ```bash
-bin/ratatool bigDiffy --mode avro --key record.key \
-    --lhs gs://path/to/left --rhs gs://path/to/right --output gs://path/to/output \
-    --runner DataflowRunner ....
+bin/ratatool bigDiffy \
+    --input_mode=avro \
+    --key=record.key \
+    --lhs=gs://path/to/left \
+    --rhs=gs://path/to/right \
+    --output=gs://path/to/output \
+    --runner=DataflowRunner ....
 ```
 
 # License
