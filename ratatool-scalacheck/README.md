@@ -41,3 +41,27 @@ Implicit Arbitrary instances are also available for Avro and Protobuf records. E
 val avroArb: Arbitrary[MyRecord] = implicitly[Arbitrary[MyRecord]]
 
 ```
+## CaseClassGenerator
+
+Given a case class containing fields, and (potentially non-arbitrary) generators for individual 
+fields in the implicit scope, generates a Gen for the case class. 
+
+Inspired by and code based on what 
+[Scalacheck-Magnolia](https://github.com/mrdziuban/scalacheck-magnolia) does for Arbitrary. 
+
+```scala
+import com.spotify.ratatool.scalacheck.CaseClassGenerator._
+import org.scalacheck.Gen
+
+case class Sample(opt: Option[String])
+
+object OptionGen {
+  implicit def optionAlwaysSome[T](implicit genT: Gen[T]): Gen[Option[T]] = genT.map(Some(_))
+}
+
+object ValidCaseClassGen {
+  import OptionGen.optionAlwaysSome
+  implicit def string: Gen[String] = Gen.alphaNumStr
+  def sampleGen: Gen[Sample] = deriveGen[Sample] // always gens a Sample(Some(alphaNumString))
+}
+```
