@@ -34,6 +34,7 @@ val bigqueryVersion = "v2-rev374-1.23.0"
 val beamVersion = "2.10.0"
 val guavaVersion = "25.1-jre"
 val shapelessVersion = "2.3.3"
+val magnoliaVersion = "0.10.1-jto" // needs to stay in sync with scio version
 
 val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
@@ -230,6 +231,7 @@ lazy val ratatoolScalacheck = project
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
+      "me.lyh" %% "magnolia" % magnoliaVersion,
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     )
   )
