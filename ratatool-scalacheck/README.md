@@ -49,6 +49,11 @@ fields in the implicit scope, generates a Gen for the case class.
 Inspired by and code based on what 
 [Scalacheck-Magnolia](https://github.com/mrdziuban/scalacheck-magnolia) does for Arbitrary. 
 
+
+Note that this works with Scio 0.7.x and earlier, due to [this Magnolia change](https://github.com/propensive/magnolia/pull/152) added to Scio [here](https://github.com/spotify/scio/pull/2241/).
+You may see a `java.lang.NoSuchMethodError: magnolia.TypeName.<init>` if you're using an 
+incompatible Scio version. 
+
 ```scala
 import com.spotify.ratatool.scalacheck.CaseClassGenerator._
 import org.scalacheck.Gen
