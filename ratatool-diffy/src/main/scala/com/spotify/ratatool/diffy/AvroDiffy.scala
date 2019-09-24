@@ -17,13 +17,14 @@
 
 package com.spotify.ratatool.diffy
 
+import com.spotify.scio.coders.Coder
 import org.apache.avro.{Schema, SchemaValidatorBuilder}
 import org.apache.avro.generic.GenericRecord
 
 import scala.collection.JavaConverters._
 
 /** Field level diff tool for Avro records. */
-class AvroDiffy[T <: GenericRecord](ignore: Set[String] = Set.empty,
+class AvroDiffy[T <: GenericRecord: Coder](ignore: Set[String] = Set.empty,
                                     unordered: Set[String] = Set.empty,
                                     unorderedFieldKeys: Map[String, String] = Map())
   extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
