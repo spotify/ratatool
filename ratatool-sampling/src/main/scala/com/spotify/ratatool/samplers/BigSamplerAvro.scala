@@ -35,6 +35,7 @@ import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import com.spotify.scio.avro._
+import com.spotify.scio.coders.Coder
 
 private[samplers] object BigSamplerAvro {
   private val log = LoggerFactory.getLogger(BigSamplerAvro.getClass)
@@ -212,13 +213,12 @@ private[samplers] object BigSamplerAvro {
       AvroTaps(Taps()).avroFile(outputParts, schema = schema)
     } else {
       log.info(s"Will sample from: $input, output will be $output")
-      val schemaSer = schema.toString(false)
+      implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
 
       val coll = sc.avroFile[GenericRecord](input, schema)
 
       val sampledCollection = sampleAvro(coll, fraction, schema, fields, seed, distribution,
         distributionFields, precision, maxKeySize, byteEncoding)
-
 
       val r = sampledCollection.saveAsAvroFile(output, schema = schema)
       sc.close().waitUntilDone()

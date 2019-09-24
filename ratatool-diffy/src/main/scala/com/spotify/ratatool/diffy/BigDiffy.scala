@@ -516,6 +516,7 @@ object BigDiffy extends Command {
       case "avro" =>
         val schema = new AvroSampler(rhs, conf = Some(sc.options))
           .sample(1, head = true).head.getSchema
+        implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered)
         BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(keys), diffy, schema)
       case "bigquery" =>
