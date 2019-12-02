@@ -18,15 +18,15 @@
 import sbt._
 import Keys._
 
-val algebirdVersion = "0.13.4"
+val algebirdVersion = "0.13.6"
 val avroVersion = "1.8.2"
-val gcsVersion = "1.6.3-hadoop2"
+val gcsVersion = "hadoop2-1.9.17"
 val hadoopVersion = "2.7.7"
 val jodaTimeVersion = "2.9.9"
-val parquetVersion = "1.10.0"
+val parquetVersion = "1.10.1"
 val protoBufVersion = "3.6.1"
-val scalaCheckVersion = "1.14.0"
-val scalaTestVersion = "3.0.4"
+val scalaCheckVersion = "1.14.2"
+val scalaTestVersion = "3.0.8"
 val scioVersion = "0.7.4"
 val scoptVersion = "3.5.0"
 val slf4jVersion = "1.7.25"
@@ -34,14 +34,14 @@ val bigqueryVersion = "v2-rev374-1.23.0"
 val beamVersion = "2.11.0"
 val guavaVersion = "25.1-jre"
 val shapelessVersion = "2.3.3"
-val magnoliaVersion = "0.10.1-jto" // needs to stay in sync with scio version
+val magnoliaVersion = "0.12.2" // needs to stay in sync with scio version
 
 val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
   name := "ratatool",
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.11.12",
-  crossScalaVersions := Seq("2.11.12", "2.12.6"),
+  crossScalaVersions := Seq("2.11.12", "2.12.10"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   scalacOptions in (Compile,doc) ++= {
     scalaBinaryVersion.value match {
@@ -231,7 +231,13 @@ lazy val ratatoolScalacheck = project
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
-      "me.lyh" %% "magnolia" % magnoliaVersion,
+      {
+        if (scalaBinaryVersion.value == "2.11") {
+          "me.lyh" %% "magnolia" % "0.10.1-jto"
+        } else {
+          "com.propensive" %% "magnolia" % magnoliaVersion
+        }
+      },
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     )
   )
