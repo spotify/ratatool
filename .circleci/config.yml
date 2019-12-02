@@ -45,7 +45,7 @@ commands:
 # Jobs
 ####################
 
-jobs: 
+jobs:
   common_212:
     executor: scala_212
     environment:
@@ -54,13 +54,13 @@ jobs:
       - build
   scalacheck_212:
     executor: scala_212
-    environment: 
+    environment:
       TEST_PROJECT=ratatoolScalacheck
     steps:
       - build
   diffy_212:
     executor: scala_212
-    environment: 
+    environment:
       TEST_PROJECT=ratatoolDiffy
     steps:
       - build
@@ -78,13 +78,13 @@ jobs:
       - build
   cli_212:
     executor: scala_212
-    environment: 
+    environment:
       TEST_PROJECT=ratatoolCli
     steps:
       - build
   examples_212:
     executor: scala_212
-    environment: 
+    environment:
       TEST_PROJECT=ratatoolExamples
     steps:
       - build
@@ -96,13 +96,13 @@ jobs:
       - build
   scalacheck_211:
     executor: scala_211
-    environment: 
+    environment:
       TEST_PROJECT=ratatoolScalacheck
     steps:
       - build
   diffy_211:
     executor: scala_211
-    environment: 
+    environment:
       TEST_PROJECT=ratatoolDiffy
     steps:
       - build
@@ -120,13 +120,13 @@ jobs:
       - build
   cli_211:
     executor: scala_211
-    environment: 
+    environment:
       TEST_PROJECT=ratatoolCli
     steps:
       - build
   examples_211:
     executor: scala_211
-    environment: 
+    environment:
       TEST_PROJECT=ratatoolExamples
     steps:
       -  build
