@@ -1,7 +1,7 @@
 Ratatool
 ========
 
-[![Build Status](https://travis-ci.org/spotify/ratatool.svg?branch=master)](https://travis-ci.org/spotify/ratatool)
+[![CircleCI](https://circleci.com/gh/spotify/ratatool/tree/master.svg?style=svg)](https://circleci.com/gh/spotify/ratatool/tree/master)
 [![codecov.io](https://codecov.io/github/spotify/ratatool/coverage.svg?branch=master)](https://codecov.io/github/spotify/ratatool?branch=master)
 [![GitHub license](https://img.shields.io/github/license/spotify/ratatool.svg)](./LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/com.spotify/ratatool-common_2.12.svg)](https://maven-badges.herokuapp.com/maven-central/com.spotify/ratatool-common_2.12)
