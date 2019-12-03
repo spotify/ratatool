@@ -152,7 +152,7 @@ lazy val ratatoolDiffy = project
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
     parallelExecution in Test := false,
-    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
   )
   .enablePlugins(ProtobufPlugin)
   .dependsOn(
