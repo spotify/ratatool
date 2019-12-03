@@ -120,6 +120,32 @@ class BigDiffyTest extends PipelineSpec {
     }
   }
 
+  it should "work with NaNs" in {
+    runWithContext { sc =>
+      val rhs = lhs.map(CoderUtils.clone(coder, _)).map(r => {
+        val intField = r.getRequiredFields.getIntField
+        if (intField > 900 && intField <= 950) {
+          r.getRequiredFields.setDoubleField(r.getRequiredFields.getDoubleField + 10.0)
+        } else if(intField > 950) {
+          r.getRequiredFields.setDoubleField(Double.NaN)
+        }
+       r
+      })
+      val ignoreNan = true
+      val result = BigDiffy.diff[TestRecord](
+        sc.parallelize(lhs), sc.parallelize(rhs),
+        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString),
+        ignoreNan)
+      result.globalStats should containSingleValue(GlobalStats(1000L, 900L, 100L, 0L, 0L))
+      result.deltas.map(d => (d._1, d._2)) should containInAnyOrder (
+        (901 to 1000).map(k => MultiKey("key" + k)).map((_, field)))
+      val deltaStats = result.fieldStats
+        .flatMap(_.deltaStats)
+        .map(d => (d.deltaType, d.min, d.max, d.count, d.mean, d.variance, d.stddev))
+      deltaStats should containSingleValue ((DeltaType.NUMERIC, 10.0, 10.0, 50L, 10.0, 0.0, 0.0))
+    }
+  }
+
   a[RuntimeException] shouldBe thrownBy {
     runWithContext { sc =>
       val lhsDuplicate = Gen.listOfN(2, specificGen).sample.get

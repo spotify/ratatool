@@ -222,6 +222,8 @@ object BigDiffy extends Command {
       }
   }
 
+  //noinspection ScalaStyle
+  //scalastyle:off cyclomatic.complexity
   private def computeGlobalAndFieldStats(deltas: DeltaSCollection, ignoreNan: Boolean)
   : SCollection[(GlobalStats, Iterable[FieldStats])] = {
     // Semigroup[DeltaType.Value] so it can be propagated during sum over Map
@@ -238,7 +240,7 @@ object BigDiffy extends Command {
         ds.foreach { d =>
           val optD = d.delta match {
             case UnknownDelta => None
-            case TypedDelta(t, v) if v.equals(Double.NaN) => None
+            case TypedDelta(t, v) if ignoreNan && v.isNaN => None
             case TypedDelta(t, v) =>
               Some((t, Min(v), Max(v), Moments.aggregator.prepare(v)))
           }
@@ -271,6 +273,7 @@ object BigDiffy extends Command {
         (globalKeyStats, fieldStats)
       }
   }
+  //scalastyle:on cyclomatic.complexity
 
   /** Diff two data sets. */
   def diff[T: ClassTag : Coder](lhs: SCollection[T], rhs: SCollection[T],
@@ -486,6 +489,7 @@ object BigDiffy extends Command {
   def main(cmdlineArgs: Array[String]): Unit = run(cmdlineArgs)
 
   /** Scio pipeline for BigDiffy. */
+  //noinspection ScalaStyle
   //scalastyle:off cyclomatic.complexity
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
