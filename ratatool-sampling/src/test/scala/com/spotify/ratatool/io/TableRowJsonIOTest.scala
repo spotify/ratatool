@@ -22,10 +22,11 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.scalacheck._
 import org.scalacheck.Gen
-import org.scalatest.{FlatSpec, Matchers}
 import scala.collection.JavaConverters._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class TableRowJsonIOTest extends FlatSpec with Matchers {
+class TableRowJsonIOTest extends AnyFlatSpec with Matchers {
 
   /**
    * Reduce bounds of the float from [[org.scalacheck.Arbitrary.arbFloat]] to avoid floating point

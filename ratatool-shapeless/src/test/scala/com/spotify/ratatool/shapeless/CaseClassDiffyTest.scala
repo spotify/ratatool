@@ -18,9 +18,10 @@
 package com.spotify.ratatool.shapeless
 
 import com.spotify.ratatool.diffy.{Delta, NumericDelta, StringDelta, UnknownDelta}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class CaseClassDiffyTest extends FlatSpec with Matchers {
+class CaseClassDiffyTest extends AnyFlatSpec with Matchers {
   case class Foo(f1: String, f2: Int, f3: Long, f4: Seq[Double], f5: Seq[String])
   case class Bar(b1: Double, b2: Foo)
 

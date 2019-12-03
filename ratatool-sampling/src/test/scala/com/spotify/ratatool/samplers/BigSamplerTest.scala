@@ -31,10 +31,12 @@ import org.apache.avro.generic.GenericRecord
 import org.scalacheck.Prop.{all, forAll, proved}
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Gen, Properties}
-import org.scalatest.{BeforeAndAfterAllConfigMap, ConfigMap, FlatSpec, Matchers}
+import org.scalatest.{BeforeAndAfterAllConfigMap, ConfigMap}
 
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 object BigSamplerTest extends Properties("BigSampler") {
 
@@ -386,7 +388,7 @@ object BigSamplerTest extends Properties("BigSampler") {
  * Base testing class for BigSampler. Adding a new subclass here rqeuires also adding a line to
  * test it in travis.yml
  */
-sealed trait BigSamplerJobTestRoot extends FlatSpec with Matchers with BeforeAndAfterAllConfigMap {
+sealed trait BigSamplerJobTestRoot extends AnyFlatSpec with Matchers with BeforeAndAfterAllConfigMap {
   val schema = Schemas.avroSchema
   def data1Size: Int
   def data2Size: Int

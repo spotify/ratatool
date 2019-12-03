@@ -22,10 +22,11 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific.TestRecord
 import org.apache.avro.generic.GenericRecord
-import org.scalatest.{FlatSpec, Matchers}
 import com.spotify.ratatool.scalacheck._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class AvroIOTest extends FlatSpec with Matchers {
+class AvroIOTest extends AnyFlatSpec with Matchers {
 
   private val genericSchema = Schemas.avroSchema
   private val genericGen = genericRecordOf(genericSchema)
