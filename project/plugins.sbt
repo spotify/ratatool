@@ -5,7 +5,7 @@ addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.10")
 addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.1.2-1")
 addSbtPlugin("org.scalastyle" % "scalastyle-sbt-plugin" % "1.0.0")
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.1")
-addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "2.4")
+addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "2.6")
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.9.2")
 
 libraryDependencies ++= Seq(
