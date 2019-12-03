@@ -9,7 +9,7 @@ addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "2.4")
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.9.2")
 
 libraryDependencies ++= Seq(
-  "com.github.os72" % "protoc-jar" % "3.6.0.1"
+  "com.github.os72" % "protoc-jar" % "3.10.1"
 )
 
 libraryDependencies ++= Seq(
