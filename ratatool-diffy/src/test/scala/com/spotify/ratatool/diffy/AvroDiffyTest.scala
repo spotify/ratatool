@@ -19,12 +19,11 @@ package com.spotify.ratatool.diffy
 
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific._
-import com.spotify.ratatool.diffy.BigDiffy.DeltaValueBigQuery
 import com.spotify.ratatool.scalacheck._
 import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder}
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
-import org.scalacheck.{Arbitrary, Gen}
+import org.scalacheck.Arbitrary
 
 import scala.collection.JavaConverters._
 import org.scalatest.flatspec.AnyFlatSpec
