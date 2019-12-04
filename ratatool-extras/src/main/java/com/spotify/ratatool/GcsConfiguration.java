@@ -24,6 +24,7 @@ import com.google.api.client.json.JsonObjectParser;
 import com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS;
 import com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem;
 import com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystemBase;
+import com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystemConfiguration;
 import com.google.cloud.hadoop.util.HadoopCredentialConfiguration;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
@@ -77,8 +78,10 @@ public class GcsConfiguration {
           LOG.debug("Using GCP user credential from '{}'", credentialFilePath);
           conf.setIfUnset("fs.gs.impl", GoogleHadoopFileSystem.class.getName());
           conf.setIfUnset("fs.AbstractFileSystem.gs.impl", GoogleHadoopFS.class.getName());
-          conf.setIfUnset(GoogleHadoopFileSystemBase.GCS_PROJECT_ID_KEY, defaultProject());
-          conf.setIfUnset(GoogleHadoopFileSystemBase.GCS_WORKING_DIRECTORY_KEY, "/hadoop");
+          conf.setIfUnset(GoogleHadoopFileSystemConfiguration.GCS_PROJECT_ID.getDefault(),
+              defaultProject());
+          conf.setIfUnset(GoogleHadoopFileSystemConfiguration.GCS_WORKING_DIRECTORY.getDefault(),
+              "/hadoop");
 
           conf.setIfUnset(
               HadoopCredentialConfiguration.BASE_KEY_PREFIX +

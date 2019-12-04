@@ -39,6 +39,6 @@ object ProtobufBigDiffyExample {
 
     BigDiffy.saveStats(result, output, header)
 
-    sc.close().waitUntilDone()
+    sc.run().waitUntilDone()
   }
 }

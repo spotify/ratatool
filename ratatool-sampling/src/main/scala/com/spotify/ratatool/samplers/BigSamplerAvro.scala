@@ -24,7 +24,7 @@ import com.google.common.hash.Hasher
 import com.spotify.ratatool.io.{AvroIO, FileStorage}
 import com.spotify.ratatool.samplers.util.{ByteEncoding, Precision, RawEncoding, SampleDistribution}
 import com.spotify.scio.ScioContext
-import com.spotify.scio.io.{Tap, Taps}
+import com.spotify.scio.io.{ClosedTap, MaterializeTap}
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
 import org.apache.avro.generic._
@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
 import com.spotify.scio.avro._
 import com.spotify.scio.coders.Coder
 
@@ -205,12 +204,13 @@ private[samplers] object BigSamplerAvro {
                                precision: Precision,
                                maxKeySize: Int,
                                byteEncoding: ByteEncoding = RawEncoding)
-  : Future[Tap[GenericRecord]] = {
+  : ClosedTap[GenericRecord] = {
     val schema = AvroIO.getAvroSchemaFromFile(input)
     val outputParts = if (output.endsWith("/")) output + "part*" else output + "/part*"
     if (FileStorage(outputParts).isDone) {
+      implicit val coder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
       log.info(s"Reuse previous sample at $outputParts")
-      AvroTaps(Taps()).avroFile(outputParts, schema = schema)
+      ClosedTap(MaterializeTap[GenericRecord](outputParts, sc))
     } else {
       log.info(s"Will sample from: $input, output will be $output")
       implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
@@ -221,7 +221,7 @@ private[samplers] object BigSamplerAvro {
         distributionFields, precision, maxKeySize, byteEncoding)
 
       val r = sampledCollection.saveAsAvroFile(output, schema = schema)
-      sc.close().waitUntilDone()
+      sc.run().waitUntilDone()
       r
     }
   }

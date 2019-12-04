@@ -27,7 +27,7 @@ import com.spotify.scio.bigquery._
 import com.spotify.scio.bigquery.client.BigQuery
 import com.spotify.scio.bigquery.types.BigQueryType
 import com.spotify.scio.coders.Coder
-import com.spotify.scio.io.Tap
+import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
 import org.apache.avro.Schema
@@ -38,7 +38,6 @@ import org.slf4j.{Logger, LoggerFactory}
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.concurrent.Future
 import scala.reflect.ClassTag
 
 /**
@@ -295,7 +294,7 @@ object BigDiffy extends Command {
                    lhs: String, rhs: String,
                    keyFn: TableRow => MultiKey,
                    diffy: TableRowDiffy): BigDiffy[TableRow] =
-    diff(sc.bigQueryTable(lhs), sc.bigQueryTable(rhs), diffy, keyFn)
+    diff(sc.bigQueryTable(Table.Spec(lhs)), sc.bigQueryTable(Table.Spec(rhs)), diffy, keyFn)
 
   /** Merge two BigQuery TableSchemas. */
   def mergeTableSchema(x: TableSchema, y: TableSchema): TableSchema = {
@@ -467,7 +466,7 @@ object BigDiffy extends Command {
   def pathWithShards(path: String): String = path.replaceAll("\\/+$", "") + "/part"
 
   implicit class TextFileHeader(coll: SCollection[String]) {
-    def saveAsTextFileWithHeader(path: String, header: String): Future[Tap[String]] = {
+    def saveAsTextFileWithHeader(path: String, header: String): ClosedTap[Nothing] = {
       val transform = TextIO.write()
         .to(pathWithShards(path))
         .withSuffix(".txt")
@@ -532,7 +531,7 @@ object BigDiffy extends Command {
     }
     saveStats(result, output, header, om)
 
-    sc.close().waitUntilDone()
+    sc.run().waitUntilDone()
   }
   //scalastyle:on cyclomatic.complexity
 
