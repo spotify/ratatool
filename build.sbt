@@ -102,7 +102,7 @@ lazy val ratatoolCommon = project
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "com.google.guava" % "guava" % guavaVersion
-    ), 
+    ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
