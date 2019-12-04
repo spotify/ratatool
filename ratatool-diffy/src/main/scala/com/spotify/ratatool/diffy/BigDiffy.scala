@@ -222,7 +222,6 @@ object BigDiffy extends Command {
       }
   }
 
-  //noinspection ScalaStyle
   //scalastyle:off cyclomatic.complexity
   private def computeGlobalAndFieldStats(deltas: DeltaSCollection, ignoreNan: Boolean)
   : SCollection[(GlobalStats, Iterable[FieldStats])] = {
@@ -277,7 +276,8 @@ object BigDiffy extends Command {
 
   /** Diff two data sets. */
   def diff[T: ClassTag : Coder](lhs: SCollection[T], rhs: SCollection[T],
-                        d: Diffy[T], keyFn: T => MultiKey, ignoreNan: Boolean = false): BigDiffy[T] =
+                                d: Diffy[T], keyFn: T => MultiKey,
+                                ignoreNan: Boolean = false): BigDiffy[T] =
     new BigDiffy[T](lhs, rhs, d, keyFn, ignoreNan)
 
   /** Diff two Avro data sets. */
@@ -489,8 +489,8 @@ object BigDiffy extends Command {
   def main(cmdlineArgs: Array[String]): Unit = run(cmdlineArgs)
 
   /** Scio pipeline for BigDiffy. */
-  //noinspection ScalaStyle
   //scalastyle:off cyclomatic.complexity
+  //scalastyle:off method.length
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
@@ -544,5 +544,6 @@ object BigDiffy extends Command {
     sc.close().waitUntilDone()
   }
   //scalastyle:on cyclomatic.complexity
+  //scalastyle:on method.length
 
 }
