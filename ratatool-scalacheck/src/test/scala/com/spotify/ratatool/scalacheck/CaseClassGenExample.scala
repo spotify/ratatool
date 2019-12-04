@@ -16,7 +16,6 @@
  */
 package com.spotify.ratatool.scalacheck
 
-import com.spotify.ratatool.scalacheck.CaseClassGenerator._
 import org.scalacheck.Gen
 
 object CaseClassGenExampleSomeAlpha {
