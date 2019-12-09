@@ -419,6 +419,7 @@ object BigDiffy extends Command {
         |  --ignore=<keys>                  ',' separated field list to ignore
         |  --unordered=<keys>               ',' separated field list to treat as unordered
         |  [--with-header]                  Output all TSVs with header rows. Defaults to false
+        |  [--ignore-nan]                   Ignore NaN values when computing stats for differences
         |
         |Since this runs a Scio/Beam pipeline, Dataflow options will have to be provided. At a
         |minimum, the following should be specified:
