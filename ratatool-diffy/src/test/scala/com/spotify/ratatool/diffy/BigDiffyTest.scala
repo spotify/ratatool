@@ -165,6 +165,9 @@ class BigDiffyTest extends PipelineSpec {
         (901 to 1000).map(k => MultiKey("key" + k)).map((_, field)))
       val deltaStats = result.fieldStats
         .flatMap(_.deltaStats)
+        // checking d.min.isNaN and d.max.isNaN will result in flaky tests since
+        // Min(2.0) + Min(1.0) + Min(Double.NaN) = Min(1.0) while
+        // Min(Double.NaN) + Min(2.0) + Min(1.0) = Min(NaN) in algebird.
         .map(d => (d.deltaType, d.count, d.mean.isNaN, d.variance.isNaN, d.stddev.isNaN))
       deltaStats should containSingleValue ((DeltaType.NUMERIC, 100L, true, true, true))
     }
