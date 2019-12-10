@@ -490,8 +490,7 @@ object BigDiffy extends Command {
   def main(cmdlineArgs: Array[String]): Unit = run(cmdlineArgs)
 
   /** Scio pipeline for BigDiffy. */
-  //scalastyle:off cyclomatic.complexity
-  //scalastyle:off method.length
+  //scalastyle:off cyclomatic.complexity method.length
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
@@ -500,7 +499,7 @@ object BigDiffy extends Command {
         (args("input-mode"), args.list("key"), args("lhs"), args("rhs"), args("output"),
           args.boolean("with-header", false), args.list("ignore").toSet,
           args.list("unordered").toSet, args.optional("output-mode"),
-        args.boolean("ignore-nan", false))
+          args.boolean("ignore-nan", false))
       } catch {
         case e: Throwable =>
           usage()
