@@ -17,9 +17,10 @@
 
 package com.spotify.ratatool.tool
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class DirectSamplerParserTest extends FlatSpec with Matchers {
+class DirectSamplerParserTest extends AnyFlatSpec with Matchers {
 
   private def parse(cmd: String) = DirectSamplerParser.parse(cmd.split(" "))
   private val config = DirectSamplerConfig(in = "in", out = "out", n = 1000)

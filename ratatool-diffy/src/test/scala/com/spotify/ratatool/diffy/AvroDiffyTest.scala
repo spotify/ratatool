@@ -25,11 +25,12 @@ import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder}
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.{Arbitrary, Gen}
-import org.scalatest.{FlatSpec, Matchers}
 
 import scala.collection.JavaConverters._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class AvroDiffyTest extends FlatSpec with Matchers {
+class AvroDiffyTest extends AnyFlatSpec with Matchers {
 
   def jl[T](x: T*): java.util.List[T] = List(x: _*).asJava
 
