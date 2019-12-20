@@ -388,7 +388,8 @@ object BigSamplerTest extends Properties("BigSampler") {
  * Base testing class for BigSampler. Adding a new subclass here rqeuires also adding a line to
  * test it in travis.yml
  */
-sealed trait BigSamplerJobTestRoot extends AnyFlatSpec with Matchers with BeforeAndAfterAllConfigMap {
+sealed trait BigSamplerJobTestRoot extends
+    AnyFlatSpec with Matchers with BeforeAndAfterAllConfigMap {
   val schema = Schemas.avroSchema
   def data1Size: Int
   def data2Size: Int
