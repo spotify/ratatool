@@ -21,7 +21,7 @@ import Keys._
 val algebirdVersion = "0.13.6"
 val avroVersion = "1.8.2"
 val gcsVersion = "hadoop2-1.9.17"
-val hadoopVersion = "2.7.7"
+val hadoopVersion = "2.10.0"
 val jodaTimeVersion = "2.10.5"
 val parquetVersion = "1.10.1"
 val protoBufVersion = "3.11.1"
