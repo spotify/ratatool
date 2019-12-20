@@ -1,4 +1,4 @@
-addSbtPlugin("com.cavorite" % "sbt-avro-1-8" % "1.1.5")
+addSbtPlugin("com.cavorite" % "sbt-avro-1-8" % "1.1.9")
 addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.12")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.3")
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.10")
