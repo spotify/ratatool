@@ -32,7 +32,7 @@ val scoptVersion = "3.7.1"
 val slf4jVersion = "1.7.30"
 val bigqueryVersion = "v2-rev374-1.23.0"
 val beamVersion = "2.11.0"
-val guavaVersion = "25.1-jre"
+val guavaVersion = "28.2-jre"
 val shapelessVersion = "2.3.3"
 val magnoliaVersion = "0.12.2" // needs to stay in sync with scio version
 
