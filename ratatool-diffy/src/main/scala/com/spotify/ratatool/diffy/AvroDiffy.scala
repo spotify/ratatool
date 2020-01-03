@@ -22,6 +22,7 @@ import org.apache.avro.{Schema, SchemaValidatorBuilder}
 import org.apache.avro.generic.GenericRecord
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 /** Field level diff tool for Avro records. */
 class AvroDiffy[T <: GenericRecord: Coder](ignore: Set[String] = Set.empty,
@@ -35,7 +36,7 @@ class AvroDiffy[T <: GenericRecord: Coder](ignore: Set[String] = Set.empty,
     diff(Option(x), Option(y), "")
   }
 
-  // scalastyle:off cyclomatic.complexity
+  // scalastyle:off cyclomatic.complexity method.length
   private def diff(x: Option[GenericRecord], y: Option[GenericRecord], root: String): Seq[Delta] = {
     val schemaFields = (x, y) match {
       case (Some(xVal), None) => xVal.getSchema.getFields.asScala.toList
@@ -48,8 +49,8 @@ class AvroDiffy[T <: GenericRecord: Coder](ignore: Set[String] = Set.empty,
       val fullName = if (root.isEmpty) name else root + "." + name
       getRawType(f.schema()).getType match {
         case Schema.Type.RECORD =>
-          val a = x.map(_.get(name).asInstanceOf[GenericRecord])
-          val b = y.map(_.get(name).asInstanceOf[GenericRecord])
+          val a = x.flatMap(r => Option(r.get(name).asInstanceOf[GenericRecord]))
+          val b = y.flatMap(r => Option(r.get(name).asInstanceOf[GenericRecord]))
           (a, b) match {
             case (None, None) => Nil
             case (Some(_), None) => Seq(Delta(fullName, a, None, UnknownDelta))
@@ -60,18 +61,24 @@ class AvroDiffy[T <: GenericRecord: Coder](ignore: Set[String] = Set.empty,
           if (f.schema().getElementType.getType == Schema.Type.RECORD
               && unordered.contains(fullName)
               && unorderedFieldKeys.contains(fullName)) {
-            val l = x.map(_.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList)
+            val l = x.flatMap(r =>
+              Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList))
               .getOrElse(List())
-              .map(r => (x.get.get(unorderedFieldKeys(fullName)), r)).toMap
-            val r = y.map(_.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList)
+              .flatMap(r => Try(r.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, r)))
+              .toMap
+            val r = y.flatMap(r =>
+              Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList))
               .getOrElse(List())
-              .map(r => (y.get.get(unorderedFieldKeys(fullName)), r)).toMap
+              .flatMap(r => Try(r.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, r)))
+              .toMap
 
             (l.keySet ++ r.keySet).flatMap(k => diff(l.get(k), r.get(k), fullName)).toList
           }
           else {
-            val a = x.map(_.get(name).asInstanceOf[java.util.List[GenericRecord]]).map(sortList)
-            val b = y.map(_.get(name).asInstanceOf[java.util.List[GenericRecord]]).map(sortList)
+            val a = x.flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]]))
+              .map(sortList)
+            val b = y.flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]]))
+              .map(sortList)
             if (a == b) {
               Nil
             } else {
@@ -79,14 +86,14 @@ class AvroDiffy[T <: GenericRecord: Coder](ignore: Set[String] = Set.empty,
             }
           }
         case _ =>
-          val a = x.map(_.get(name))
-          val b = y.map(_.get(name))
+          val a = x.flatMap(r => Option(r.get(name)))
+          val b = y.flatMap(r => Option(r.get(name)))
           if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
       }
     }
     .filter(d => !ignore.contains(d.field))
   }
-  // scalastyle:on cyclomatic.complexity
+  // scalastyle:on cyclomatic.complexity method.length
 
   private def getRawType(schema: Schema): Schema = {
     schema.getType match {

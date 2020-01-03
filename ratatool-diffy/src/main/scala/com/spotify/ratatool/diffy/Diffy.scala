@@ -17,10 +17,6 @@
 
 package com.spotify.ratatool.diffy
 
-import java.util
-import java.util.{Comparator, Objects}
-import java.util.stream.Collectors
-
 import scala.collection.JavaConverters._
 import scala.util.Try
 
@@ -122,12 +118,12 @@ abstract class Diffy[T](val ignore: Set[String],
    * Sort a repeated field.
    *
    * Elements are default sorted by `_.toString` since most types we deal with are not comparable.
-   * @param keyFn - provides a field which can be reliably sorted against
    */
   def sortList[U](l: java.util.List[U]): java.util.List[U] = {
     if (l == null) {
       null
     } else {
+      // Copying avoids a weird NPE that seems to have something to do with lists containing nulls
       val lCopy = new java.util.ArrayList[U]()
       l.asScala.sortBy(_.toString).foreach(u => lCopy.add(u))
       lCopy

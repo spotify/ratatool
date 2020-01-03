@@ -39,6 +39,7 @@ import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.reflect.ClassTag
+import scala.util.Try
 
 /**
  * Diff type between two records of the same key.
