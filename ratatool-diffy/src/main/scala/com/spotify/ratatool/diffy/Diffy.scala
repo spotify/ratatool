@@ -17,6 +17,10 @@
 
 package com.spotify.ratatool.diffy
 
+import java.util
+import java.util.{Comparator, Objects}
+import java.util.stream.Collectors
+
 import scala.collection.JavaConverters._
 import scala.util.Try
 
@@ -93,8 +97,8 @@ abstract class Diffy[T](val ignore: Set[String],
       StringDelta(stringDelta(x.toString, y.toString))
     } else {
       val tryVector = Try {
-        val vx = x.asInstanceOf[java.util.List[_]].asScala.map(_.toString.toDouble)
-        val vy = y.asInstanceOf[java.util.List[_]].asScala.map(_.toString.toDouble)
+        val vx = x.asInstanceOf[java.util.List[_]].asScala.map(_.toString.toDouble).toList
+        val vy = y.asInstanceOf[java.util.List[_]].asScala.map(_.toString.toDouble).toList
         vectorDelta(vx, vy)
       }
       if (tryVector.isSuccess) {
@@ -120,12 +124,15 @@ abstract class Diffy[T](val ignore: Set[String],
    * Elements are default sorted by `_.toString` since most types we deal with are not comparable.
    * @param keyFn - provides a field which can be reliably sorted against
    */
-  def sortList[U](l: java.util.List[U], keyFn: Option[U => Any] = None): java.util.List[U] =
+  def sortList[U](l: java.util.List[U]): java.util.List[U] = {
     if (l == null) {
       null
     } else {
-      l.asScala.sortBy(u => keyFn.map(f => f(u)).getOrElse(u).toString).asJava
+      val lCopy = new java.util.ArrayList[U]()
+      l.asScala.sortBy(_.toString).foreach(u => lCopy.add(u))
+      lCopy
     }
+  }
 }
 
 /**

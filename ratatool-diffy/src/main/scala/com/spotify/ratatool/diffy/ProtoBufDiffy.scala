@@ -59,17 +59,23 @@ extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
       val name = f.getName
       val fullName = if (root.isEmpty) name else root + "." + name
       if (f.isRepeated && unordered.contains(fullName)) {
-        val getFieldFn: Option[AbstractMessage => AnyRef] =
-          unorderedFieldKeys.get(fullName).map(s => getField(getFieldDescriptor(f, s)) _)
-        val a = sortList(x.getField(f).asInstanceOf[java.util.List[AbstractMessage]], getFieldFn)
-        val b = sortList(y.getField(f).asInstanceOf[java.util.List[AbstractMessage]], getFieldFn)
-        if (f.getJavaType == JavaType.MESSAGE && unordered.exists(_.startsWith(s"$fullName."))
-            && unorderedFieldKeys.contains(fullName)) {
-          a.asInstanceOf[java.util.List[AbstractMessage]].asScala.zip(
-            b.asInstanceOf[java.util.List[AbstractMessage]].asScala).flatMap {
-              case (l, r) => diff(l, r, f.getMessageType.getFields.asScala, fullName)}
+        if (f.getJavaType == JavaType.MESSAGE
+          && unordered.contains(fullName)
+          && unorderedFieldKeys.contains(fullName)) {
+          val l = x.getField(f).asInstanceOf[java.util.List[AbstractMessage]].asScala
+            .map(m => (getField(getFieldDescriptor(f, unorderedFieldKeys(fullName)))(m), m)).toMap
+          val r = y.getField(f).asInstanceOf[java.util.List[AbstractMessage]].asScala
+            .map(m => (getField(getFieldDescriptor(f, unorderedFieldKeys(fullName)))(m), m)).toMap
+
+          (l.keySet ++ r.keySet).flatMap(k =>
+            diff(l.getOrElse(k, null),
+              r.getOrElse(k, null),
+              f.getMessageType.getFields.asScala,
+              fullName))
         }
         else {
+          val a = sortList(x.getField(f).asInstanceOf[java.util.List[AbstractMessage]])
+          val b = sortList(y.getField(f).asInstanceOf[java.util.List[AbstractMessage]])
           if (a == b) Nil else Seq(Delta(fullName, Option(a), Option(b), delta(a, b)))
         }
       } else {

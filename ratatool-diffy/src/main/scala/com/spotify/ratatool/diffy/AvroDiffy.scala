@@ -32,50 +32,56 @@ class AvroDiffy[T <: GenericRecord: Coder](ignore: Set[String] = Set.empty,
   override def apply(x: T, y: T): Seq[Delta] = {
     new SchemaValidatorBuilder().canReadStrategy.validateLatest()
       .validate(y.getSchema, List(x.getSchema).asJava)
-    diff(x, y, "")
+    diff(Option(x), Option(y), "")
   }
 
   // scalastyle:off cyclomatic.complexity
-  private def diff(x: GenericRecord, y: GenericRecord, root: String): Seq[Delta] = {
-    def getField(f: String)(x: GenericRecord): AnyRef = {
-      x.get(f)
+  private def diff(x: Option[GenericRecord], y: Option[GenericRecord], root: String): Seq[Delta] = {
+    val schemaFields = (x, y) match {
+      case (Some(xVal), None) => xVal.getSchema.getFields.asScala.toList
+      case (_, Some(yVal)) => yVal.getSchema.getFields.asScala.toList
+      case _ => List()
     }
 
-    y.getSchema.getFields.asScala.flatMap { f =>
+    schemaFields.flatMap { f =>
       val name = f.name()
       val fullName = if (root.isEmpty) name else root + "." + name
       getRawType(f.schema()).getType match {
         case Schema.Type.RECORD =>
-          val a = x.get(name).asInstanceOf[GenericRecord]
-          val b = y.get(name).asInstanceOf[GenericRecord]
-          if (a == null && b == null) {
-            Nil
-          } else if (a == null || b == null) {
-            Seq(Delta(fullName, Option(a), Option(b), UnknownDelta))
-          } else {
-            diff(a, b, fullName)
+          val a = x.map(_.get(name).asInstanceOf[GenericRecord])
+          val b = y.map(_.get(name).asInstanceOf[GenericRecord])
+          (a, b) match {
+            case (None, None) => Nil
+            case (Some(_), None) => Seq(Delta(fullName, a, None, UnknownDelta))
+            case (None, Some(_)) => Seq(Delta(fullName, None, b, UnknownDelta))
+            case (Some(_), Some(_)) => diff(a, b, fullName)
           }
         case Schema.Type.ARRAY if unordered.contains(fullName) =>
           if (f.schema().getElementType.getType == Schema.Type.RECORD
-              && unordered.exists(_.startsWith(s"$fullName."))
+              && unordered.contains(fullName)
               && unorderedFieldKeys.contains(fullName)) {
-            val a = sortList(x.get(name).asInstanceOf[java.util.List[GenericRecord]],
-              unorderedFieldKeys.get(fullName).map(getField))
-            val b = sortList(y.get(name).asInstanceOf[java.util.List[GenericRecord]],
-              unorderedFieldKeys.get(fullName).map(getField))
-            a.asScala.zip(b.asScala).flatMap{case (l, r) =>
-              diff(l.asInstanceOf[GenericRecord], r.asInstanceOf[GenericRecord], fullName)
-            }.toList
+            val l = x.map(_.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList)
+              .getOrElse(List())
+              .map(r => (x.get.get(unorderedFieldKeys(fullName)), r)).toMap
+            val r = y.map(_.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList)
+              .getOrElse(List())
+              .map(r => (y.get.get(unorderedFieldKeys(fullName)), r)).toMap
+
+            (l.keySet ++ r.keySet).flatMap(k => diff(l.get(k), r.get(k), fullName)).toList
           }
           else {
-            val a = sortList(x.get(name).asInstanceOf[java.util.List[GenericRecord]])
-            val b = sortList(y.get(name).asInstanceOf[java.util.List[GenericRecord]])
-            if (a == b) Nil else Seq(Delta(fullName, Option(a), Option(b), delta(a, b)))
+            val a = x.map(_.get(name).asInstanceOf[java.util.List[GenericRecord]]).map(sortList)
+            val b = y.map(_.get(name).asInstanceOf[java.util.List[GenericRecord]]).map(sortList)
+            if (a == b) {
+              Nil
+            } else {
+              Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
+            }
           }
         case _ =>
-          val a = x.get(name)
-          val b = y.get(name)
-          if (a == b) Nil else Seq(Delta(fullName, Option(a), Option(b), delta(a, b)))
+          val a = x.map(_.get(name))
+          val b = y.map(_.get(name))
+          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
       }
     }
     .filter(d => !ignore.contains(d.field))

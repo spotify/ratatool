@@ -67,15 +67,15 @@ class TableRowDiffy(tableSchema: TableSchema,
           diff(a, b, f.getFields.asScala, fullName)
         }
       } else if (f.getMode == "REPEATED" && unordered.contains(fullName)) {
-        if (f.getType == "RECORD" && unorderedFieldKeys.contains(fullName) &&
-            unordered.exists(_.startsWith(s"$fullName."))) {
-          val a = sortList(x.get(name).asInstanceOf[java.util.List[Record]],
-            unorderedFieldKeys.get(fullName).map(getField))
-          val b = sortList(y.get(name).asInstanceOf[java.util.List[Record]],
-            unorderedFieldKeys.get(fullName).map(getField))
-          a.asScala.zip(b.asScala).flatMap{case (l, r) =>
-            diff(l, r, f.getFields.asScala, fullName)
-          }
+        if (f.getType == "RECORD"
+          && unorderedFieldKeys.contains(fullName)
+          && unordered.contains(fullName)) {
+          val l = x.get(name).asInstanceOf[java.util.List[Record]].asScala
+            .map(r => (r.get(unorderedFieldKeys(fullName)), r)).toMap
+          val r = x.get(name).asInstanceOf[java.util.List[Record]].asScala
+            .map(r => (r.get(unorderedFieldKeys(fullName)), r)).toMap
+          (l.keySet ++ r.keySet).flatMap(k =>
+            diff(l.getOrElse(k, null), r.getOrElse(k, null), f.getFields.asScala, fullName))
         }
         else {
           val a = sortList(x.get(name).asInstanceOf[java.util.List[AnyRef]])

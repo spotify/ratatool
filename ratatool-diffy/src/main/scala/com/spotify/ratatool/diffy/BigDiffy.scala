@@ -132,7 +132,6 @@ case class FieldStats(field: String,
 /** Big diff between two data sets given a primary key. */
 class BigDiffy[T : Coder](lhs: SCollection[T], rhs: SCollection[T],
                   diffy: Diffy[T], keyFn: T => MultiKey) {
-
   private lazy val _deltas: BigDiffy.DeltaSCollection =
     BigDiffy.computeDeltas(lhs, rhs, diffy, keyFn)
 
