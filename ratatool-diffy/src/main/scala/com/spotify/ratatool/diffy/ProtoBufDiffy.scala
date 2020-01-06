@@ -40,7 +40,7 @@ class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.e
       .getMethod("getDescriptor")
       .invoke(null).asInstanceOf[Descriptor]
 
-  // scalastyle:off cyclomatic.complexity
+  // scalastyle:off cyclomatic.complexity method.length
   private def diff(x: Option[AbstractMessage], y: Option[AbstractMessage],
                    fields: Seq[FieldDescriptor], root: String): Seq[Delta] = {
     def getField(f: FieldDescriptor)(m: AbstractMessage): Option[AnyRef] =
@@ -107,6 +107,6 @@ class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.e
       }
     }.filter(d => !ignore.contains(d.field))
   }
-  // scalastyle:on cyclomatic.complexity
+  // scalastyle:on cyclomatic.complexity method.length
 
 }
