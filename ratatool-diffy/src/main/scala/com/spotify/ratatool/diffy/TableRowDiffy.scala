@@ -63,7 +63,7 @@ class TableRowDiffy(tableSchema: TableSchema,
         if (a.isEmpty && b.isEmpty) {
           Nil
         } else if (a.isEmpty || b.isEmpty) {
-          Seq(Delta(fullName, Option(a), Option(b), UnknownDelta))
+          Seq(Delta(fullName, a, b, UnknownDelta))
         } else {
           diff(a, b, f.getFields.asScala, fullName)
         }
@@ -93,7 +93,7 @@ class TableRowDiffy(tableSchema: TableSchema,
       } else {
         val a = x.flatMap(r => getField(name)(r))
         val b = y.flatMap(r => getField(name)(r))
-        if (a == b) Nil else Seq(Delta(fullName, Option(a), Option(b), delta(a, b)))
+        if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
       }
     }.filter(d => !ignore.contains(d.field))
   }
