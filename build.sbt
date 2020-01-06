@@ -29,12 +29,12 @@ val jodaTimeVersion = "2.10.5"
 val magnoliaVersion = "0.12.2" // needs to stay in sync with scio version
 val parquetVersion = "1.10.1"
 val protoBufVersion = "3.11.1"
-val scalaCheckVersion = "1.14.2"
 val scalaTestVersion = "3.1.0"
+val scalaCheckVersion = "1.14.3"
 val scioVersion = "0.8.0-beta2"
-val scoptVersion = "3.5.0"
+val scoptVersion = "3.7.1"
 val shapelessVersion = "2.3.3"
-val slf4jVersion = "1.7.29"
+val slf4jVersion = "1.7.30"
 
 val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",

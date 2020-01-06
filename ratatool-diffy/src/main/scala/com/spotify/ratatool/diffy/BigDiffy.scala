@@ -131,13 +131,14 @@ case class FieldStats(field: String,
 
 /** Big diff between two data sets given a primary key. */
 class BigDiffy[T : Coder](lhs: SCollection[T], rhs: SCollection[T],
-                  diffy: Diffy[T], keyFn: T => MultiKey) {
+                          diffy: Diffy[T], keyFn: T => MultiKey,
+                          ignoreNan: Boolean = false) {
 
   private lazy val _deltas: BigDiffy.DeltaSCollection =
     BigDiffy.computeDeltas(lhs, rhs, diffy, keyFn)
 
   private lazy val globalAndFieldStats: SCollection[(GlobalStats, Iterable[FieldStats])] =
-    BigDiffy.computeGlobalAndFieldStats(_deltas)
+    BigDiffy.computeGlobalAndFieldStats(_deltas, ignoreNan)
 
   /**
    * Key and field level delta.
@@ -220,7 +221,8 @@ object BigDiffy extends Command {
       }
   }
 
-  private def computeGlobalAndFieldStats(deltas: DeltaSCollection)
+  //scalastyle:off cyclomatic.complexity
+  private def computeGlobalAndFieldStats(deltas: DeltaSCollection, ignoreNan: Boolean)
   : SCollection[(GlobalStats, Iterable[FieldStats])] = {
     // Semigroup[DeltaType.Value] so it can be propagated during sum over Map
     implicit val deltaTypeSemigroup = new Semigroup[DeltaType.Value] {
@@ -236,6 +238,7 @@ object BigDiffy extends Command {
         ds.foreach { d =>
           val optD = d.delta match {
             case UnknownDelta => None
+            case TypedDelta(t, v) if ignoreNan && v.isNaN => None
             case TypedDelta(t, v) =>
               Some((t, Min(v), Max(v), Moments.aggregator.prepare(v)))
           }
@@ -268,19 +271,22 @@ object BigDiffy extends Command {
         (globalKeyStats, fieldStats)
       }
   }
+  //scalastyle:on cyclomatic.complexity
 
   /** Diff two data sets. */
   def diff[T: ClassTag : Coder](lhs: SCollection[T], rhs: SCollection[T],
-                        d: Diffy[T], keyFn: T => MultiKey): BigDiffy[T] =
-    new BigDiffy[T](lhs, rhs, d, keyFn)
+                                d: Diffy[T], keyFn: T => MultiKey,
+                                ignoreNan: Boolean = false): BigDiffy[T] =
+    new BigDiffy[T](lhs, rhs, d, keyFn, ignoreNan)
 
   /** Diff two Avro data sets. */
   def diffAvro[T <: GenericRecord : ClassTag : Coder](sc: ScioContext,
                                               lhs: String, rhs: String,
                                               keyFn: T => MultiKey,
                                               diffy: AvroDiffy[T],
-                                              schema: Schema = null): BigDiffy[T] =
-    diff(sc.avroFile[T](lhs, schema), sc.avroFile[T](rhs, schema), diffy, keyFn)
+                                              schema: Schema = null,
+                                              ignoreNan: Boolean = false): BigDiffy[T] =
+    diff(sc.avroFile[T](lhs, schema), sc.avroFile[T](rhs, schema), diffy, keyFn, ignoreNan)
 
   /** Diff two ProtoBuf data sets. */
   def diffProtoBuf[T <: AbstractMessage : ClassTag](sc: ScioContext,
@@ -293,8 +299,11 @@ object BigDiffy extends Command {
   def diffTableRow(sc: ScioContext,
                    lhs: String, rhs: String,
                    keyFn: TableRow => MultiKey,
-                   diffy: TableRowDiffy): BigDiffy[TableRow] =
-    diff(sc.bigQueryTable(Table.Spec(lhs)), sc.bigQueryTable(Table.Spec(rhs)), diffy, keyFn)
+                   diffy: TableRowDiffy,
+                   ignoreNan: Boolean = false): BigDiffy[TableRow] =
+    diff(sc.bigQueryTable(Table.Spec(lhs)), sc.bigQueryTable(Table.Spec(rhs)), diffy, keyFn,
+      ignoreNan)
+
 
   /** Merge two BigQuery TableSchemas. */
   def mergeTableSchema(x: TableSchema, y: TableSchema): TableSchema = {
@@ -411,6 +420,7 @@ object BigDiffy extends Command {
         |  --ignore=<keys>                  ',' separated field list to ignore
         |  --unordered=<keys>               ',' separated field list to treat as unordered
         |  [--with-header]                  Output all TSVs with header rows. Defaults to false
+        |  [--ignore-nan]                   Ignore NaN values when computing stats for differences
         |
         |Since this runs a Scio/Beam pipeline, Dataflow options will have to be provided. At a
         |minimum, the following should be specified:
@@ -481,15 +491,16 @@ object BigDiffy extends Command {
   def main(cmdlineArgs: Array[String]): Unit = run(cmdlineArgs)
 
   /** Scio pipeline for BigDiffy. */
-  //scalastyle:off cyclomatic.complexity
+  //scalastyle:off cyclomatic.complexity method.length
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
-    val (inputMode, keys, lhs, rhs, output, header, ignore, unordered, outputMode) = {
+    val (inputMode, keys, lhs, rhs, output, header, ignore, unordered, outputMode, ignoreNan) = {
       try {
         (args("input-mode"), args.list("key"), args("lhs"), args("rhs"), args("output"),
           args.boolean("with-header", false), args.list("ignore").toSet,
-          args.list("unordered").toSet, args.optional("output-mode"))
+          args.list("unordered").toSet, args.optional("output-mode"),
+          args.boolean("ignore-nan", false))
       } catch {
         case e: Throwable =>
           usage()
@@ -517,7 +528,7 @@ object BigDiffy extends Command {
           .sample(1, head = true).head.getSchema
         implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered)
-        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(keys), diffy, schema)
+        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(keys), diffy, schema, ignoreNan)
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQuery.defaultInstance()
@@ -525,7 +536,7 @@ object BigDiffy extends Command {
         val rSchema = bq.tables.schema(rhs)
         val schema = mergeTableSchema(lSchema, rSchema)
         val diffy = new TableRowDiffy(schema, ignore, unordered)
-        BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(keys), diffy)
+        BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(keys), diffy, ignoreNan)
       case m =>
         throw new IllegalArgumentException(s"input mode $m not supported")
     }
@@ -534,5 +545,6 @@ object BigDiffy extends Command {
     sc.run().waitUntilDone()
   }
   //scalastyle:on cyclomatic.complexity
+  //scalastyle:on method.length
 
 }
