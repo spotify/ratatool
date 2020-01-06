@@ -40,6 +40,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.reflect.ClassTag
+import scala.util.Try
 
 /**
  * Diff type between two records of the same key.
@@ -132,8 +133,7 @@ case class FieldStats(field: String,
 
 /** Big diff between two data sets given a primary key. */
 class BigDiffy[T : Coder](lhs: SCollection[T], rhs: SCollection[T],
-                          diffy: Diffy[T], keyFn: T => MultiKey,
-                          ignoreNan: Boolean = false) {
+                          diffy: Diffy[T], keyFn: T => MultiKey, ignoreNan: Boolean = false) {
 
   private lazy val _deltas: BigDiffy.DeltaSCollection =
     BigDiffy.computeDeltas(lhs, rhs, diffy, keyFn)
