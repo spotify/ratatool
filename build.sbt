@@ -20,18 +20,18 @@ import Keys._
 
 val algebirdVersion = "0.13.6"
 val avroVersion = "1.8.2"
-val beamVersion = "2.16.0"
+val beamVersion = "2.17.0"
 val bigqueryVersion = "v2-rev20181104-1.27.0"
 val gcsVersion = "hadoop2-2.0.0"
 val guavaVersion = "25.1-jre"
 val hadoopVersion = "2.7.7"
 val jodaTimeVersion = "2.10.5"
-val magnoliaVersion = "0.12.2" // needs to stay in sync with scio version
+val magnoliaVersion = "0.12.6" // needs to stay in sync with scio version
 val parquetVersion = "1.10.1"
 val protoBufVersion = "3.11.1"
 val scalaTestVersion = "3.1.0"
 val scalaCheckVersion = "1.14.3"
-val scioVersion = "0.8.0-beta2"
+val scioVersion = "0.8.0"
 val scoptVersion = "3.7.1"
 val shapelessVersion = "2.3.3"
 val slf4jVersion = "1.7.30"
