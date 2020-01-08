@@ -26,8 +26,7 @@ val gcsVersion = "hadoop2-2.0.0"
 val guavaVersion = "25.1-jre"
 val hadoopVersion = "2.7.7"
 val jodaTimeVersion = "2.10.5"
-val magnoliaVersion = "0.12.6" // needs to stay in sync with scio version
-val parquetVersion = "1.11.0"
+val parquetVersion = "1.10.1"
 val protoBufVersion = "3.11.1"
 val scalaTestVersion = "3.1.0"
 val scalaCheckVersion = "1.14.3"
@@ -233,13 +232,6 @@ lazy val ratatoolScalacheck = project
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
-      {
-        if (scalaBinaryVersion.value == "2.11") {
-          "me.lyh" %% "magnolia" % "0.10.1-jto"
-        } else {
-          "com.propensive" %% "magnolia" % magnoliaVersion
-        }
-      },
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     )
   )

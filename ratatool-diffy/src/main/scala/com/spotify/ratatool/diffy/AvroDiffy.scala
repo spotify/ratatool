@@ -57,7 +57,7 @@ class AvroDiffy[T <: GenericRecord: Coder](ignore: Set[String] = Set.empty,
           }
         case Schema.Type.ARRAY if unordered.contains(fullName) =>
           if (f.schema().getElementType.getType == Schema.Type.RECORD
-              && unordered.exists(_.startsWith(s"$fullName."))
+              && (unordered.exists(_.startsWith(s"$fullName.") || unordered.contains(fullName)))
               && unorderedFieldKeys.contains(fullName)) {
             val a = sortList(x.get(name).asInstanceOf[java.util.List[GenericRecord]],
               unorderedFieldKeys.get(fullName).map(getField))
