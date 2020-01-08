@@ -25,8 +25,10 @@ import com.spotify.ratatool.io.AvroIO
 import com.spotify.ratatool.scalacheck._
 import org.scalacheck.Gen
 import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class AvroSamplerTest extends FlatSpec with Matchers with BeforeAndAfterAllConfigMap {
+class AvroSamplerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAllConfigMap {
 
   val schema = Schemas.avroSchema
   val data1 = Gen.listOfN(40000, genericRecordOf(schema)).sample.get

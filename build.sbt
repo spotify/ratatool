@@ -20,21 +20,21 @@ import Keys._
 
 val algebirdVersion = "0.13.6"
 val avroVersion = "1.8.2"
-val gcsVersion = "hadoop2-1.9.17"
-val hadoopVersion = "2.10.0"
+val beamVersion = "2.17.0"
+val bigqueryVersion = "v2-rev20181104-1.27.0"
+val gcsVersion = "hadoop2-2.0.0"
+val guavaVersion = "25.1-jre"
+val hadoopVersion = "2.7.7"
 val jodaTimeVersion = "2.10.5"
+val magnoliaVersion = "0.12.6" // needs to stay in sync with scio version
 val parquetVersion = "1.10.1"
 val protoBufVersion = "3.11.1"
+val scalaTestVersion = "3.1.0"
 val scalaCheckVersion = "1.14.3"
-val scalaTestVersion = "3.0.8"
-val scioVersion = "0.7.4"
+val scioVersion = "0.8.0"
 val scoptVersion = "3.7.1"
-val slf4jVersion = "1.7.30"
-val bigqueryVersion = "v2-rev374-1.23.0"
-val beamVersion = "2.11.0"
-val guavaVersion = "25.1-jre"
 val shapelessVersion = "2.3.3"
-val magnoliaVersion = "0.12.2" // needs to stay in sync with scio version
+val slf4jVersion = "1.7.30"
 
 val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
@@ -42,7 +42,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.11.12",
   crossScalaVersions := Seq("2.11.12", "2.12.10"),
-  scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
+  scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions in (Compile,doc) ++= {
     scalaBinaryVersion.value match {
       case "2.12" => "-no-java-comments" :: Nil
@@ -53,7 +53,8 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
     .filterNot(_.getPath.endsWith("/src_managed/main")),
   managedSourceDirectories in Compile := (managedSourceDirectories in Compile).value
     .filterNot(_.getPath.endsWith("/src_managed/main")),
-  javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked")
+  javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
+  addCompilerPlugin(scalafixSemanticdb)
 )
 
 lazy val protoBufSettings = Seq(
@@ -101,7 +102,7 @@ lazy val ratatoolCommon = project
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "com.google.guava" % "guava" % guavaVersion
-    ), 
+    ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
@@ -147,7 +148,8 @@ lazy val ratatoolDiffy = project
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "com.twitter" %% "algebird-core" % algebirdVersion,
-      "joda-time" % "joda-time" % jodaTimeVersion
+      "joda-time" % "joda-time" % jodaTimeVersion,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),

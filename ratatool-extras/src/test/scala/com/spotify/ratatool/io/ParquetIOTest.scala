@@ -24,9 +24,10 @@ import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.scalacheck._
 import org.apache.commons.io.FileUtils
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class ParquetIOTest extends FlatSpec with Matchers {
+class ParquetIOTest extends AnyFlatSpec with Matchers {
 
   private val genericSchema = Schemas.avroSchema
   private val genericGen = genericRecordOf(genericSchema)
