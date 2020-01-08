@@ -24,16 +24,14 @@ import com.google.common.hash.Hasher
 import com.spotify.ratatool.samplers.util.{ByteEncoding, Precision, RawEncoding, SampleDistribution}
 import com.spotify.scio.ScioContext
 import com.spotify.scio.bigquery.TableRow
-import com.spotify.scio.io.{Tap, Taps}
+import com.spotify.scio.io.ClosedTap
 import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryIO, BigQueryOptions,
   PatchedBigQueryServicesImpl}
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
 import scala.annotation.tailrec
-import scala.concurrent.Future
 import com.spotify.scio.bigquery._
-import com.spotify.scio.bigquery.client.BigQuery
 
 private[samplers] object BigSamplerBigQuery {
 
@@ -139,7 +137,7 @@ private[samplers] object BigSamplerBigQuery {
                                precision: Precision,
                                sizePerKey: Int,
                                byteEncoding: ByteEncoding = RawEncoding)
-  : Future[Tap[TableRow]] = {
+  : ClosedTap[TableRow] = {
     import BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED
     import BigQueryIO.Write.WriteDisposition.WRITE_EMPTY
 
@@ -147,12 +145,12 @@ private[samplers] object BigSamplerBigQuery {
       .getDatasetService(sc.optionsAs[BigQueryOptions])
     if (patchedBigQueryService.getTable(outputTbl) != null) {
       log.info(s"Reuse previous sample at $outputTbl")
-      BigQueryTaps(Taps()).bigQueryTable(outputTbl)
+      ClosedTap(BigQueryTap(outputTbl))
     } else {
       log.info(s"Will sample from BigQuery table: $inputTbl, output will be $outputTbl")
       val schema = patchedBigQueryService.getTable(inputTbl).getSchema
 
-      val coll = sc.bigQueryTable(inputTbl)
+      val coll = sc.bigQueryTable(Table.Ref(inputTbl))
 
       val sampledCollection = sampleTableRow(coll, fraction, schema, fields, seed, distribution,
         distributionFields, precision, sizePerKey, byteEncoding)
@@ -160,7 +158,7 @@ private[samplers] object BigSamplerBigQuery {
       val r = sampledCollection
         .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "",
           TimePartitioning("DAY"))
-      sc.close().waitUntilDone()
+      sc.run().waitUntilDone()
       r
     }
   }

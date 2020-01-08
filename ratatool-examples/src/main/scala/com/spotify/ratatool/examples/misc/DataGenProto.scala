@@ -40,6 +40,6 @@ object DataGenProto {
           r.setRequiredFields(r.getRequiredFieldsBuilder.setInt64Field(l).build())).map(_.build()))
         .sample.get)
         .saveAsProtobufFile(opts("output"))
-    sc.close()
+    sc.run()
   }
 }

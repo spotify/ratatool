@@ -18,11 +18,12 @@
 package com.spotify.ratatool.diffy
 
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
-import org.scalatest.{FlatSpec, Matchers}
 
 import scala.collection.JavaConverters._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class TableRowDiffyTest extends FlatSpec with Matchers {
+class TableRowDiffyTest extends AnyFlatSpec with Matchers {
 
   def jl[T](x: T*): java.util.List[T] = List(x: _*).asJava
 
