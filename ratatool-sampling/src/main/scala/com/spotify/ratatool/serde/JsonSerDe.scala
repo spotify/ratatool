@@ -17,7 +17,7 @@
 
 package com.spotify.ratatool.serde
 
-import org.apache.beam.sdk.util.Transport
+import org.apache.beam.sdk.extensions.gcp.util.Transport
 
 import scala.util.{Failure, Success, Try}
 

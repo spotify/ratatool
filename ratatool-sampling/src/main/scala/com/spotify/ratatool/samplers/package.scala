@@ -67,7 +67,7 @@ package object samplers {
   }
 
   /**
-   * Sample wrapper function for Avro GenericRecord
+   * Sample wrapper function for BigQuery TableRow
    * @param coll The input SCollection to be sampled
    * @param fraction The sample rate
    * @param fields Fields to construct hash over for determinism
@@ -100,7 +100,7 @@ package object samplers {
   }
 
   /**
-   * Sample wrapper function for Avro GenericRecord
+   * Sample wrapper function for Protobuf Message
    * @param coll The input SCollection to be sampled
    * @param fraction The sample rate
    * @param fields Fields to construct hash over for determinism

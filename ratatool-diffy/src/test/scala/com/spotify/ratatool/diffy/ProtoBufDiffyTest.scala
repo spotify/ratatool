@@ -19,11 +19,12 @@ package com.spotify.ratatool.diffy
 
 import com.spotify.ratatool.scalacheck._
 import com.spotify.ratatool.proto.Schemas._
-import org.scalatest.{FlatSpec, Matchers}
 
 import scala.collection.JavaConverters._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class ProtoBufDiffyTest extends FlatSpec with Matchers {
+class ProtoBufDiffyTest extends AnyFlatSpec with Matchers {
 
   def jl[T](x: T*): java.util.List[T] = List(x: _*).asJava
 

@@ -37,6 +37,6 @@ object DataGenAvro {
       ))((r: TestRecord) => (s: String) => r.getRequiredFields.setStringField(s))
         .amend(Gen.oneOf((1 to 50000).map(_.toLong)))(_.getRequiredFields.setLongField)).sample.get)
       .saveAsAvroFile(opts("output"), 0)
-    sc.close()
+    sc.run()
   }
 }
