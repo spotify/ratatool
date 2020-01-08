@@ -23,8 +23,10 @@ import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.proto.Schemas.{TestRecord => ProtoTestRecord}
 import org.scalacheck.Arbitrary
 import Assertions._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class ArbitraryTest extends FlatSpec with Matchers {
+class ArbitraryTest extends AnyFlatSpec with Matchers {
   "arbSpecificRecord" should "be found implicitly" in {
     assertCompiles("implicitly[Arbitrary[TestRecord]]")
   }

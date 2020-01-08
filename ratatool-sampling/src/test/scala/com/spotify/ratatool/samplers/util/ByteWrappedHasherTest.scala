@@ -21,7 +21,8 @@ import com.google.common.io.BaseEncoding
 import com.spotify.ratatool.samplers.BigSampler
 import org.scalacheck.Prop.forAll
 import org.scalacheck.Properties
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
   private val testSeed = Some(42)
@@ -179,7 +180,7 @@ object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
   }
 }
 
-class ByteHasherEqualsTest extends FlatSpec with Matchers {
+class ByteHasherEqualsTest extends AnyFlatSpec with Matchers {
   private val testSeed = Some(42)
   private def newHasher() = BigSampler.hashFun(seed = testSeed)
 

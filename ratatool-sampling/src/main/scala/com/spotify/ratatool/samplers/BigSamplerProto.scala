@@ -28,8 +28,15 @@ private[samplers] object BigSamplerProto {
   private val log = LoggerFactory.getLogger(BigSamplerProto.getClass)
 
   private[samplers] def buildKey(distributionFields: Seq[String])(m: AbstractMessage)
-  : Set[Any] = {
+  : Set[String] = {
     distributionFields.map(f => getProtobufField(m, f)).toSet
+      .map { x: Any =>
+        if (x == null) {
+          "null"
+        } else {
+          x.toString
+        }
+      }// can't call toString on null
   }
 
   // scalastyle:off cyclomatic.complexity
