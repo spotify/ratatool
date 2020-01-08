@@ -78,9 +78,9 @@ public class GcsConfiguration {
           LOG.debug("Using GCP user credential from '{}'", credentialFilePath);
           conf.setIfUnset("fs.gs.impl", GoogleHadoopFileSystem.class.getName());
           conf.setIfUnset("fs.AbstractFileSystem.gs.impl", GoogleHadoopFS.class.getName());
-          conf.setIfUnset(GoogleHadoopFileSystemConfiguration.GCS_PROJECT_ID.getDefault(),
+          conf.setIfUnset(GoogleHadoopFileSystemConfiguration.GCS_PROJECT_ID.getKey(),
               defaultProject());
-          conf.setIfUnset(GoogleHadoopFileSystemConfiguration.GCS_WORKING_DIRECTORY.getDefault(),
+          conf.setIfUnset(GoogleHadoopFileSystemConfiguration.GCS_WORKING_DIRECTORY.getKey(),
               "/hadoop");
 
           conf.setIfUnset(
