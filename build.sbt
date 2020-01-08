@@ -84,8 +84,7 @@ lazy val releaseSettings = Seq(
     url("https://github.com/spotify/ratatool.git"),
     "scm:git:git@github.com:spotify/ratatool.git")),
   developers := List(
-    Developer(id="sinisa_lyh", name="Neville Li", email="neville.lyh@gmail.com", url=url("https://twitter.com/sinisa_lyh")),
-    Developer(id="ravwojdyla", name="Rafal Wojdyla", email="ravwojdyla@gmail.com", url=url("https://twitter.com/ravwojdyla")),
+    Developer(id="anne-decusatis", name="Anne DeCusatis", email="anned@spotify.com", url=url("https://twitter.com/precisememory")),
     Developer(id="idreeskhan", name="Idrees Khan", email="me@idreeskhan.com", url=url("https://twitter.com/idreesxkhan"))
   )
 )
