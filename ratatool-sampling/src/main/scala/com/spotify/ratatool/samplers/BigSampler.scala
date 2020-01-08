@@ -26,7 +26,7 @@ import com.spotify.ratatool.Command
 import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.samplers.util._
 import com.spotify.scio.bigquery.TableRow
-import com.spotify.scio.io.Tap
+import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.values.SCollection
 import com.spotify.scio.{ContextAndArgs, ScioContext}
 import com.spotify.scio.coders.Coder
@@ -38,7 +38,6 @@ import org.apache.beam.sdk.io.gcp.bigquery.BigQueryHelpers
 import org.apache.beam.sdk.options.PipelineOptions
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.Future
 import scala.language.existentials
 import scala.util.Try
 import scala.reflect.ClassTag
@@ -164,7 +163,7 @@ object BigSampler extends Command {
     BigSamplerAvro.hashAvroField(avroSchema)(r, f, hasher)
 
   //scalastyle:off method.length cyclomatic.complexity
-  def singleInput(argv: Array[String]): Future[Tap[_]] = {
+  def singleInput(argv: Array[String]): ClosedTap[_] = {
     val (sc, args) = ContextAndArgs(argv)
     val (opts, _) = ScioContext.parseArguments[PipelineOptions](argv)
     // Determines how large our heap should be for topByKey

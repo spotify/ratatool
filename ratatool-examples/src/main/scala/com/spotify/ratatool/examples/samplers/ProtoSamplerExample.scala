@@ -36,6 +36,6 @@ object ProtoSamplerExample {
     ).saveAsProtobufFile(args("output"))
 
 
-    sc.close().waitUntilDone()
+    sc.run().waitUntilDone()
   }
 }
