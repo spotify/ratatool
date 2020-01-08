@@ -672,7 +672,7 @@ class BigSamplerExactDistJobTest extends BigSamplerJobTestRoot {
       .toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.2 +- 125
-    largeStrataCount/totalCount shouldBe 0.5 +- 0.02
-    smallStrataCount/totalCount shouldBe 0.5 +- 0.02
+    largeStrataCount/totalCount shouldBe 0.5 +- 0.025
+    smallStrataCount/totalCount shouldBe 0.5 +- 0.025
   }
 }
