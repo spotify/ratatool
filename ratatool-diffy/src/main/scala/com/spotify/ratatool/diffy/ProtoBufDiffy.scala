@@ -62,18 +62,17 @@ class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.e
       val fullName = if (root.isEmpty) name else root + "." + name
       if (f.isRepeated && unordered.contains(fullName)) {
         if (f.getJavaType == JavaType.MESSAGE
-          && unordered.contains(fullName)
           && unorderedFieldKeys.contains(fullName)) {
-          val l = x.flatMap(r =>
-            Option(r.getField(f).asInstanceOf[java.util.List[AbstractMessage]].asScala))
+          val l = x.flatMap(outer =>
+            Option(outer.getField(f).asInstanceOf[java.util.List[AbstractMessage]].asScala))
             .getOrElse(List())
-            .flatMap(m => Try(getFieldDescriptor(f, unorderedFieldKeys(fullName))).toOption
-              .flatMap(fd => getField(fd)(m)).map(k => (k, m))).toMap
-          val r = y.flatMap(r =>
-            Option(r.getField(f).asInstanceOf[java.util.List[AbstractMessage]].asScala))
+            .flatMap(inner => Try(getFieldDescriptor(f, unorderedFieldKeys(fullName))).toOption
+              .flatMap(fd => getField(fd)(inner)).map(k => (k, inner))).toMap
+          val r = y.flatMap(outer =>
+            Option(outer.getField(f).asInstanceOf[java.util.List[AbstractMessage]].asScala))
             .getOrElse(List())
-            .flatMap(m => Try(getFieldDescriptor(f, unorderedFieldKeys(fullName))).toOption
-              .flatMap(fd => getField(fd)(m)).map(k => (k, m))).toMap
+            .flatMap(inner => Try(getFieldDescriptor(f, unorderedFieldKeys(fullName))).toOption
+              .flatMap(fd => getField(fd)(inner)).map(k => (k, inner))).toMap
           (l.keySet ++ r.keySet).flatMap(k =>
             diff(l.get(k),
               r.get(k),

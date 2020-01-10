@@ -69,18 +69,19 @@ class TableRowDiffy(tableSchema: TableSchema,
         }
       } else if (f.getMode == "REPEATED" && unordered.contains(fullName)) {
         if (f.getType == "RECORD"
-          && unorderedFieldKeys.contains(fullName)
-          && unordered.contains(fullName)) {
+          && unorderedFieldKeys.contains(fullName)) {
           val l = x
-            .flatMap(r =>
-              getField(name)(r).map(_.asInstanceOf[java.util.List[Record]].asScala.toList))
+            .flatMap(outer =>
+              getField(name)(outer).map(_.asInstanceOf[java.util.List[Record]].asScala.toList))
             .getOrElse(List())
-            .flatMap(r => Try(r.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, r))).toMap
+            .flatMap(inner =>
+              Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner))).toMap
           val r = y
-            .flatMap(r =>
-              getField(name)(r).map(_.asInstanceOf[java.util.List[Record]].asScala.toList))
+            .flatMap(outer =>
+              getField(name)(outer).map(_.asInstanceOf[java.util.List[Record]].asScala.toList))
             .getOrElse(List())
-            .flatMap(r => Try(r.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, r))).toMap
+            .flatMap(inner =>
+              Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner))).toMap
           (l.keySet ++ r.keySet).flatMap(k =>
             diff(l.get(k), r.get(k), f.getFields.asScala, fullName))
         } else {

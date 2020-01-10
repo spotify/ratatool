@@ -40,7 +40,6 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.reflect.ClassTag
-import scala.util.Try
 
 /**
  * Diff type between two records of the same key.

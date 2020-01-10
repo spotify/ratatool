@@ -75,9 +75,9 @@ case class Delta(field: String, left: Option[Any], right: Option[Any], delta: De
  * Field level diff tool.
  *
  * @param ignore specify set of fields to ignore during comparison.
- * @param unordered specify set of fields to be treated as unordered, i.e. sort before comparison.
- * @param unorderedFieldKeys specify keys to sort by for a nested record, only necessary if
- *                           an unordered field contains nested unordered fields
+ * @param unordered a list of fields to be treated as unordered, i.e. sort before comparison.
+ * @param unorderedFieldKeys a map of record field names to fields names that can be keyed by when
+ *                           comparing nested repeated records
  *                           (currently not support in CLI)
  */
 abstract class Diffy[T](val ignore: Set[String],

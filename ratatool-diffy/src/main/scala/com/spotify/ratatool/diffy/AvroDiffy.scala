@@ -39,6 +39,8 @@ class AvroDiffy[T <: GenericRecord : Coder](ignore: Set[String] = Set.empty,
   // scalastyle:off cyclomatic.complexity method.length
   private def diff(x: Option[GenericRecord], y: Option[GenericRecord], root: String)
   : Seq[Delta] = {
+    // If a y exists we assume it has the superset of all fields, since x must be backwards
+    // compatible with it based on the SchemaValidator check in apply()
     val schemaFields = (x, y) match {
       case (Some(xVal), None) => xVal.getSchema.getFields.asScala.toList
       case (_, Some(yVal)) => yVal.getSchema.getFields.asScala.toList
@@ -60,21 +62,21 @@ class AvroDiffy[T <: GenericRecord : Coder](ignore: Set[String] = Set.empty,
           }
         case Schema.Type.ARRAY if unordered.contains(fullName) =>
           if (f.schema().getElementType.getType == Schema.Type.RECORD
-            && unordered.contains(fullName)
             && unorderedFieldKeys.contains(fullName)) {
-            val l = x.flatMap(r =>
-              Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList))
+            val l = x.flatMap(outer =>
+              Option(outer.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList))
               .getOrElse(List())
-              .flatMap(r => Try(r.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, r)))
+              .flatMap(inner =>
+                Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner)))
               .toMap
-            val r = y.flatMap(r =>
-              Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList))
+            val r = y.flatMap(outer =>
+              Option(outer.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList))
               .getOrElse(List())
-              .flatMap(r => Try(r.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, r)))
+              .flatMap(inner =>
+                Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner)))
               .toMap
             (l.keySet ++ r.keySet).flatMap(k => diff(l.get(k), r.get(k), fullName)).toList
-          }
-          else {
+          } else {
             val a = x.flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]]))
               .map(sortList)
             val b = y.flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]]))
