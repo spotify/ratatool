@@ -25,6 +25,7 @@ import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 /** Field level diff tool for TableRow records. */
 class TableRowDiffy(tableSchema: TableSchema,
@@ -34,7 +35,7 @@ class TableRowDiffy(tableSchema: TableSchema,
   extends Diffy[TableRow](ignore, unordered, unorderedFieldKeys) {
 
   override def apply(x: TableRow, y: TableRow): Seq[Delta] =
-    diff(x, y, schema.getFields.asScala, "")
+    diff(Option(x), Option(y), schema.getFields.asScala, "")
 
   private type Record = java.util.Map[String, AnyRef]
 
@@ -47,48 +48,55 @@ class TableRowDiffy(tableSchema: TableSchema,
       .parseAndClose(new StringReader(schemaString), classOf[TableSchema])
 
   // scalastyle:off cyclomatic.complexity
-  private def diff(x: Record, y: Record,
+  private def diff(x: Option[Record], y: Option[Record],
                    fields: Seq[TableFieldSchema], root: String): Seq[Delta] = {
-    def getField(f: String)(x: Record): AnyRef = {
-      x.get(f)
+    def getField(f: String)(x: Record): Option[AnyRef] = {
+      Option(x.get(f))
     }
 
     fields.flatMap { f =>
       val name = f.getName
       val fullName = if (root.isEmpty) name else root + "." + name
       if (f.getType == "RECORD" && f.getMode != "REPEATED") {
-        val a = x.get(name).asInstanceOf[Record]
-        val b = y.get(name).asInstanceOf[Record]
-        if (a == null && b == null) {
+        val a = x.flatMap(r => getField(name)(r).map(_.asInstanceOf[Record]))
+        val b = y.flatMap(r => getField(name)(r).map(_.asInstanceOf[Record]))
+        if (a.isEmpty && b.isEmpty) {
           Nil
-        } else if (a == null || b == null) {
-          Seq(Delta(fullName, Option(a), Option(b), UnknownDelta))
+        } else if (a.isEmpty || b.isEmpty) {
+          Seq(Delta(fullName, a, b, UnknownDelta))
         } else {
           diff(a, b, f.getFields.asScala, fullName)
         }
       } else if (f.getMode == "REPEATED" && unordered.contains(fullName)) {
-        if (f.getType == "RECORD" && unorderedFieldKeys.contains(fullName) &&
-            unordered.exists(_.startsWith(s"$fullName."))) {
-          val a = sortList(x.get(name).asInstanceOf[java.util.List[Record]],
-            unorderedFieldKeys.get(fullName).map(getField))
-          val b = sortList(y.get(name).asInstanceOf[java.util.List[Record]],
-            unorderedFieldKeys.get(fullName).map(getField))
-          a.asScala.zip(b.asScala).flatMap{case (l, r) =>
-            diff(l, r, f.getFields.asScala, fullName)
-          }
-        }
-        else {
-          val a = sortList(x.get(name).asInstanceOf[java.util.List[AnyRef]])
-          val b = sortList(y.get(name).asInstanceOf[java.util.List[AnyRef]])
-          if (a == b) Nil else Seq(Delta(fullName, Option(a), Option(b), delta(a, b)))
+        if (f.getType == "RECORD"
+          && unorderedFieldKeys.contains(fullName)) {
+          val l = x
+            .flatMap(outer =>
+              getField(name)(outer).map(_.asInstanceOf[java.util.List[Record]].asScala.toList))
+            .getOrElse(List())
+            .flatMap(inner =>
+              Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner))).toMap
+          val r = y
+            .flatMap(outer =>
+              getField(name)(outer).map(_.asInstanceOf[java.util.List[Record]].asScala.toList))
+            .getOrElse(List())
+            .flatMap(inner =>
+              Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner))).toMap
+          (l.keySet ++ r.keySet).flatMap(k =>
+            diff(l.get(k), r.get(k), f.getFields.asScala, fullName))
+        } else {
+          val a = x.flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[AnyRef]]))
+            .map(sortList)
+          val b = y.flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[AnyRef]]))
+            .map(sortList)
+          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
         }
       } else {
-        val a = x.get(name)
-        val b = y.get(name)
-        if (a == b) Nil else Seq(Delta(fullName, Option(a), Option(b), delta(a, b)))
+        val a = x.flatMap(r => getField(name)(r))
+        val b = y.flatMap(r => getField(name)(r))
+        if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
       }
-    }
-    .filter(d => !ignore.contains(d.field))
+    }.filter(d => !ignore.contains(d.field))
   }
   // scalastyle:on cyclomatic.complexity
 }

@@ -49,9 +49,11 @@ case class TypedDelta(deltaType: DeltaType.Value, value: Double) extends DeltaVa
 object NumericDelta {
   def apply(value: Double): TypedDelta = TypedDelta(DeltaType.NUMERIC, value)
 }
+
 object StringDelta {
   def apply(value: Double): TypedDelta = TypedDelta(DeltaType.STRING, value)
 }
+
 object VectorDelta {
   def apply(value: Double): TypedDelta = TypedDelta(DeltaType.VECTOR, value)
 }
@@ -73,9 +75,9 @@ case class Delta(field: String, left: Option[Any], right: Option[Any], delta: De
  * Field level diff tool.
  *
  * @param ignore specify set of fields to ignore during comparison.
- * @param unordered specify set of fields to be treated as unordered, i.e. sort before comparison.
- * @param unorderedFieldKeys specify keys to sort by for a nested record, only necessary if
- *                           an unordered field contains nested unordered fields
+ * @param unordered a list of fields to be treated as unordered, i.e. sort before comparison.
+ * @param unorderedFieldKeys a map of record field names to fields names that can be keyed by when
+ *                           comparing nested repeated records
  *                           (currently not support in CLI)
  */
 abstract class Diffy[T](val ignore: Set[String],
@@ -93,8 +95,8 @@ abstract class Diffy[T](val ignore: Set[String],
       StringDelta(stringDelta(x.toString, y.toString))
     } else {
       val tryVector = Try {
-        val vx = x.asInstanceOf[java.util.List[_]].asScala.map(_.toString.toDouble)
-        val vy = y.asInstanceOf[java.util.List[_]].asScala.map(_.toString.toDouble)
+        val vx = x.asInstanceOf[java.util.List[_]].asScala.map(_.toString.toDouble).toList
+        val vy = y.asInstanceOf[java.util.List[_]].asScala.map(_.toString.toDouble).toList
         vectorDelta(vx, vy)
       }
       if (tryVector.isSuccess) {
@@ -118,14 +120,17 @@ abstract class Diffy[T](val ignore: Set[String],
    * Sort a repeated field.
    *
    * Elements are default sorted by `_.toString` since most types we deal with are not comparable.
-   * @param keyFn - provides a field which can be reliably sorted against
    */
-  def sortList[U](l: java.util.List[U], keyFn: Option[U => Any] = None): java.util.List[U] =
+  def sortList[U](l: java.util.List[U]): java.util.List[U] = {
     if (l == null) {
       null
     } else {
-      l.asScala.sortBy(u => keyFn.map(f => f(u)).getOrElse(u).toString).asJava
+      // Copying avoids a weird NPE that seems to have something to do with lists containing nulls
+      val lCopy = new java.util.ArrayList[U]()
+      l.asScala.sortBy(_.toString).foreach(u => lCopy.add(u))
+      lCopy
     }
+  }
 }
 
 /**

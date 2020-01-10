@@ -168,4 +168,27 @@ class ProtoBufDiffyTest extends AnyFlatSpec with Matchers {
     d(x, z) should equal (Seq(
       Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta)))
   }
+
+  it should "support unordered nested of different lengths" in {
+    val a = RepeatedRecord.newBuilder().setStringField("a")
+      .clearNestedRepeatedField().addAllNestedRepeatedField(jl(30, 20, 10)).build
+    val b = RepeatedRecord.newBuilder().setStringField("b")
+      .clearNestedRepeatedField().addAllNestedRepeatedField(jl(10, 20, 30)).build
+    val c = RepeatedRecord.newBuilder().setStringField("c")
+      .clearNestedRepeatedField().addAllNestedRepeatedField(jl(10, 30, 20)).build
+
+    val x = DeeplyRepeatedRecord.newBuilder().clearRepeatedRecord()
+      .addAllRepeatedRecord(jl(a, b, c)).build
+    val y = DeeplyRepeatedRecord.newBuilder().clearRepeatedRecord()
+      .addAllRepeatedRecord(jl(a, c)).build
+
+    val du = new ProtoBufDiffy[DeeplyRepeatedRecord](
+      unordered = Set("repeated_record", "repeated_record.nested_repeated_field"),
+      unorderedFieldKeys = Map("repeated_record" -> "string_field"))
+
+    du(x, y) should equal (Seq(
+      Delta("repeated_record.nested_repeated_field", Option(jl(10, 20, 30)), None, UnknownDelta),
+      Delta("repeated_record.string_field", Option("b"), None, UnknownDelta)
+    ))
+  }
 }

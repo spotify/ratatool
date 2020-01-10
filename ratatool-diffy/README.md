@@ -56,6 +56,11 @@ libraryDependencies += "com.spotify" %% "ratatool-diffy" % ratatoolVersion
 ```
 The latest version can be found in the main [README](https://github.com/spotify/ratatool/blob/master/README.md).
 
+## Nested repeated records
+If you need to use `unorderedFieldKeys` to diff nested repeated records, then you will have to
+ write a Scala job which calls [BigDiffy](https://github.com/spotify/ratatool/blob/master/ratatool-diffy/src/main/scala/com/spotify/ratatool/diffy/BigDiffy.scala)
+ as this is currently unsupported from the CLI.
+
 ## Schema Evolution
 If you are trying to diff two schemas that are backwards compatible, you should put the "new" schema
  which is backwards compatible on the RHS. You can also add the new fields to the ignore list to
