@@ -147,7 +147,7 @@ class AvroDiffyTest extends FlatSpec with Matchers {
     z.setRepeatedRecord(jl(a, c, b))
 
     val du = new AvroDiffy[DeeplyRepeatedRecord](
-      unordered = Set("repeated_record", "repeated_nested_field.nested_repeated_field"),
+      unordered = Set("repeated_record", "repeated_record.nested_repeated_field"),
       unorderedFieldKeys = Map("repeated_record" -> "string_field"))
 
     du(x, y) should equal (Nil)
@@ -176,7 +176,7 @@ class AvroDiffyTest extends FlatSpec with Matchers {
     y.setRepeatedRecord(jl(a, c))
 
     val du = new AvroDiffy[DeeplyRepeatedRecord](
-      unordered = Set("repeated_record", "repeated_nested_field.nested_repeated_field"),
+      unordered = Set("repeated_record", "repeated_record.nested_repeated_field"),
       unorderedFieldKeys = Map("repeated_record" -> "string_field"))
 
     du(x, y) should equal (Seq(
