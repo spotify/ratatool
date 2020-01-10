@@ -156,6 +156,36 @@ class AvroDiffyTest extends FlatSpec with Matchers {
       Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta)))
   }
 
+  it should "support unordered nested of different lengths" in {
+    val drnrCoder = AvroCoder.of(classOf[RepeatedRecord])
+    val drrCoder = AvroCoder.of(classOf[DeeplyRepeatedRecord])
+
+    val a = avroOf[RepeatedRecord].sample.get
+    a.setNestedRepeatedField(jl(10, 20, 30))
+    a.setStringField("a")
+    val b = CoderUtils.clone(drnrCoder, a)
+    b.setNestedRepeatedField(jl(10, 20, 30))
+    b.setStringField("b")
+    val c = CoderUtils.clone(drnrCoder, a)
+    c.setNestedRepeatedField(jl(10, 20, 30))
+    c.setStringField("c")
+
+    val x = avroOf[DeeplyRepeatedRecord].sample.get
+    x.setRepeatedRecord(jl(a, b, c))
+    val y = CoderUtils.clone(drrCoder, x)
+    y.setRepeatedRecord(jl(a, c, b))
+    val z = CoderUtils.clone(drrCoder, x)
+    z.setRepeatedRecord(jl(a, c))
+
+    val du = new AvroDiffy[DeeplyRepeatedRecord](
+      unordered = Set("repeated_record", "repeated_nested_field.nested_repeated_field"),
+      unorderedFieldKeys = Map("repeated_record" -> "string_field"))
+
+    du(x, y) should equal (Nil)
+    du(x, z) should equal (Seq(
+      Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c)), UnknownDelta)))
+  }
+
   it should "support schema evolution if ignored" in {
     val inner = avroOf(Schemas.evolvedSimpleAvroSchema.getField("nullable_fields").schema())
         .flatMap(r => Arbitrary.arbString.arbitrary.map { s =>

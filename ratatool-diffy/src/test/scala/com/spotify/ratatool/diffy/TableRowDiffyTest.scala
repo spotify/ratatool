@@ -143,29 +143,27 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
 
     val a = new TableRow()
       .set("nested_repeated_field", jl(10, 20, 30))
-      .set("string_field", "hello")
+      .set("string_field", "a")
 
     val b = new TableRow()
       .set("nested_repeated_field", jl(10, 20, 30))
-      .set("string_field", "world")
+      .set("string_field", "b")
 
     val c = new TableRow()
       .set("nested_repeated_field", jl(10, 30, 20))
-      .set("string_field", "!")
+      .set("string_field", "c")
 
     val x = new TableRow().set("repeated_record", jl(a, b, c))
-    val y = new TableRow().set("repeated_record", jl(a, b, c))
-    val z = new TableRow().set("repeated_record", jl(a, c, b))
+    val y = new TableRow().set("repeated_record", jl(a, c, b))
+    val z = new TableRow().set("repeated_record", jl(a, c))
 
     val du = new TableRowDiffy(schema,
       unordered = Set("repeated_record", "repeated_record.nested_repeated_field"),
       unorderedFieldKeys = Map("repeated_record" -> "string_field"))
-    val d = new TableRowDiffy(schema)
 
 
     du(x, y) should equal (Nil)
-    du(x, z) should equal (Nil)
-    d(x, z) should equal (Seq(
-      Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta)))
+    du(x, z) should equal (Seq(
+      Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c)), UnknownDelta)))
   }
 }
