@@ -143,6 +143,50 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
 
     val a = new TableRow()
       .set("nested_repeated_field", jl(10, 20, 30))
+      .set("string_field", "hello")
+
+    val b = new TableRow()
+      .set("nested_repeated_field", jl(10, 20, 30))
+      .set("string_field", "world")
+
+    val c = new TableRow()
+      .set("nested_repeated_field", jl(10, 30, 20))
+      .set("string_field", "!")
+
+    val x = new TableRow().set("repeated_record", jl(a, b, c))
+    val y = new TableRow().set("repeated_record", jl(a, b, c))
+    val z = new TableRow().set("repeated_record", jl(a, c, b))
+
+    val du = new TableRowDiffy(schema,
+      unordered = Set("repeated_record", "repeated_record.nested_repeated_field"),
+      unorderedFieldKeys = Map("repeated_record" -> "string_field"))
+    val d = new TableRowDiffy(schema)
+
+
+    du(x, y) should equal (Nil)
+    du(x, z) should equal (Nil)
+    d(x, z) should equal (Seq(
+      Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta)))
+  }
+
+  it should "support unordered nested with different lengths" in {
+    val schema = new TableSchema().setFields(jl(
+      new TableFieldSchema()
+        .setName("repeated_record")
+        .setType("RECORD")
+        .setMode("REPEATED")
+        .setFields(jl(
+          new TableFieldSchema()
+            .setName("nested_repeated_field")
+            .setType("INTEGER")
+            .setMode("REPEATED"),
+          new TableFieldSchema()
+            .setName("string_field")
+            .setType("STRING")
+            .setMode("REQUIRED")))))
+
+    val a = new TableRow()
+      .set("nested_repeated_field", jl(30, 20, 10))
       .set("string_field", "a")
 
     val b = new TableRow()
@@ -154,16 +198,15 @@ class TableRowDiffyTest extends FlatSpec with Matchers {
       .set("string_field", "c")
 
     val x = new TableRow().set("repeated_record", jl(a, b, c))
-    val y = new TableRow().set("repeated_record", jl(a, c, b))
-    val z = new TableRow().set("repeated_record", jl(a, c))
+    val y = new TableRow().set("repeated_record", jl(a, c))
 
     val du = new TableRowDiffy(schema,
       unordered = Set("repeated_record", "repeated_record.nested_repeated_field"),
       unorderedFieldKeys = Map("repeated_record" -> "string_field"))
 
-
-    du(x, y) should equal (Nil)
-    du(x, z) should equal (Seq(
-      Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c)), UnknownDelta)))
+    du(x, y) should equal (Seq(
+      Delta("repeated_record.nested_repeated_field", Option(jl(10, 20, 30)), None, UnknownDelta),
+      Delta("repeated_record.string_field", Option("b"), None, UnknownDelta)
+    ))
   }
 }

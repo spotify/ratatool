@@ -36,6 +36,11 @@ class AvroDiffy[T <: GenericRecord : Coder](ignore: Set[String] = Set.empty,
     diff(Option(x), Option(y), "")
   }
 
+  def isAvroRecordType(schema: Schema): Boolean =
+    Schema.Type.RECORD.equals(schema.getType) ||
+      (Schema.Type.UNION.equals(schema.getType) &&
+        schema.getTypes.asScala.map(_.getType).contains(Schema.Type.RECORD))
+
   // scalastyle:off cyclomatic.complexity method.length
   private def diff(x: Option[GenericRecord], y: Option[GenericRecord], root: String)
   : Seq[Delta] = {
@@ -61,8 +66,8 @@ class AvroDiffy[T <: GenericRecord : Coder](ignore: Set[String] = Set.empty,
             case (Some(_), Some(_)) => diff(a, b, fullName)
           }
         case Schema.Type.ARRAY if unordered.contains(fullName) =>
-          if (f.schema().getElementType.getType == Schema.Type.RECORD
-            && unorderedFieldKeys.contains(fullName)) {
+          if (unorderedFieldKeys.contains(fullName)
+            && isAvroRecordType(f.schema().getElementType)) {
             val l = x.flatMap(outer =>
               Option(outer.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList))
               .getOrElse(List())
