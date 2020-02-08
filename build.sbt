@@ -21,7 +21,7 @@ import Keys._
 val algebirdVersion = "0.13.6"
 val avroVersion = "1.8.2"
 val beamVersion = "2.17.0"
-val bigqueryVersion = "v2-rev20181104-1.27.0"
+val bigqueryVersion = "v2-rev20191211-1.30.8"
 val gcsVersion = "hadoop2-2.0.0"
 val guavaVersion = "25.1-jre"
 val hadoopVersion = "2.7.7"
