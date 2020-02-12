@@ -14,6 +14,6 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.apache.avro" % "avro" % "1.8.2",
-  "org.apache.avro" % "avro-compiler" % "1.8.2"
+  "org.apache.avro" % "avro" % "1.9.2",
+  "org.apache.avro" % "avro-compiler" % "1.9.2"
 )
