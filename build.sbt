@@ -48,6 +48,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
       case _ => Nil
     }
   },
+  resolvers += Resolver.sonatypeRepo("public"),
   sourceDirectories in Compile := (sourceDirectories in Compile).value
     .filterNot(_.getPath.endsWith("/src_managed/main")),
   managedSourceDirectories in Compile := (managedSourceDirectories in Compile).value
