@@ -79,6 +79,7 @@ import org.slf4j.LoggerFactory;
  * An implementation of {@link PatchedBigQueryServices} that actually communicates with the cloud BigQuery
  * service.
  */
+@Deprecated
 public class PatchedBigQueryServicesImpl implements PatchedBigQueryServices {
 
   private static final Logger LOG = LoggerFactory.getLogger(PatchedBigQueryServicesImpl.class);
