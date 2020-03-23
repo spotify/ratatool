@@ -156,8 +156,8 @@ private[samplers] object BigSamplerBigQuery {
         distributionFields, precision, sizePerKey, byteEncoding)
 
       val r = sampledCollection
-        .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "",
-          TimePartitioning("DAY"))
+        .saveAsBigQueryTable(Table.Ref(outputTbl), schema, WRITE_EMPTY, CREATE_IF_NEEDED,
+          tableDescription = "", TimePartitioning("DAY"))
       sc.run().waitUntilDone()
       r
     }

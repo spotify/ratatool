@@ -22,7 +22,7 @@ val algebirdVersion = "0.13.6"
 val avroVersion = "1.8.2"
 val beamVersion = "2.19.0"
 val bigqueryVersion = "v2-rev20190917-1.30.3"
-val gcsVersion = "hadoop2-2.1.1"
+val gcsVersion = "hadoop2-2.0.0"
 val guavaVersion = "25.1-jre"
 val hadoopVersion = "2.7.7"
 val jodaTimeVersion = "2.10.5"
@@ -48,7 +48,6 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
       case _ => Nil
     }
   },
-  resolvers += Resolver.sonatypeRepo("public"),
   sourceDirectories in Compile := (sourceDirectories in Compile).value
     .filterNot(_.getPath.endsWith("/src_managed/main")),
   managedSourceDirectories in Compile := (managedSourceDirectories in Compile).value
