@@ -27,16 +27,21 @@ import scala.reflect.ClassTag
 private[samplers] object BigSamplerProto {
   private val log = LoggerFactory.getLogger(BigSamplerProto.getClass)
 
+  /**
+   * Builds a key function per record
+   * Sets do not have deterministic ordering so we return a sorted list
+   */
   private[samplers] def buildKey(distributionFields: Seq[String])(m: AbstractMessage)
-  : Set[String] = {
+  : List[String] = {
     distributionFields.map(f => getProtobufField(m, f)).toSet
       .map { x: Any =>
+        // can't call toString on null
         if (x == null) {
           "null"
         } else {
           x.toString
         }
-      }// can't call toString on null
+      }.toList.sorted
   }
 
   // scalastyle:off cyclomatic.complexity

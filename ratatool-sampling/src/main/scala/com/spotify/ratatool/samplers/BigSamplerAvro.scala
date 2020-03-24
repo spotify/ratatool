@@ -66,10 +66,14 @@ private[samplers] object BigSamplerAvro {
     (field.name, fieldSchema, fieldValue)
   }
 
+  /**
+   * Builds a key function per record
+   * Sets do not have deterministic ordering so we return a sorted list
+   */
   private[samplers] def buildKey(schema: => Schema,
                                  distributionFields: Seq[String])(gr: GenericRecord)
-  : Set[String] = {
-    distributionFields.map{f =>
+  : List[String] = {
+    distributionFields.map{ f =>
       val fieldValue = getAvroField(gr, f.split(BigSampler.fieldSep).toList, schema)
       // Avro caches toString in the Utf8 class which results in an IllegalMutationException
       // later on if we don't materialize the string once before. Ignoring this prevents us
@@ -79,7 +83,7 @@ private[samplers] object BigSamplerAvro {
       // Set[String] with the toString values for each field to use as our key.
       // Of course, if it's null we can't call toString on it, so we wrap.
       Option(fieldValue).map(_.toString).getOrElse("null")
-    }.toSet
+    }.toSet.toList.sorted
   }
 
   @tailrec
