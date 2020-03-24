@@ -20,7 +20,7 @@ package com.spotify.ratatool.scalacheck
 import com.google.api.services.bigquery.model.TableRow
 import com.spotify.ratatool.Schemas
 import org.scalacheck.{Arbitrary, Gen, Properties}
-import org.scalacheck.Prop.{BooleanOperators, all, forAll}
+import org.scalacheck.Prop.{propBoolean, all, forAll}
 
 object TableRowGeneratorTest extends Properties("TableRowGenerator") {
   property("round trip") = forAll(tableRowOf(Schemas.tableSchema)) { m =>
@@ -45,7 +45,7 @@ object TableRowGeneratorTest extends Properties("TableRowGenerator") {
       _.getRecord(r).set("boolean_field"))
 
   property("support RichTableRowGen") = forAll (richGen) { r =>
-    val fields = r.get(n).asInstanceOf[TableRow]
+    val fields = r.get(n).asInstanceOf[java.util.LinkedHashMap[String, Any]]
     val i = fields.get("int_field").asInstanceOf[Long]
     val f = fields.get("float_field").asInstanceOf[Double]
     val b = fields.get("boolean_field").asInstanceOf[Boolean]
@@ -61,8 +61,8 @@ object TableRowGeneratorTest extends Properties("TableRowGenerator") {
   }
 
   property("support RichTableRowTupGen") = forAll(richTupGen) { case (a, b) =>
-    val ar = a.get(r).asInstanceOf[TableRow]
-    val br = b.get(r).asInstanceOf[TableRow]
+    val ar = a.get(r).asInstanceOf[java.util.LinkedHashMap[String, Any]]
+    val br = b.get(r).asInstanceOf[java.util.LinkedHashMap[String, Any]]
     (a.get("int_field").asInstanceOf[Long] == b.get("int_field").asInstanceOf[Long]
       && a.get("string_field").asInstanceOf[String] == b.get("string_field").asInstanceOf[String] &&
       a.get("boolean_field").asInstanceOf[Boolean] == b.get("boolean_field").asInstanceOf[Boolean])

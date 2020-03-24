@@ -77,7 +77,7 @@ private[samplers] object BigSamplerBigQuery {
         case "RECORD" =>
           vs.foldLeft(hasher)((hasher, vi) =>
             hashTableRow(field.getFields.asScala)(
-              vi.asInstanceOf[TableRow],
+              TableRow(vi.asInstanceOf[java.util.Map[String, Any]].asScala.toList: _*),
               subfields.tail.mkString(BigSampler.fieldSep.toString),
               hasher)
           )
@@ -118,10 +118,10 @@ private[samplers] object BigSamplerBigQuery {
 
   private[samplers] def buildKey(schema: => Seq[TableFieldSchema],
                                  distributionFields: Seq[String])(tr: TableRow)
-  : Set[String] = {
+  : List[String] = {
     distributionFields.map{ f =>
       getTableRowField(tr, f, schema)
-    }.map(_.toString).toSet
+    }.map(_.toString).toSet.toList.sorted
   }
 
   //scalastyle:off method.length cyclomatic.complexity parameter.number
