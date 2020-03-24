@@ -36,6 +36,7 @@ import javax.annotation.Nullable;
 import org.apache.beam.sdk.values.ValueInSingleWindow;
 
 /** An interface for real, mock, or fake implementations of Cloud BigQuery services. */
+@Deprecated
 public interface PatchedBigQueryServices extends Serializable {
 
   /**

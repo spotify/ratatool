@@ -96,7 +96,8 @@ package object samplers {
 
     BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
       BigSamplerBigQuery.hashTableRow(schemaFields),
-      BigSamplerBigQuery.buildKey(schemaFields, distributionFields), maxKeySize, byteEncoding)
+      BigSamplerBigQuery.buildKey(schemaFields, distributionFields),
+      maxKeySize, byteEncoding)
   }
 
   /**
@@ -124,7 +125,8 @@ package object samplers {
                                                    byteEncoding: ByteEncoding = RawEncoding)
   : SCollection[T] = {
     BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
-      BigSamplerProto.hashProtobufField, BigSamplerProto.buildKey(distributionFields),
+      BigSamplerProto.hashProtobufField,
+      BigSamplerProto.buildKey(distributionFields),
       maxKeySize, byteEncoding)
   }
   //scalastyle:on parameter.number

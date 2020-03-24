@@ -77,7 +77,7 @@ private[samplers] object BigSamplerBigQuery {
         case "RECORD" =>
           vs.foldLeft(hasher)((hasher, vi) =>
             hashTableRow(field.getFields.asScala)(
-              vi.asInstanceOf[TableRow],
+              TableRow(vi.asInstanceOf[java.util.Map[String, Any]].asScala.toList: _*),
               subfields.tail.mkString(BigSampler.fieldSep.toString),
               hasher)
           )
@@ -116,12 +116,16 @@ private[samplers] object BigSamplerBigQuery {
   }
   // scalastyle:on cyclomatic.complexity
 
+  /**
+   * Builds a key function per record
+   * Sets do not have deterministic ordering so we return a sorted list
+   */
   private[samplers] def buildKey(schema: => Seq[TableFieldSchema],
                                  distributionFields: Seq[String])(tr: TableRow)
-  : Set[String] = {
+  : List[String] = {
     distributionFields.map{ f =>
       getTableRowField(tr, f, schema)
-    }.map(_.toString).toSet
+    }.map(_.toString).toSet.toList.sorted
   }
 
   //scalastyle:off method.length cyclomatic.complexity parameter.number
@@ -156,8 +160,8 @@ private[samplers] object BigSamplerBigQuery {
         distributionFields, precision, sizePerKey, byteEncoding)
 
       val r = sampledCollection
-        .saveAsBigQuery(outputTbl, schema, WRITE_EMPTY, CREATE_IF_NEEDED, tableDescription = "",
-          TimePartitioning("DAY"))
+        .saveAsBigQueryTable(Table.Ref(outputTbl), schema, WRITE_EMPTY, CREATE_IF_NEEDED,
+          tableDescription = "", TimePartitioning("DAY"))
       sc.run().waitUntilDone()
       r
     }
