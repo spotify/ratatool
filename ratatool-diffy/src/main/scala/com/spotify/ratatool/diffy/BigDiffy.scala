@@ -365,17 +365,17 @@ object BigDiffy extends Command {
               d.right.map(_.toString).getOrElse("null"),
               dv)})
           ))
-          .saveAsTypedBigQuery(s"${output}_keys")
+          .saveAsTypedBigQueryTable(Table.Spec(s"${output}_keys"))
         bigDiffy.fieldStats.map(stat =>
           FieldStatsBigQuery(stat.field, stat.count, stat.fraction, stat.deltaStats.map(ds =>
             DeltaStatsBigQuery(ds.deltaType.toString, ds.min, ds.max, ds.count, ds.mean,
               ds.variance, ds.stddev, ds.skewness, ds.kurtosis)
           )))
-          .saveAsTypedBigQuery(s"${output}_fields")
+          .saveAsTypedBigQueryTable(Table.Spec(s"${output}_fields"))
         bigDiffy.globalStats.map( stat =>
           GlobalStatsBigQuery(stat.numTotal, stat.numSame, stat.numDiff,
             stat.numMissingLhs, stat.numMissingRhs))
-          .saveAsTypedBigQuery(s"${output}_global")
+          .saveAsTypedBigQueryTable(Table.Spec(s"${output}_global"))
     }
   }
 
