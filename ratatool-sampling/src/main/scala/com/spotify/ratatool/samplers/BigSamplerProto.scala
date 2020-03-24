@@ -27,6 +27,10 @@ import scala.reflect.ClassTag
 private[samplers] object BigSamplerProto {
   private val log = LoggerFactory.getLogger(BigSamplerProto.getClass)
 
+  /**
+   * Builds a key function per record
+   * Sets do not have deterministic ordering so we return a sorted list
+   */
   private[samplers] def buildKey(distributionFields: Seq[String])(m: AbstractMessage)
   : List[String] = {
     distributionFields.map(f => getProtobufField(m, f)).toSet

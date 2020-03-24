@@ -116,6 +116,10 @@ private[samplers] object BigSamplerBigQuery {
   }
   // scalastyle:on cyclomatic.complexity
 
+  /**
+   * Builds a key function per record
+   * Sets do not have deterministic ordering so we return a sorted list
+   */
   private[samplers] def buildKey(schema: => Seq[TableFieldSchema],
                                  distributionFields: Seq[String])(tr: TableRow)
   : List[String] = {
