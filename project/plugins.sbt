@@ -10,7 +10,7 @@ addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.10.0-RC1")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.12")
 
 libraryDependencies ++= Seq(
-  "com.github.os72" % "protoc-jar" % "3.11.1"
+  "com.github.os72" % "protoc-jar" % "3.11.4"
 )
 
 libraryDependencies ++= Seq(
