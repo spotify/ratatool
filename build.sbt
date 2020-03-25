@@ -53,7 +53,8 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   managedSourceDirectories in Compile := (managedSourceDirectories in Compile).value
     .filterNot(_.getPath.endsWith("/src_managed/main")),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
-  addCompilerPlugin(scalafixSemanticdb)
+  addCompilerPlugin(scalafixSemanticdb),
+  run / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 )
 
 lazy val protoBufSettings = Seq(
