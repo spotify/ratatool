@@ -35,7 +35,7 @@ class BigSamplerAvroTest extends PipelineSpec {
         .amend(Gen.const(null))(_.setStringField))(_.setNullableFields)
       .sample.get
 
-    BigSamplerAvro.buildKey(schema, fields)(record) shouldBe Set("null")
+    BigSamplerAvro.buildKey(schema, fields)(record) shouldBe List("null")
   }
 
 }

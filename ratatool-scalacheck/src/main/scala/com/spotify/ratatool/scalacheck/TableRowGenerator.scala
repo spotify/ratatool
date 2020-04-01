@@ -18,6 +18,7 @@
 package com.spotify.ratatool.scalacheck
 
 import java.nio.ByteBuffer
+import java.util
 
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
@@ -43,6 +44,8 @@ private object TableFieldValue {
   def apply(n: String, x: LocalTime): TableFieldValue = new TableFieldValue(n, x)
   def apply(n: String, x: TableRow): TableFieldValue = new TableFieldValue(n, x)
   def apply(n: String, x: List[TableFieldValue]): TableFieldValue =
+    new TableFieldValue(n, x)
+  def apply(n: String, x: util.LinkedHashMap[String, Any]): TableFieldValue =
     new TableFieldValue(n, x)
 }
 
@@ -89,6 +92,33 @@ trait TableRowGeneratorOps {
     }
   }
 
+  /**
+   * Generate a TableRow from an `Iterable[TableFieldSchema]` so this can be reused
+   * by `RECORD` fields
+   */
+  private def linkedMapOfList(row: Iterable[TableFieldSchema])
+  : Gen[util.LinkedHashMap[String, Any]] = {
+    def buildMap(r: util.LinkedHashMap[String, Any], v: List[TableFieldValue])
+    : util.LinkedHashMap[String, Any] = {
+      v.foreach { s =>
+        s.value match {
+          /** Workaround for type erasure */
+          case List(_: TableFieldValue, _*) =>
+            r.put(s.name, s.value.asInstanceOf[List[TableFieldValue]].map(_.value).asJava)
+          case _ => r.put(s.name, s.value)
+        }
+      }
+      r
+    }
+
+    val fieldGens = Gen.sequence(row.map(t => tableFieldValueOf(t)))
+    fieldGens.map { list =>
+      val r = new util.LinkedHashMap[String, Any]()
+      buildMap(r, list.asScala.toList)
+      r
+    }
+  }
+
   //scalastyle:off cyclomatic.complexity
   private def tableFieldValueOf(fieldSchema: TableFieldSchema): Gen[TableFieldValue] = {
     val n = fieldSchema.getName
@@ -106,7 +136,7 @@ trait TableRowGeneratorOps {
         .map(i => ByteBuffer.wrap(i.toArray))
         .map(v => TableFieldValue(n, BaseEncoding.base64().encode(v.array())))
       case "RECORD" =>
-        tableRowOfList(fieldSchema.getFields.asScala).map(TableFieldValue(n, _))
+        linkedMapOfList(fieldSchema.getFields.asScala).map(TableFieldValue(n, _))
 
       case t => throw new RuntimeException(s"Unknown type: $t")
     }

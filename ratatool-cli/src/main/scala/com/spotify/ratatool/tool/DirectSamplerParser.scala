@@ -43,7 +43,7 @@ object DirectSamplerParser extends Command {
 
     cmd("bigquery")
       .action((_, c) => c.copy(mode = "bigquery"))
-      .text("Sample from BigQuery")
+      .text("Sample from BigQuery (DEPRECATED: Should use BigSampler with DirectRunner instead)")
       .children(
         opt[String]("in").required()
           .action((x, c) => c.copy(in = x))
