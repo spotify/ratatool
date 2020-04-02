@@ -130,8 +130,9 @@ case class FieldStats(field: String,
 }
 
 /** Big diff between two data sets given a primary key. */
-class BigDiffy[T : Coder](lhs: SCollection[T], rhs: SCollection[T],
-                          diffy: Diffy[T], keyFn: T => MultiKey, ignoreNan: Boolean = false) {
+class BigDiffy[T : Coder](@transient val lhs: SCollection[T], @transient val rhs: SCollection[T],
+                          diffy: Diffy[T], keyFn: T => MultiKey, ignoreNan: Boolean = false)
+  extends Serializable {
 
   private lazy val _deltas: BigDiffy.DeltaSCollection =
     BigDiffy.computeDeltas(lhs, rhs, diffy, keyFn)
@@ -171,9 +172,9 @@ case object GCS extends OutputMode
 case object BQ extends OutputMode
 
 /** Big diff between two data sets given a primary key. */
-object BigDiffy extends Command {
+object BigDiffy extends Command with Serializable {
   val command: String = "bigDiffy"
-  private val logger: Logger = LoggerFactory.getLogger(BigDiffy.getClass)
+  @transient private lazy val logger: Logger = LoggerFactory.getLogger(BigDiffy.getClass)
 
   // (field, deltas, diff type)
   type DeltaSCollection = SCollection[(MultiKey, (Seq[Delta], DiffType.Value))]
@@ -444,7 +445,7 @@ object BigDiffy extends Command {
     @tailrec
     def get(xs: Array[String], i: Int, r: GenericRecord): String =
       if (i == xs.length - 1) {
-        val valueOfKey = r.get((xs(i)))
+        val valueOfKey = r.get(xs(i))
         if (valueOfKey == null) {
           logger.warn(
             s"""Null value found for key: ${xs.mkString(".")}.
