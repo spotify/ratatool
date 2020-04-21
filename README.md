@@ -69,7 +69,7 @@ Or execute BigDiffy directly
 
 ```bash
 bin/ratatool bigDiffy \
-    --input_mode=avro \
+    --input-mode=avro \
     --key=record.key \
     --lhs=gs://path/to/left \
     --rhs=gs://path/to/right \
