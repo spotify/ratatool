@@ -17,6 +17,9 @@
 
 package com.spotify.ratatool.diffy
 
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
+
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.Command
@@ -451,7 +454,13 @@ object BigDiffy extends Command with Serializable {
             s"""Null value found for key: ${xs.mkString(".")}.
                | If this is not expected check your data or use a different key.""".stripMargin)
         }
-        String.valueOf(valueOfKey)
+        // handle bytes keys custom, so we get bytebuffer actual content and not toString metadata
+        if (valueOfKey.isInstanceOf[ByteBuffer]) {
+          // might not necessarily be a utf8 string, but better to stringify the content somehow
+          new String(valueOfKey.asInstanceOf[ByteBuffer].array(), StandardCharsets.UTF_8.name())
+        } else {
+          String.valueOf(valueOfKey)
+        }
       } else {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[GenericRecord])
       }
