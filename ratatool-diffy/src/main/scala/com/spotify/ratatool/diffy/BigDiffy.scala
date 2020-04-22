@@ -18,7 +18,6 @@
 package com.spotify.ratatool.diffy
 
 import java.nio.ByteBuffer
-import java.nio.charset.StandardCharsets
 
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
