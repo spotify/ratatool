@@ -19,6 +19,7 @@ package com.spotify.ratatool.diffy
 
 import java.nio.ByteBuffer
 
+import com.google.common.io.BaseEncoding
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific._
 import com.spotify.ratatool.scalacheck._
@@ -231,6 +232,8 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
 
   it should "support bytes keys in avroKeyFn" in {
     val ba = "testing".toCharArray.map(_.toByte)
+    val hex = BaseEncoding.base16().encode(ba)
+
 
     val bytes = ByteBuffer.wrap(ba)
     val x = new GenericRecordBuilder(Schemas.simpleAvroByteFieldSchema)
@@ -250,6 +253,6 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
       ).build()
 
 
-    BigDiffy.avroKeyFn(Seq("nullable_fields.byte_field"))(x) should equal(MultiKey("testing"))
+    BigDiffy.avroKeyFn(Seq("nullable_fields.byte_field"))(x) should equal(MultiKey(hex))
   }
 }

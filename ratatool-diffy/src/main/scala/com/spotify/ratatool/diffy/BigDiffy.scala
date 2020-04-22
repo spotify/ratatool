@@ -21,6 +21,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
+import com.google.common.io.BaseEncoding
 import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.samplers.AvroSampler
@@ -456,8 +457,8 @@ object BigDiffy extends Command with Serializable {
         }
         // handle bytes keys custom, so we get bytebuffer actual content and not toString metadata
         if (valueOfKey.isInstanceOf[ByteBuffer]) {
-          // might not necessarily be a utf8 string, but better to stringify the content somehow
-          new String(valueOfKey.asInstanceOf[ByteBuffer].array(), StandardCharsets.UTF_8.name())
+          // encode to hex string
+          BaseEncoding.base16().encode(valueOfKey.asInstanceOf[ByteBuffer].array())
         } else {
           String.valueOf(valueOfKey)
         }
