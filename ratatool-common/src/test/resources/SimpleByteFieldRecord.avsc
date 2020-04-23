@@ -1,0 +1,32 @@
+{
+  "type": "record",
+  "name": "SimpleByteFieldRecord",
+  "namespace": "com.spotify.ratatool.avro.generic",
+  "doc": "Record for testing",
+  "fields": [
+    {
+      "name": "nullable_fields",
+      "type": {
+        "type": "record",
+        "name": "SimpleNullableByteNestedRecord",
+        "namespace": "com.spotify.ratatool.avro.generic",
+        "doc": "Record for testing",
+        "fields": [
+          {"name": "byte_field", "type": ["null", "bytes"], "default": null}
+        ]
+      }
+    },
+    {
+      "name": "required_fields",
+      "type": {
+        "type": "record",
+        "name": "SimpleRequiredByteNestedRecord",
+        "namespace": "com.spotify.ratatool.avro.generic",
+        "doc": "Record for testing",
+        "fields": [
+          {"name": "byte_field", "type": "bytes"}
+        ]
+      }
+    }
+  ]
+}

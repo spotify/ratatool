@@ -17,7 +17,10 @@
 
 package com.spotify.ratatool.diffy
 
+import java.nio.ByteBuffer
+
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
+import com.google.common.io.BaseEncoding
 import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.samplers.AvroSampler
@@ -451,7 +454,13 @@ object BigDiffy extends Command with Serializable {
             s"""Null value found for key: ${xs.mkString(".")}.
                | If this is not expected check your data or use a different key.""".stripMargin)
         }
-        String.valueOf(valueOfKey)
+        // handle bytes keys custom, so we get bytebuffer actual content and not toString metadata
+        if (valueOfKey.isInstanceOf[ByteBuffer]) {
+          // encode to hex string
+          BaseEncoding.base16().encode(valueOfKey.asInstanceOf[ByteBuffer].array())
+        } else {
+          String.valueOf(valueOfKey)
+        }
       } else {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[GenericRecord])
       }

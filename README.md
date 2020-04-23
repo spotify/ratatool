@@ -77,6 +77,19 @@ bin/ratatool bigDiffy \
     --runner=DataflowRunner ....
 ```
 
+
+
+# Development
+## Testing local changes to the CLI before releasing
+
+To test local changes before release:
+```
+$ sbt
+> project ratatoolCli
+> packArchive
+```
+and then find the built CLI at `ratatool-cli/target/ratatool-cli-{version}.tar.gz`
+
 # License
 
 Copyright 2016-2018 Spotify AB.
