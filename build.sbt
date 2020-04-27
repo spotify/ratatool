@@ -40,7 +40,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   name := "ratatool",
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.12.10",
-  crossScalaVersions := Seq("2.12.10"),
+  crossScalaVersions := Seq("2.12.10", "2.13.1"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions in (Compile,doc) ++= {
     scalaBinaryVersion.value match {
