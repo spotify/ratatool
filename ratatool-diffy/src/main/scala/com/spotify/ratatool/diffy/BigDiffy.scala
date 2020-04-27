@@ -283,13 +283,13 @@ object BigDiffy extends Command with Serializable {
     new BigDiffy[T](lhs, rhs, d, keyFn, ignoreNan)
 
   /** Diff two Avro data sets. */
-  def diffAvro[T <: GenericRecord : ClassTag : Coder](sc: ScioContext,
+  def diffAvro(sc: ScioContext,
                                               lhs: String, rhs: String,
-                                              keyFn: T => MultiKey,
-                                              diffy: AvroDiffy[T],
+                                              keyFn: GenericRecord => MultiKey,
+                                              diffy: AvroDiffy[GenericRecord],
                                               schema: Schema = null,
-                                              ignoreNan: Boolean = false): BigDiffy[T] =
-    diff(sc.avroFile[T](lhs, schema), sc.avroFile[T](rhs, schema), diffy, keyFn, ignoreNan)
+                                              ignoreNan: Boolean = false): BigDiffy[GenericRecord] =
+    diff(sc.avroFile(lhs, schema), sc.avroFile(rhs, schema), diffy, keyFn, ignoreNan)
 
   /** Diff two ProtoBuf data sets. */
   def diffProtoBuf[T <: AbstractMessage : ClassTag](sc: ScioContext,
@@ -537,7 +537,7 @@ object BigDiffy extends Command with Serializable {
           .sample(1, head = true).head.getSchema
         implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered)
-        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(keys), diffy, schema, ignoreNan)
+        BigDiffy.diffAvro(sc, lhs, rhs, avroKeyFn(keys), diffy, schema, ignoreNan)
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQuery.defaultInstance()
