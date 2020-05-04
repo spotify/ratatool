@@ -88,43 +88,43 @@ jobs:
       TEST_PROJECT=ratatoolExamples
     steps:
       - build
-  common_211:
+  common_213:
     executor: scala_213
     environment:
       TEST_PROJECT=ratatoolCommon
     steps:
       - build
-  scalacheck_211:
+  scalacheck_213:
     executor: scala_213
     environment:
       TEST_PROJECT=ratatoolScalacheck
     steps:
       - build
-  diffy_211:
+  diffy_213:
     executor: scala_213
     environment:
       TEST_PROJECT=ratatoolDiffy
     steps:
       - build
-  sampling_211:
+  sampling_213:
     executor: scala_213
     environment:
       TEST_PROJECT=ratatoolSampling
     steps:
       - build
-  shapeless_211:
+  shapeless_213:
     executor: scala_213
     environment:
       TEST_PROJECT=ratatoolShapeless
     steps:
       - build
-  cli_211:
+  cli_213:
     executor: scala_213
     environment:
       TEST_PROJECT=ratatoolCli
     steps:
       - build
-  examples_211:
+  examples_213:
     executor: scala_213
     environment:
       TEST_PROJECT=ratatoolExamples
