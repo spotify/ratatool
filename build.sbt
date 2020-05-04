@@ -20,7 +20,7 @@ import Keys._
 
 val algebirdVersion = "0.13.6"
 val avroVersion = "1.8.2"
-val beamVersion = "2.19.0"
+val beamVersion = "2.20.0"
 val bigqueryVersion = "v2-rev20190917-1.30.3"
 val gcsVersion = "hadoop2-2.0.0"
 val guavaVersion = "25.1-jre"
@@ -88,6 +88,7 @@ lazy val releaseSettings = Seq(
     Developer(id="anne-decusatis", name="Anne DeCusatis", email="anned@spotify.com", url=url("https://twitter.com/precisememory")),
     Developer(id="catherinejelder", name="Catherine Elder", email="siege@spotify.com", url=url("https://twitter.com/siegeelder")),
     Developer(id="idreeskhan", name="Idrees Khan", email="me@idreeskhan.com", url=url("https://twitter.com/idreesxkhan")),
+    Developer(id="jackdingilian", name="Jack Dingilian", email="jackd@spotify.com", url=null),
     // past contributors
     Developer(id="sinisa_lyh", name="Neville Li", email="neville.lyh@gmail.com", url=url("https://twitter.com/sinisa_lyh")),
     Developer(id="ravwojdyla", name="Rafal Wojdyla", email="ravwojdyla@gmail.com", url=url("https://twitter.com/ravwojdyla"))
