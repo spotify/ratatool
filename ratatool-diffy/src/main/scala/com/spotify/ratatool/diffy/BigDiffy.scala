@@ -35,6 +35,7 @@ import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
+import org.apache.avro.specific.SpecificRecordBase
 import org.apache.beam.sdk.io.TextIO
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -283,13 +284,13 @@ object BigDiffy extends Command with Serializable {
     new BigDiffy[T](lhs, rhs, d, keyFn, ignoreNan)
 
   /** Diff two Avro data sets. */
-  def diffAvro(sc: ScioContext,
-                                              lhs: String, rhs: String,
-                                              keyFn: GenericRecord => MultiKey,
-                                              diffy: AvroDiffy[GenericRecord],
-                                              schema: Schema = null,
-                                              ignoreNan: Boolean = false): BigDiffy[GenericRecord] =
-    diff(sc.avroFile(lhs, schema), sc.avroFile(rhs, schema), diffy, keyFn, ignoreNan)
+  def diffAvro[T <: SpecificRecordBase: ClassTag : Coder](sc: ScioContext,
+                                                          lhs: String, rhs: String,
+                                                          keyFn: T => MultiKey,
+                                                          diffy: AvroDiffy[T],
+                                                          schema: Schema,
+                                                          ignoreNan: Boolean = false): BigDiffy[T] =
+    diff(sc.avroFile[T](lhs), sc.avroFile[T](rhs), diffy, keyFn, ignoreNan)
 
   /** Diff two ProtoBuf data sets. */
   def diffProtoBuf[T <: AbstractMessage : ClassTag](sc: ScioContext,
@@ -537,7 +538,10 @@ object BigDiffy extends Command with Serializable {
           .sample(1, head = true).head.getSchema
         implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered)
-        BigDiffy.diffAvro(sc, lhs, rhs, avroKeyFn(keys), diffy, schema, ignoreNan)
+        val lhsSCollection = sc.avroFile(lhs, schema)
+        val rhsSCollection = sc.avroFile(rhs, schema)
+        BigDiffy
+          .diff[GenericRecord](lhsSCollection, rhsSCollection, diffy, avroKeyFn(keys), ignoreNan)
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQuery.defaultInstance()
