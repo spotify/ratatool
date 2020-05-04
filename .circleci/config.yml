@@ -10,11 +10,11 @@ executors:
       - image: circleci/openjdk:8-jdk
     environment:
       SCALA_VERSION: 2.12.10
-  scala_211:
+  scala_213:
     docker:
       - image: circleci/openjdk:8-jdk
     environment:
-      SCALA_VERSION: 2.11.12
+      SCALA_VERSION: 2.13.1
 
 commands:
   build:
@@ -89,43 +89,43 @@ jobs:
     steps:
       - build
   common_211:
-    executor: scala_211
+    executor: scala_213
     environment:
       TEST_PROJECT=ratatoolCommon
     steps:
       - build
   scalacheck_211:
-    executor: scala_211
+    executor: scala_213
     environment:
       TEST_PROJECT=ratatoolScalacheck
     steps:
       - build
   diffy_211:
-    executor: scala_211
+    executor: scala_213
     environment:
       TEST_PROJECT=ratatoolDiffy
     steps:
       - build
   sampling_211:
-    executor: scala_211
+    executor: scala_213
     environment:
       TEST_PROJECT=ratatoolSampling
     steps:
       - build
   shapeless_211:
-    executor: scala_211
+    executor: scala_213
     environment:
       TEST_PROJECT=ratatoolShapeless
     steps:
       - build
   cli_211:
-    executor: scala_211
+    executor: scala_213
     environment:
       TEST_PROJECT=ratatoolCli
     steps:
       - build
   examples_211:
-    executor: scala_211
+    executor: scala_213
     environment:
       TEST_PROJECT=ratatoolExamples
     steps:
@@ -149,10 +149,10 @@ workflows:
       - shapeless_212
       - cli_212
       - examples_212
-      - common_211
-      - scalacheck_211
-      - diffy_211
-      - sampling_211
-      - shapeless_211
-      - cli_211
-      - examples_211
+      - common_213
+      - scalacheck_213
+      - diffy_213
+      - sampling_213
+      - shapeless_213
+      - cli_213
+      - examples_213
