@@ -20,7 +20,7 @@ import Keys._
 
 val algebirdVersion = "0.13.6"
 val avroVersion = "1.8.2"
-val beamVersion = "2.19.0"
+val beamVersion = "2.20.0"
 val bigqueryVersion = "v2-rev20190917-1.30.3"
 val gcsVersion = "hadoop2-2.0.0"
 val guavaVersion = "25.1-jre"
@@ -30,7 +30,7 @@ val parquetVersion = "1.11.0"
 val protoBufVersion = "3.11.4"
 val scalaTestVersion = "3.1.1"
 val scalaCheckVersion = "1.14.3"
-val scioVersion = "0.8.4"
+val scioVersion = "0.9.0"
 val scoptVersion = "3.7.1"
 val shapelessVersion = "2.3.3"
 val slf4jVersion = "1.7.30"
@@ -39,8 +39,8 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
   name := "ratatool",
   description := "A tool for random data sampling and generation",
-  scalaVersion := "2.11.12",
-  crossScalaVersions := Seq("2.11.12", "2.12.10"),
+  scalaVersion := "2.12.10",
+  crossScalaVersions := Seq("2.12.10", "2.13.1"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions in (Compile,doc) ++= {
     scalaBinaryVersion.value match {

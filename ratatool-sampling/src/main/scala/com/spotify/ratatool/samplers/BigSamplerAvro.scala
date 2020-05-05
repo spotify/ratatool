@@ -219,7 +219,7 @@ private[samplers] object BigSamplerAvro {
       log.info(s"Will sample from: $input, output will be $output")
       implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
 
-      val coll = sc.avroFile[GenericRecord](input, schema)
+      val coll = sc.avroFile(input, schema)
 
       val sampledCollection = sampleAvro(coll, fraction, schema, fields, seed, distribution,
         distributionFields, precision, maxKeySize, byteEncoding)
