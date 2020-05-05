@@ -288,7 +288,6 @@ object BigDiffy extends Command with Serializable {
                                                           lhs: String, rhs: String,
                                                           keyFn: T => MultiKey,
                                                           diffy: AvroDiffy[T],
-                                                          schema: Schema,
                                                           ignoreNan: Boolean = false): BigDiffy[T] =
     diff(sc.avroFile[T](lhs), sc.avroFile[T](rhs), diffy, keyFn, ignoreNan)
 
