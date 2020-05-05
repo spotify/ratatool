@@ -97,8 +97,8 @@ private object ProtoBufWriters {
   case class MessageWriter(id: Int, v: Boolean)(cos: CodedOutputStream) extends Writer(id, v)(cos)
   { override def write(): Unit = cos.writeBool(id, v) }
 
-  case class NullWriter()(cos: CodedOutputStream) extends Writer(0, Unit)(cos)
-  { override def write(): Unit = Unit }
+  case class NullWriter()(cos: CodedOutputStream) extends Writer(0, ())(cos)
+  { override def write(): Unit = () }
 
   case class RepeatedWriter(v: List[PartialWriter])(cos: CodedOutputStream)
     extends Writer(0, v)(cos)

@@ -35,7 +35,7 @@ class TableRowDiffy(tableSchema: TableSchema,
   extends Diffy[TableRow](ignore, unordered, unorderedFieldKeys) {
 
   override def apply(x: TableRow, y: TableRow): Seq[Delta] =
-    diff(Option(x), Option(y), schema.getFields.asScala, "")
+    diff(Option(x), Option(y), schema.getFields.asScala.toList, "")
 
   private type Record = java.util.Map[String, AnyRef]
 
@@ -65,7 +65,7 @@ class TableRowDiffy(tableSchema: TableSchema,
         } else if (a.isEmpty || b.isEmpty) {
           Seq(Delta(fullName, a, b, UnknownDelta))
         } else {
-          diff(a, b, f.getFields.asScala, fullName)
+          diff(a, b, f.getFields.asScala.toList, fullName)
         }
       } else if (f.getMode == "REPEATED" && unordered.contains(fullName)) {
         if (f.getType == "RECORD"
@@ -83,7 +83,7 @@ class TableRowDiffy(tableSchema: TableSchema,
             .flatMap(inner =>
               Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner))).toMap
           (l.keySet ++ r.keySet).flatMap(k =>
-            diff(l.get(k), r.get(k), f.getFields.asScala, fullName))
+            diff(l.get(k), r.get(k), f.getFields.asScala.toList, fullName))
         } else {
           val a = x.flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[AnyRef]]))
             .map(sortList)

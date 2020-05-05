@@ -15,7 +15,7 @@
  * under the License.
  */
 
-import sbt._
+import sbt.{Def, _}
 import Keys._
 
 val algebirdVersion = "0.13.6"
@@ -35,6 +35,10 @@ val scoptVersion = "3.7.1"
 val shapelessVersion = "2.3.3"
 val slf4jVersion = "1.7.30"
 
+def isScala213x: Def.Initialize[Boolean] = Def.setting {
+  scalaBinaryVersion.value == "2.13"
+}
+
 val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
   name := "ratatool",
@@ -46,6 +50,13 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
     scalaBinaryVersion.value match {
       case "2.12" => "-no-java-comments" :: Nil
       case _ => Nil
+    }
+  },
+  scalacOptions ++= {
+    if (isScala213x.value) {
+      Seq("-Ymacro-annotations", "-Ywarn-unused")
+    } else {
+      Seq()
     }
   },
   sourceDirectories in Compile := (sourceDirectories in Compile).value
@@ -159,7 +170,7 @@ lazy val ratatoolDiffy = project
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
     parallelExecution in Test := false,
     libraryDependencies ++= {
-      if (scalaBinaryVersion.value == "2.13") {
+      if (isScala213x.value) {
         Seq()
       } else {
         Seq(

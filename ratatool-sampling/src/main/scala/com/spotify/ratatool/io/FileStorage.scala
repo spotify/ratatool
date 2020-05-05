@@ -39,7 +39,7 @@ private[ratatool] class FileStorage(protected[io] val path: String) {
 
   def exists: Boolean = ! FileSystems.`match`(path).metadata.isEmpty
 
-  def listFiles: Seq[Metadata] = FileSystems.`match`(path).metadata().asScala
+  def listFiles: Seq[Metadata] = FileSystems.`match`(path).metadata().asScala.toList
 
   def isDone: Boolean = {
     val partPattern = "([0-9]{5})-of-([0-9]{5})".r

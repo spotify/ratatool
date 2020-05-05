@@ -59,7 +59,7 @@ class AvroSampler(path: String, protected val seed: Option[Long] = None,
         while (result.size < n && iter.hasNext) {
           result.appendAll(new AvroFileSampler(iter.next()).sample(n, head))
         }
-        result
+        result.toList
       } else {
         val tups = matches
           .map(md => (md.resourceId(), md.sizeBytes()))
@@ -135,7 +135,7 @@ private class AvroFileSampler(r: ResourceId, protected val seed: Option[Long] = 
         index += 1
       }
     }
-    result
+    result.toList
   }
 
 }

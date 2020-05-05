@@ -92,7 +92,7 @@ package object samplers {
   : SCollection[TableRow] = {
     val schemaStr = JsonSerDe.toJsonString(schema)
     @transient lazy val schemaFields =
-      JsonSerDe.fromJsonString(schemaStr, classOf[TableSchema]).getFields.asScala
+      JsonSerDe.fromJsonString(schemaStr, classOf[TableSchema]).getFields.asScala.toList
 
     BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
       BigSamplerBigQuery.hashTableRow(schemaFields),

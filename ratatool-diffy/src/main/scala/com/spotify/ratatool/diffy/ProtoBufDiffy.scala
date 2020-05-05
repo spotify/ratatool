@@ -32,7 +32,7 @@ class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.e
   extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
 
   override def apply(x: T, y: T): Seq[Delta] =
-    diff(Option(x), Option(y), descriptor.getFields.asScala, "")
+    diff(Option(x), Option(y), descriptor.getFields.asScala.toList, "")
 
   // Descriptor is not serializable
   private lazy val descriptor: Descriptor =
@@ -76,7 +76,7 @@ class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.e
           (l.keySet ++ r.keySet).flatMap(k =>
             diff(l.get(k),
               r.get(k),
-              f.getMessageType.getFields.asScala,
+              f.getMessageType.getFields.asScala.toList,
               fullName))
         }
         else {
@@ -96,7 +96,7 @@ class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.e
             } else if (a.isEmpty || b.isEmpty) {
               Seq(Delta(fullName, a, b, UnknownDelta))
             } else {
-              diff(a, b, f.getMessageType.getFields.asScala, fullName)
+              diff(a, b, f.getMessageType.getFields.asScala.toList, fullName)
             }
           case _ =>
             val a = x.flatMap(r => Option(r.getField(f)))

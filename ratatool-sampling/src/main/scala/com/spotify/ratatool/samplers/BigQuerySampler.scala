@@ -64,7 +64,7 @@ class BigQuerySampler(tableRef: TableReference, protected val seed: Option[Long]
     while (result.length < (numRows min n) && iterator.advance()) {
       result.append(iterator.getCurrent)
     }
-    result
+    result.toList
   }
 
   def schema: TableSchema = table.getSchema

@@ -76,7 +76,7 @@ private[samplers] object BigSamplerBigQuery {
           hasher.putString(v.toString, BigSampler.utf8Charset))
         case "RECORD" =>
           vs.foldLeft(hasher)((hasher, vi) =>
-            hashTableRow(field.getFields.asScala)(
+            hashTableRow(field.getFields.asScala.toList)(
               TableRow(vi.asInstanceOf[java.util.Map[String, Any]].asScala.toList: _*),
               subfields.tail.mkString(BigSampler.fieldSep.toString),
               hasher)
@@ -109,7 +109,7 @@ private[samplers] object BigSamplerBigQuery {
           getTableRowField(
             TableRow(v.asInstanceOf[java.util.Map[String, AnyRef]].asScala.toList: _*),
             subfields.tail.mkString(BigSampler.fieldSep.toString),
-            field.getFields.asScala)
+            field.getFields.asScala.toList)
         case _ => v
       }
     }
