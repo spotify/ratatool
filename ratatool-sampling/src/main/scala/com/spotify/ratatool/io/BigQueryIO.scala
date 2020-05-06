@@ -32,7 +32,7 @@ import org.apache.beam.sdk.transforms.windowing.{GlobalWindow, PaneInfo}
 import org.apache.beam.sdk.values.ValueInSingleWindow
 import org.joda.time.Instant
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import com.spotify.scio.bigquery.client.BigQuery
 
 /** Utilities for BigQuery IO. */
@@ -84,15 +84,15 @@ object BigQueryIO {
 
 }
 
-private class TableRowIterator(private val iterator: PatchedBigQueryTableRowIterator)
+private class TableRowIterator(private val iter: PatchedBigQueryTableRowIterator)
   extends Iterator[TableRow] {
   private var _isOpen = false
   private var _hasNext = false
 
   private def init(): Unit = if (!_isOpen) {
-    iterator.open()
+    iter.open()
     _isOpen = true
-    _hasNext = iterator.advance()
+    _hasNext = iter.advance()
   }
 
   override def hasNext: Boolean = {
@@ -103,8 +103,8 @@ private class TableRowIterator(private val iterator: PatchedBigQueryTableRowIter
   override def next(): TableRow = {
     init()
     if (_hasNext) {
-      val r = iterator.getCurrent
-      _hasNext = iterator.advance()
+      val r = iter.getCurrent
+      _hasNext = iter.advance()
       r
     } else {
       throw new NoSuchElementException

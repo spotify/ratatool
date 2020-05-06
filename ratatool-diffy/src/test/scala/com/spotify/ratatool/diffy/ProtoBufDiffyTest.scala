@@ -20,7 +20,7 @@ package com.spotify.ratatool.diffy
 import com.spotify.ratatool.scalacheck._
 import com.spotify.ratatool.proto.Schemas._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

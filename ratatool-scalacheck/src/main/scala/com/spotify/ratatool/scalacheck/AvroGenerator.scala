@@ -92,13 +92,13 @@ trait AvroGeneratorOps {
   // scalastyle:off cyclomatic.complexity
   // scalastyle:off method.length
   private def avroValueOf(schema: Schema): Gen[AvroValue] = {
-    import scala.collection.JavaConversions._
+    import scala.jdk.CollectionConverters._
 
     schema.getType match {
       case Schema.Type.RECORD =>
         val record = new GenericData.Record(schema)
 
-        val gens = schema.getFields.map { field =>
+        val gens = schema.getFields.asScala.map { field =>
           avroValueOf(field.schema()).map { value =>
             record.put(field.pos(), value.value)
           }
@@ -107,7 +107,7 @@ trait AvroGeneratorOps {
         Gen.sequence(gens).map(_ => AvroValue(record))
 
       case Schema.Type.UNION =>
-        val gens = schema.getTypes.toList.map(avroValueOf)
+        val gens = schema.getTypes.asScala.toList.map(avroValueOf)
 
         gens match {
           case Nil => Gen.fail
@@ -125,7 +125,7 @@ trait AvroGeneratorOps {
         }
 
       case Schema.Type.ENUM =>
-        Gen.oneOf(schema.getEnumSymbols.toList)
+        Gen.oneOf(schema.getEnumSymbols.asScala.toList)
           .map(GenericData.get().createEnum(_, schema))
           .map(AvroValue(_))
 

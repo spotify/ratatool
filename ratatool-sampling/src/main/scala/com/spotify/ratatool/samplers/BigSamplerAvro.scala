@@ -32,7 +32,7 @@ import org.apache.avro.specific.SpecificData
 import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import com.spotify.scio.avro._
 import com.spotify.scio.coders.Coder
 

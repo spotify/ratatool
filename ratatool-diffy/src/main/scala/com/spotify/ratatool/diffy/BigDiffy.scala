@@ -33,14 +33,13 @@ import com.spotify.scio.coders.Coder
 import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
-import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecordBase
 import org.apache.beam.sdk.io.TextIO
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
@@ -144,6 +143,12 @@ class BigDiffy[T : Coder](@transient val lhs: SCollection[T], @transient val rhs
   private lazy val globalAndFieldStats: SCollection[(GlobalStats, Iterable[FieldStats])] =
     BigDiffy.computeGlobalAndFieldStats(_deltas, ignoreNan)
 
+
+  /**
+    * attempt to derive a Coder here will fail with divergent implicits
+    * so we fall back to kryo serialization
+    * */
+  implicit val deltasCoder: Coder[(MultiKey, String, Any, Any)] = Coder.kryo
   /**
    * Key and field level delta.
    *
@@ -311,7 +316,7 @@ object BigDiffy extends Command with Serializable {
   /** Merge two BigQuery TableSchemas. */
   def mergeTableSchema(x: TableSchema, y: TableSchema): TableSchema = {
     val r = new TableSchema
-    r.setFields(mergeFields(x.getFields.asScala, y.getFields.asScala).asJava)
+    r.setFields(mergeFields(x.getFields.asScala.toList, y.getFields.asScala.toList).asJava)
   }
 
   @BigQueryType.toTable
@@ -398,7 +403,9 @@ object BigDiffy extends Command with Serializable {
           case (Some(fx), Some(fy)) =>
             assert(fx.getType == fy.getType && fx.getMode == fy.getMode)
             if (fx.getType == "RECORD") {
-              fx.setFields(mergeFields(fx.getFields.asScala, fy.getFields.asScala).asJava)
+              fx.setFields(
+                mergeFields(fx.getFields.asScala.toList, fy.getFields.asScala.toList).asJava
+              )
             } else {
               fx
             }

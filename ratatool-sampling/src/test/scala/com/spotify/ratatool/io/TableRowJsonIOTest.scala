@@ -22,7 +22,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.scalacheck._
 import org.scalacheck.Gen
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

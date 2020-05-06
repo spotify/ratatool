@@ -20,7 +20,7 @@ package com.spotify.ratatool.io
 import com.spotify.ratatool.avro.specific.TestRecord
 
 import java.util.{HashMap => JHashMap, Map => JMap}
-import scala.collection.JavaConversions._
+import scala.jdk.CollectionConverters._
 
 object FixRandomData {
   /** Fix equality for maps by converting Utf8 to String */
@@ -30,7 +30,7 @@ object FixRandomData {
         null
       } else {
         val copy = new JHashMap[CharSequence, T]()
-        xs.entrySet().foreach(x => copy.put(x.getKey.toString, x.getValue))
+        xs.entrySet().asScala.foreach(x => copy.put(x.getKey.toString, x.getValue))
         copy
       }
     }
@@ -44,7 +44,7 @@ object FixRandomData {
       x.setMapField(fixHashMap(x.getMapField))
     }
 
-    newInstance.getRepeatedNestedField.foreach { x =>
+    newInstance.getRepeatedNestedField.asScala.foreach { x =>
       x.setMapField(fixHashMap(x.getMapField))
     }
 

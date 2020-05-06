@@ -24,7 +24,7 @@ import com.google.api.services.bigquery.{Bigquery, BigqueryScopes}
 import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers, PatchedBigQueryTableRowIterator}
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -64,7 +64,7 @@ class BigQuerySampler(tableRef: TableReference, protected val seed: Option[Long]
     while (result.length < (numRows min n) && iterator.advance()) {
       result.append(iterator.getCurrent)
     }
-    result
+    result.toList
   }
 
   def schema: TableSchema = table.getSchema

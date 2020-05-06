@@ -22,7 +22,7 @@ import org.apache.avro.{Schema, SchemaValidatorBuilder}
 import org.apache.avro.generic.GenericRecord
 import scala.util.Try
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /** Field level diff tool for Avro records. */
 class AvroDiffy[T <: GenericRecord : Coder](ignore: Set[String] = Set.empty,

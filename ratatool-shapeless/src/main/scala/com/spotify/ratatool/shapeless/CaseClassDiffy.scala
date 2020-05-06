@@ -43,7 +43,7 @@ object MapEncoder {
   MapEncoder[FieldType[K, String]] = {
     val name = witness.value.name
     createEncoder { v =>
-      Map(name -> v.self)
+      Map(name -> v.toString)
     }
   }
 
