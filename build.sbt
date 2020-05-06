@@ -30,6 +30,7 @@ val parquetVersion = "1.11.0"
 val protoBufVersion = "3.11.4"
 val scalaTestVersion = "3.1.1"
 val scalaCheckVersion = "1.14.3"
+val scalaCollectionCompatVersion = "2.1.6"
 val scioVersion = "0.9.0"
 val scoptVersion = "3.7.1"
 val shapelessVersion = "2.3.3"
@@ -57,6 +58,15 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
       Seq("-Ymacro-annotations", "-Ywarn-unused")
     } else {
       Seq()
+    }
+  },
+  libraryDependencies ++= {
+    if (isScala213x.value) {
+      Seq()
+    } else {
+      Seq(
+        "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
+      )
     }
   },
   sourceDirectories in Compile := (sourceDirectories in Compile).value
