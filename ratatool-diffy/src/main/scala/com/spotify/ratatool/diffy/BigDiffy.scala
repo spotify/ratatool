@@ -39,7 +39,7 @@ import org.apache.beam.sdk.io.TextIO
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
@@ -144,6 +144,10 @@ class BigDiffy[T : Coder](@transient val lhs: SCollection[T], @transient val rhs
     BigDiffy.computeGlobalAndFieldStats(_deltas, ignoreNan)
 
 
+  /**
+    * attempt to derive a Coder here will fail with divergent implicits
+    * so we fall back to kryo serialization
+    * */
   implicit val deltasCoder: Coder[(MultiKey, String, Any, Any)] = Coder.kryo
   /**
    * Key and field level delta.

@@ -29,7 +29,7 @@ import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryIO, BigQueryOptions,
   PatchedBigQueryServicesImpl}
 import org.slf4j.LoggerFactory
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.annotation.tailrec
 import com.spotify.scio.bigquery._
 

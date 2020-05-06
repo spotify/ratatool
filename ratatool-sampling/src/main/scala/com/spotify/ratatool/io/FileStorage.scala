@@ -26,7 +26,7 @@ import org.apache.avro.file.SeekableInput
 import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.io.fs.MatchResult.Metadata
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 private[ratatool] object FileStorage {
   def apply(path: String): FileStorage = new FileStorage(path)

@@ -24,7 +24,7 @@ import com.google.api.services.bigquery.{Bigquery, BigqueryScopes}
 import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryHelpers, PatchedBigQueryTableRowIterator}
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable.ListBuffer
 
 /**

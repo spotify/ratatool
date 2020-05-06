@@ -24,7 +24,7 @@ import com.spotify.ratatool.examples.scalacheck.ExampleAvroGen
 import org.scalacheck.{Gen, Properties}
 import org.scalacheck.Prop.{AnyOperators, BooleanOperators, forAll}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object ExampleAvroGenTest extends Properties("ExampleAvroGenerator") {
   val gen: Gen[ExampleRecord] = ExampleAvroGen.exampleRecordGen

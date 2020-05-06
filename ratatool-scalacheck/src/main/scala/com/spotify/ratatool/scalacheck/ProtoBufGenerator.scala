@@ -27,7 +27,7 @@ import com.google.protobuf.Descriptors.{Descriptor, EnumValueDescriptor, FieldDe
 import com.google.protobuf.Descriptors.FieldDescriptor.Type
 import org.scalacheck.{Arbitrary, Gen}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
 /**

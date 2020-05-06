@@ -33,7 +33,7 @@ import org.scalacheck.rng.Seed
 import org.scalacheck.{Gen, Properties}
 import org.scalatest.{BeforeAndAfterAllConfigMap, ConfigMap}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

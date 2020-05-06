@@ -26,7 +26,7 @@ import org.joda.time._
 import org.joda.time.format.DateTimeFormat
 import org.scalacheck.{Arbitrary, Gen}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /** Mainly type inference not to fall into `Any` */
 private class TableFieldValue(val name: String, val value: Any)

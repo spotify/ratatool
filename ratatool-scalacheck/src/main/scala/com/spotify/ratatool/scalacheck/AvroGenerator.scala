@@ -92,7 +92,7 @@ trait AvroGeneratorOps {
   // scalastyle:off cyclomatic.complexity
   // scalastyle:off method.length
   private def avroValueOf(schema: Schema): Gen[AvroValue] = {
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
 
     schema.getType match {
       case Schema.Type.RECORD =>
