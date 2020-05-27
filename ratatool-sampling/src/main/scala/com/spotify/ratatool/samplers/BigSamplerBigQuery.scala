@@ -29,7 +29,7 @@ import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryIO, BigQueryOptions,
   PatchedBigQueryServicesImpl}
 import org.slf4j.LoggerFactory
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.annotation.tailrec
 import com.spotify.scio.bigquery._
 
@@ -76,7 +76,7 @@ private[samplers] object BigSamplerBigQuery {
           hasher.putString(v.toString, BigSampler.utf8Charset))
         case "RECORD" =>
           vs.foldLeft(hasher)((hasher, vi) =>
-            hashTableRow(field.getFields.asScala)(
+            hashTableRow(field.getFields.asScala.toList)(
               TableRow(vi.asInstanceOf[java.util.Map[String, Any]].asScala.toList: _*),
               subfields.tail.mkString(BigSampler.fieldSep.toString),
               hasher)
@@ -109,7 +109,7 @@ private[samplers] object BigSamplerBigQuery {
           getTableRowField(
             TableRow(v.asInstanceOf[java.util.Map[String, AnyRef]].asScala.toList: _*),
             subfields.tail.mkString(BigSampler.fieldSep.toString),
-            field.getFields.asScala)
+            field.getFields.asScala.toList)
         case _ => v
       }
     }

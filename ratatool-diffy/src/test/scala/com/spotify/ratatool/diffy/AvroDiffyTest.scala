@@ -17,6 +17,9 @@
 
 package com.spotify.ratatool.diffy
 
+import java.nio.ByteBuffer
+
+import com.google.common.io.BaseEncoding
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific._
 import com.spotify.ratatool.scalacheck._
@@ -25,7 +28,7 @@ import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Arbitrary
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -225,5 +228,31 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
         UnknownDelta
       )
     ))
+  }
+
+  it should "support bytes keys in avroKeyFn" in {
+    val ba = "testing".toCharArray.map(_.toByte)
+    val hex = BaseEncoding.base16().encode(ba)
+
+
+    val bytes = ByteBuffer.wrap(ba)
+    val x = new GenericRecordBuilder(Schemas.simpleAvroByteFieldSchema)
+      .set(
+        "nullable_fields",
+        new GenericRecordBuilder(Schemas.simpleAvroByteFieldSchema.getField("nullable_fields")
+          .schema())
+          .set("byte_field", bytes)
+          .build()
+      )
+      .set(
+        "required_fields",
+        new GenericRecordBuilder(Schemas.simpleAvroByteFieldSchema.getField("required_fields")
+          .schema())
+          .set("byte_field", bytes)
+          .build()
+      ).build()
+
+
+    BigDiffy.avroKeyFn(Seq("nullable_fields.byte_field"))(x) should equal(MultiKey(hex))
   }
 }

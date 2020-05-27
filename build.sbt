@@ -15,37 +15,58 @@
  * under the License.
  */
 
-import sbt._
+import sbt.{Def, _}
 import Keys._
 
 val algebirdVersion = "0.13.6"
 val avroVersion = "1.8.2"
-val beamVersion = "2.19.0"
+val beamVersion = "2.20.0"
 val bigqueryVersion = "v2-rev20190917-1.30.3"
 val gcsVersion = "hadoop2-2.0.0"
-val guavaVersion = "29.0-jre"
+val guavaVersion = "28.2-jre" // make sure this stays compatible with scio + beam
 val hadoopVersion = "2.7.7"
 val jodaTimeVersion = "2.10.5"
 val parquetVersion = "1.11.0"
 val protoBufVersion = "3.11.4"
 val scalaTestVersion = "3.1.1"
 val scalaCheckVersion = "1.14.3"
-val scioVersion = "0.8.4"
+val scalaCollectionCompatVersion = "2.1.6"
+val scioVersion = "0.9.0"
 val scoptVersion = "3.7.1"
 val shapelessVersion = "2.3.3"
 val slf4jVersion = "1.7.30"
+
+def isScala213x: Def.Initialize[Boolean] = Def.setting {
+  scalaBinaryVersion.value == "2.13"
+}
 
 val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
   name := "ratatool",
   description := "A tool for random data sampling and generation",
-  scalaVersion := "2.11.12",
-  crossScalaVersions := Seq("2.11.12", "2.12.10"),
+  scalaVersion := "2.12.10",
+  crossScalaVersions := Seq("2.12.10", "2.13.1"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions in (Compile,doc) ++= {
     scalaBinaryVersion.value match {
       case "2.12" => "-no-java-comments" :: Nil
       case _ => Nil
+    }
+  },
+  scalacOptions ++= {
+    if (isScala213x.value) {
+      Seq("-Ymacro-annotations", "-Ywarn-unused")
+    } else {
+      Seq()
+    }
+  },
+  libraryDependencies ++= {
+    if (isScala213x.value) {
+      Seq()
+    } else {
+      Seq(
+        "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
+      )
     }
   },
   sourceDirectories in Compile := (sourceDirectories in Compile).value
@@ -158,7 +179,15 @@ lazy val ratatoolDiffy = project
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
     parallelExecution in Test := false,
-    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
+    libraryDependencies ++= {
+      if (isScala213x.value) {
+        Seq()
+      } else {
+        Seq(
+          compilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
+        )
+      }
+    }
   )
   .enablePlugins(ProtobufPlugin)
   .dependsOn(

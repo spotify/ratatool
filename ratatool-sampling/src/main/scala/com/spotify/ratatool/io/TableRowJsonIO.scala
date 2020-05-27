@@ -25,7 +25,7 @@ import com.google.common.io.Files
 import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 import org.apache.beam.sdk.util.CoderUtils
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.io.Source
 
 /** Utilities for BigQuery [[TableRow]] JSON IO. */

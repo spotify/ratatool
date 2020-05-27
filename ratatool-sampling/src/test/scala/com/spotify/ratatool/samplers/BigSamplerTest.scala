@@ -33,7 +33,7 @@ import org.scalacheck.rng.Seed
 import org.scalacheck.{Gen, Properties}
 import org.scalatest.{BeforeAndAfterAllConfigMap, ConfigMap}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -118,7 +118,7 @@ object BigSamplerTest extends Properties("BigSampler") {
         supportedTableRowTypes.map(t => s"required_fields.$t").map(f => {
           BigSampler.hashTableRow(r,
             f,
-            tblSchemaFields,
+            tblSchemaFields.toList,
             hasher)
           proved
         } :| f
@@ -132,7 +132,7 @@ object BigSamplerTest extends Properties("BigSampler") {
       supportedTableRowTypes.map(t => s"nullable_fields.$t").map(f => {
         BigSampler.hashTableRow(r,
           f,
-          tblSchemaFields,
+          tblSchemaFields.toList,
           hasher)
         proved
       } :| f
@@ -146,7 +146,7 @@ object BigSamplerTest extends Properties("BigSampler") {
         {
           BigSampler.hashTableRow(r,
             f,
-            tblSchemaFields,
+            tblSchemaFields.toList,
             hasher)
           proved} :| f
       ): _*)
@@ -271,7 +271,9 @@ object BigSamplerTest extends Properties("BigSampler") {
             )(_.getRecord(r).set(f))
         (i, tbGen.sample.get, s"$r.$f")
     }) { case (avro, tblRow, f) =>
-      val tblHash = BigSampler.hashTableRow(tblRow, f, tblSchemaFields, newTestFarmHasher()).hash()
+      val tblHash = BigSampler
+        .hashTableRow(tblRow, f, tblSchemaFields.toList, newTestFarmHasher())
+        .hash()
       val avroHash = BigSampler.hashAvroField(avro, f, avroSchema, newTestFarmHasher()).hash()
       tblHash == avroHash
     }
@@ -286,7 +288,9 @@ object BigSamplerTest extends Properties("BigSampler") {
             )(_.getRecord(r).set(f))
         (i, tbGen.sample.get, s"$r.$f")
     }) { case (avro, tblRow, f) =>
-    val tblHash = BigSampler.hashTableRow(tblRow, f, tblSchemaFields, newTestKissHasher()).hash()
+    val tblHash = BigSampler
+      .hashTableRow(tblRow, f, tblSchemaFields.toList, newTestKissHasher())
+      .hash()
     val avroHash = BigSampler.hashAvroField(avro, f, avroSchema, newTestKissHasher()).hash()
     tblHash == avroHash
   }
@@ -299,7 +303,7 @@ object BigSamplerTest extends Properties("BigSampler") {
         (i, tbGen.sample.get, fs.map(f => s"$r.$f"))
     }) { case (avro, tblRow, fs) =>
     val hashes = fs.foldLeft((newTestFarmHasher(), newTestFarmHasher())){ case ((h1, h2), f) =>
-      (BigSampler.hashTableRow(tblRow, f, tblSchemaFields, h1),
+      (BigSampler.hashTableRow(tblRow, f, tblSchemaFields.toList, h1),
         BigSampler.hashAvroField(avro, f, avroSchema, h2))
     }
     hashes._1.hash() == hashes._2.hash()
@@ -313,7 +317,7 @@ object BigSamplerTest extends Properties("BigSampler") {
         (i, tbGen.sample.get, fs.map(f => s"$r.$f"))
     }) { case (avro, tblRow, fs) =>
     val hashes = fs.foldLeft((newTestKissHasher(), newTestKissHasher())){ case ((h1, h2), f) =>
-      (BigSampler.hashTableRow(tblRow, f, tblSchemaFields, h1),
+      (BigSampler.hashTableRow(tblRow, f, tblSchemaFields.toList, h1),
         BigSampler.hashAvroField(avro, f, avroSchema, h2))
     }
     hashes._1.hash() == hashes._2.hash()
@@ -331,7 +335,7 @@ object BigSamplerTest extends Properties("BigSampler") {
         (i, tbGen.sample.get, crossFieldToRecord.map{ case (f,r) => s"$r.$f" })
     }) { case (avro, tblRow, fields) =>
     val hashes = fields.foldLeft((newTestFarmHasher(), newTestFarmHasher())){ case ((h1, h2), f) =>
-      (BigSampler.hashTableRow(tblRow, f, tblSchemaFields, h1),
+      (BigSampler.hashTableRow(tblRow, f, tblSchemaFields.toList, h1),
         BigSampler.hashAvroField(avro, f, avroSchema, h2))
     }
     hashes._1.hash() == hashes._2.hash()
@@ -349,7 +353,7 @@ object BigSamplerTest extends Properties("BigSampler") {
         (i, tbGen.sample.get, crossFieldToRecord.map{ case (f,r) => s"$r.$f" })
     }) { case (avro, tblRow, fields) =>
     val hashes = fields.foldLeft((newTestKissHasher(), newTestKissHasher())){ case ((h1, h2), f) =>
-      (BigSampler.hashTableRow(tblRow, f, tblSchemaFields, h1),
+      (BigSampler.hashTableRow(tblRow, f, tblSchemaFields.toList, h1),
         BigSampler.hashAvroField(avro, f, avroSchema, h2))
     }
     hashes._1.hash() == hashes._2.hash()

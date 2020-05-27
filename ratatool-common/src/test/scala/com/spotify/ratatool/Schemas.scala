@@ -32,6 +32,9 @@ object Schemas {
   val evolvedSimpleAvroSchema: Schema =
     new Schema.Parser().parse(this.getClass.getResourceAsStream("/EvolvedSimpleRecord.avsc"))
 
+  val simpleAvroByteFieldSchema: Schema =
+    new Schema.Parser().parse(this.getClass.getResourceAsStream("/SimpleByteFieldRecord.avsc"))
+
   val tableSchema: TableSchema = new JsonObjectParser(new JacksonFactory)
     .parseAndClose(
       this.getClass.getResourceAsStream("/schema.json"),

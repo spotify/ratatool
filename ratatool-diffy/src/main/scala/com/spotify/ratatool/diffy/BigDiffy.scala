@@ -17,7 +17,10 @@
 
 package com.spotify.ratatool.diffy
 
+import java.nio.ByteBuffer
+
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
+import com.google.common.io.BaseEncoding
 import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.samplers.AvroSampler
@@ -30,13 +33,13 @@ import com.spotify.scio.coders.Coder
 import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
-import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
+import org.apache.avro.specific.SpecificRecordBase
 import org.apache.beam.sdk.io.TextIO
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
@@ -140,6 +143,12 @@ class BigDiffy[T : Coder](@transient val lhs: SCollection[T], @transient val rhs
   private lazy val globalAndFieldStats: SCollection[(GlobalStats, Iterable[FieldStats])] =
     BigDiffy.computeGlobalAndFieldStats(_deltas, ignoreNan)
 
+
+  /**
+    * attempt to derive a Coder here will fail with divergent implicits
+    * so we fall back to kryo serialization
+    * */
+  implicit val deltasCoder: Coder[(MultiKey, String, Any, Any)] = Coder.kryo
   /**
    * Key and field level delta.
    *
@@ -280,13 +289,12 @@ object BigDiffy extends Command with Serializable {
     new BigDiffy[T](lhs, rhs, d, keyFn, ignoreNan)
 
   /** Diff two Avro data sets. */
-  def diffAvro[T <: GenericRecord : ClassTag : Coder](sc: ScioContext,
-                                              lhs: String, rhs: String,
-                                              keyFn: T => MultiKey,
-                                              diffy: AvroDiffy[T],
-                                              schema: Schema = null,
-                                              ignoreNan: Boolean = false): BigDiffy[T] =
-    diff(sc.avroFile[T](lhs, schema), sc.avroFile[T](rhs, schema), diffy, keyFn, ignoreNan)
+  def diffAvro[T <: SpecificRecordBase: ClassTag : Coder](sc: ScioContext,
+                                                          lhs: String, rhs: String,
+                                                          keyFn: T => MultiKey,
+                                                          diffy: AvroDiffy[T],
+                                                          ignoreNan: Boolean = false): BigDiffy[T] =
+    diff(sc.avroFile[T](lhs), sc.avroFile[T](rhs), diffy, keyFn, ignoreNan)
 
   /** Diff two ProtoBuf data sets. */
   def diffProtoBuf[T <: AbstractMessage : ClassTag](sc: ScioContext,
@@ -308,7 +316,7 @@ object BigDiffy extends Command with Serializable {
   /** Merge two BigQuery TableSchemas. */
   def mergeTableSchema(x: TableSchema, y: TableSchema): TableSchema = {
     val r = new TableSchema
-    r.setFields(mergeFields(x.getFields.asScala, y.getFields.asScala).asJava)
+    r.setFields(mergeFields(x.getFields.asScala.toList, y.getFields.asScala.toList).asJava)
   }
 
   @BigQueryType.toTable
@@ -395,7 +403,9 @@ object BigDiffy extends Command with Serializable {
           case (Some(fx), Some(fy)) =>
             assert(fx.getType == fy.getType && fx.getMode == fy.getMode)
             if (fx.getType == "RECORD") {
-              fx.setFields(mergeFields(fx.getFields.asScala, fy.getFields.asScala).asJava)
+              fx.setFields(
+                mergeFields(fx.getFields.asScala.toList, fy.getFields.asScala.toList).asJava
+              )
             } else {
               fx
             }
@@ -451,7 +461,13 @@ object BigDiffy extends Command with Serializable {
             s"""Null value found for key: ${xs.mkString(".")}.
                | If this is not expected check your data or use a different key.""".stripMargin)
         }
-        String.valueOf(valueOfKey)
+        // handle bytes keys custom, so we get bytebuffer actual content and not toString metadata
+        if (valueOfKey.isInstanceOf[ByteBuffer]) {
+          // encode to hex string
+          BaseEncoding.base16().encode(valueOfKey.asInstanceOf[ByteBuffer].array())
+        } else {
+          String.valueOf(valueOfKey)
+        }
       } else {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[GenericRecord])
       }
@@ -528,7 +544,10 @@ object BigDiffy extends Command with Serializable {
           .sample(1, head = true).head.getSchema
         implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered)
-        BigDiffy.diffAvro[GenericRecord](sc, lhs, rhs, avroKeyFn(keys), diffy, schema, ignoreNan)
+        val lhsSCollection = sc.avroFile(lhs, schema)
+        val rhsSCollection = sc.avroFile(rhs, schema)
+        BigDiffy
+          .diff[GenericRecord](lhsSCollection, rhsSCollection, diffy, avroKeyFn(keys), ignoreNan)
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQuery.defaultInstance()

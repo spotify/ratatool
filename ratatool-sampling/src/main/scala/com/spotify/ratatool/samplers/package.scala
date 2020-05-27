@@ -27,7 +27,7 @@ import com.spotify.scio.coders.Coder
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
 package object samplers {
@@ -92,7 +92,7 @@ package object samplers {
   : SCollection[TableRow] = {
     val schemaStr = JsonSerDe.toJsonString(schema)
     @transient lazy val schemaFields =
-      JsonSerDe.fromJsonString(schemaStr, classOf[TableSchema]).getFields.asScala
+      JsonSerDe.fromJsonString(schemaStr, classOf[TableSchema]).getFields.asScala.toList
 
     BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
       BigSamplerBigQuery.hashTableRow(schemaFields),

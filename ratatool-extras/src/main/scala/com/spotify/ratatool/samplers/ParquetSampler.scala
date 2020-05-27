@@ -44,7 +44,7 @@ class ParquetSampler(path: String, protected val seed: Option[Long] = None)
     while (result.length < n && iterator.hasNext) {
       result.append(iterator.next())
     }
-    result
+    result.toList
   }
 
 }

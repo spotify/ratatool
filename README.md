@@ -69,13 +69,26 @@ Or execute BigDiffy directly
 
 ```bash
 bin/ratatool bigDiffy \
-    --input_mode=avro \
+    --input-mode=avro \
     --key=record.key \
     --lhs=gs://path/to/left \
     --rhs=gs://path/to/right \
     --output=gs://path/to/output \
     --runner=DataflowRunner ....
 ```
+
+
+
+# Development
+## Testing local changes to the CLI before releasing
+
+To test local changes before release:
+```
+$ sbt
+> project ratatoolCli
+> packArchive
+```
+and then find the built CLI at `ratatool-cli/target/ratatool-cli-{version}.tar.gz`
 
 # License
 

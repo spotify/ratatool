@@ -31,7 +31,7 @@ import org.apache.avro.specific.{SpecificDatumReader, SpecificDatumWriter, Speci
 import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.io.fs.MatchResult.Metadata
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
 /** Utilities for Avro IO. */
