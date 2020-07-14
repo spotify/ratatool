@@ -22,7 +22,7 @@ val algebirdVersion = "0.13.7"
 val avroVersion = "1.8.2"
 val beamVersion = "2.22.0"
 val bigqueryVersion = "v2-rev20190917-1.30.3"
-val gcsVersion = "hadoop2-2.0.0"
+val gcsVersion = "2.1.3"
 val guavaVersion = "28.2-jre" // make sure this stays compatible with scio + beam
 val hadoopVersion = "2.7.7"
 val jodaTimeVersion = "2.10.6"
@@ -225,7 +225,8 @@ lazy val ratatoolExtras = project
       "org.apache.parquet" % "parquet-avro" % parquetVersion,
       "org.apache.avro" % "avro" % avroVersion,
       "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
-      "com.google.cloud.bigdataoss" % "gcs-connector" % gcsVersion,
+      "com.google.cloud.bigdataoss" % "gcs-connector" % s"hadoop2-$gcsVersion",
+      "com.google.cloud.bigdataoss" % "util" % gcsVersion,
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
 ),
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
