@@ -20,7 +20,7 @@ import Keys._
 
 val algebirdVersion = "0.13.7"
 val avroVersion = "1.8.2"
-val beamVersion = "2.22.0"
+val beamVersion = "2.23.0"
 val bigqueryVersion = "v2-rev20190917-1.30.3"
 val gcsVersion = "2.1.3"
 val guavaVersion = "28.2-jre" // make sure this stays compatible with scio + beam
