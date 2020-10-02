@@ -41,7 +41,11 @@ Implicit Arbitrary instances are also available for Avro and Protobuf records. E
 val avroArb: Arbitrary[MyRecord] = implicitly[Arbitrary[MyRecord]]
 
 ```
-## CaseClassGenerator
+
+## CaseClassGenerator 
+
+Removed since [v0.3.14](https://github.com/spotify/ratatool/releases/tag/v0.3.14)
+> CaseClassGenerator has been removed. If this is needed users should migrate to generators in [magnolify](https://github.com/spotify/magnolify)
 
 Given a case class containing fields, and (potentially non-arbitrary) generators for individual 
 fields in the implicit scope, generates a Gen for the case class. 
