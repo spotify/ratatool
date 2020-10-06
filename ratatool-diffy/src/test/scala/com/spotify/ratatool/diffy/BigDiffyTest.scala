@@ -29,6 +29,8 @@ import com.spotify.scio.testing.PipelineSpec
 
 import com.google.api.services.bigquery.model.TableRow
 
+import scala.language.higherKinds
+
 class BigDiffyTest extends PipelineSpec {
 
   val keys = (1 to 1000).map(k => MultiKey("key" + k))
@@ -238,6 +240,15 @@ class BigDiffyTest extends PipelineSpec {
     val keyValues = BigDiffy.tableRowKeyFn(keys)(record.asInstanceOf[TableRow])
 
     keyValues.toString shouldBe "foo_bar"
+  }
+
+  "BigDiffy unorderedKeysMap" should "work with multiple unordered keys" in {
+    val keyMappings = List("record.nested_record->key", "record.other_nested_record->other_key")
+    val unorderdKeys = BigDiffy.unorderedKeysMap(keyMappings)
+
+    unorderdKeys.isSuccess shouldBe true
+    unorderdKeys.get shouldBe Map("record.nested_record" -> "key",
+      "record.other_nested_record" -> "other_key")
   }
 
   it should "throw an exception when in GCS output mode and output is not gs://" in {

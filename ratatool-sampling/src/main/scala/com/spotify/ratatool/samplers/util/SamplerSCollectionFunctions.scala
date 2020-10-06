@@ -23,6 +23,7 @@ import com.spotify.scio.coders.Coder
 import org.apache.beam.sdk.transforms.ParDo
 import org.slf4j.{Logger, LoggerFactory}
 
+import scala.language.higherKinds
 import scala.reflect.ClassTag
 import scala.math._
 

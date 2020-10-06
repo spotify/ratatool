@@ -38,7 +38,7 @@ import org.apache.beam.sdk.io.gcp.bigquery.BigQueryHelpers
 import org.apache.beam.sdk.options.PipelineOptions
 import org.slf4j.LoggerFactory
 
-import scala.language.existentials
+import scala.language.{existentials, higherKinds}
 import scala.util.Try
 import scala.reflect.ClassTag
 

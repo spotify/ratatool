@@ -41,7 +41,9 @@ import org.slf4j.{Logger, LoggerFactory}
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 import scala.collection.mutable
+import scala.language.higherKinds
 import scala.reflect.ClassTag
+import scala.util.{Failure, Success, Try}
 
 /**
  * Diff type between two records of the same key.
@@ -423,12 +425,14 @@ object BigDiffy extends Command with Serializable {
         |
         |  --input-mode=(avro|bigquery)     Diff-ing Avro or BQ records
         |  [--output-mode=(gcs|bigquery)]   Saves to a text file in GCS or a BigQuery dataset. Defaults to GCS
-        |  --key=<key>                      '.' separated key field. Specify multiple --key params for multi key usage.
+        |  --key=<key>                      '.' separated key field. Specify multiple --key params or multiple ',' separated key fields for multi key usage.
         |  --lhs=<path>                     LHS File path or BigQuery table
         |  --rhs=<path>                     RHS File path or BigQuery table
         |  --output=<output>                File path prefix for output
         |  --ignore=<keys>                  ',' separated field list to ignore
         |  --unordered=<keys>               ',' separated field list to treat as unordered
+        |  --unorderedFieldKey=<key>        ',' separated list of keys for fields which are unordered nested records. Mappings use '->'
+        |                                   For example --unorderedFieldKey=fieldPath->fieldKey,otherPath->otherKey
         |  [--with-header]                  Output all TSVs with header rows. Defaults to false
         |  [--ignore-nan]                   Ignore NaN values when computing stats for differences
         |
@@ -489,6 +493,14 @@ object BigDiffy extends Command with Serializable {
     (r: TableRow) =>  MultiKey(xs.map(x => get(x, 0, r)))
   }
 
+  private[diffy] def unorderedKeysMap(unorderedKeysArgs: List[String]): Try[Map[String, String]] = {
+    Try(unorderedKeysArgs.map { arg =>
+      val keyMappings = arg.split("->")
+      assert(keyMappings.size == 2, s"Invalid unordered field key mapping $arg")
+      (keyMappings(0), keyMappings(1))
+    }.toMap)
+  }
+
   def pathWithShards(path: String): String = path.replaceAll("\\/+$", "") + "/part"
 
   implicit class TextFileHeader(coll: SCollection[String]) {
@@ -511,17 +523,25 @@ object BigDiffy extends Command with Serializable {
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
-    val (inputMode, keys, lhs, rhs, output, header, ignore, unordered, outputMode, ignoreNan) = {
+    val (inputMode, keys, lhs, rhs, output, header, ignore, unordered,
+    unorderedKeysList, outputMode, ignoreNan) = {
       try {
         (args("input-mode"), args.list("key"), args("lhs"), args("rhs"), args("output"),
           args.boolean("with-header", false), args.list("ignore").toSet,
-          args.list("unordered").toSet, args.optional("output-mode"),
-          args.boolean("ignore-nan", false))
+          args.list("unordered").toSet, args.list("unorderedFieldKey"),
+          args.optional("output-mode"), args.boolean("ignore-nan", false))
       } catch {
         case e: Throwable =>
           usage()
           throw e
       }
+    }
+
+    val unorderedKeys = unorderedKeysMap(unorderedKeysList) match {
+      case Success(m) => m
+      case Failure(e) =>
+        usage()
+        throw e
     }
 
     val om: OutputMode = outputMode match {
@@ -543,7 +563,7 @@ object BigDiffy extends Command with Serializable {
         val schema = new AvroSampler(rhs, conf = Some(sc.options))
           .sample(1, head = true).head.getSchema
         implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
-        val diffy = new AvroDiffy[GenericRecord](ignore, unordered)
+        val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)
         val lhsSCollection = sc.avroFile(lhs, schema)
         val rhsSCollection = sc.avroFile(rhs, schema)
         BigDiffy
@@ -554,7 +574,7 @@ object BigDiffy extends Command with Serializable {
         val lSchema = bq.tables.schema(lhs)
         val rSchema = bq.tables.schema(rhs)
         val schema = mergeTableSchema(lSchema, rSchema)
-        val diffy = new TableRowDiffy(schema, ignore, unordered)
+        val diffy = new TableRowDiffy(schema, ignore, unordered, unorderedKeys)
         BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(keys), diffy, ignoreNan)
       case m =>
         throw new IllegalArgumentException(s"input mode $m not supported")

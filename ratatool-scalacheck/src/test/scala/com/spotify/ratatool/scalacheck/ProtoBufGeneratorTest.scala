@@ -19,7 +19,7 @@ package com.spotify.ratatool.scalacheck
 
 import com.spotify.ratatool.proto.Schemas.{OptionalNestedRecord, RequiredNestedRecord, TestRecord}
 import org.scalacheck.{Gen, Properties}
-import org.scalacheck.Prop.{BooleanOperators, all, forAll}
+import org.scalacheck.Prop.{propBoolean, all, forAll}
 
 
 object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
