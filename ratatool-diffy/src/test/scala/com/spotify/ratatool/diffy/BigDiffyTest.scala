@@ -243,11 +243,11 @@ class BigDiffyTest extends PipelineSpec {
   }
 
   "BigDiffy unorderedKeysMap" should "work with multiple unordered keys" in {
-    val keyMappings = List("record.nested_record->key", "record.other_nested_record->other_key")
-    val unorderdKeys = BigDiffy.unorderedKeysMap(keyMappings)
+    val keyMappings = List("record.nested_record:key", "record.other_nested_record:other_key")
+    val unorderedKeys = BigDiffy.unorderedKeysMap(keyMappings)
 
-    unorderdKeys.isSuccess shouldBe true
-    unorderdKeys.get shouldBe Map("record.nested_record" -> "key",
+    unorderedKeys.isSuccess shouldBe true
+    unorderedKeys.get shouldBe Map("record.nested_record" -> "key",
       "record.other_nested_record" -> "other_key")
   }
 

@@ -431,8 +431,8 @@ object BigDiffy extends Command with Serializable {
         |  --output=<output>                File path prefix for output
         |  --ignore=<keys>                  ',' separated field list to ignore
         |  --unordered=<keys>               ',' separated field list to treat as unordered
-        |  --unorderedFieldKey=<key>        ',' separated list of keys for fields which are unordered nested records. Mappings use '->'
-        |                                   For example --unorderedFieldKey=fieldPath->fieldKey,otherPath->otherKey
+        |  --unorderedFieldKey=<key>        ',' separated list of keys for fields which are unordered nested records. Mappings use ':'
+        |                                   For example --unorderedFieldKey=fieldPath:fieldKey,otherPath:otherKey
         |  [--with-header]                  Output all TSVs with header rows. Defaults to false
         |  [--ignore-nan]                   Ignore NaN values when computing stats for differences
         |
@@ -495,7 +495,7 @@ object BigDiffy extends Command with Serializable {
 
   private[diffy] def unorderedKeysMap(unorderedKeysArgs: List[String]): Try[Map[String, String]] = {
     Try(unorderedKeysArgs.map { arg =>
-      val keyMappings = arg.split("->")
+      val keyMappings = arg.split(":")
       assert(keyMappings.size == 2, s"Invalid unordered field key mapping $arg")
       (keyMappings(0), keyMappings(1))
     }.toMap)
