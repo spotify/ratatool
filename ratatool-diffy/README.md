@@ -3,7 +3,7 @@ Diffy
 
 Diffy contains record diff-ing classes that can be utilized by BigDiffy to perform Diffs over large datasets.
  Supported filesystems include Local, GCS (`gs://`), HDFS (`hdfs://`). There is also support for diff-ing directly from BigQuery tables.
- Currently supported formats are Avro, Protobuf, or BigQuery TableRow, but the CLI only supports Avro and TableRow.
+ Currently supported formats are Avro, Protobuf, or BigQuery TableRow, but the CLI only supports Avro and BigQuery TableRow.
  
 # BigDiffy
 
