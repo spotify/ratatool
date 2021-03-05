@@ -21,11 +21,11 @@ import Keys._
 val algebirdVersion = "0.13.7"
 val avroVersion = "1.8.2"
 val beamVersion = "2.28.0"
-val bigqueryVersion = "v2-rev20200925-1.30.10"
+val bigqueryVersion = "v2-rev20200719-1.30.10"
 val gcsVersion = "2.1.3"
 val guavaVersion = "28.2-jre" // make sure this stays compatible with scio + beam
 val hadoopVersion = "2.10.1"
-val jodaTimeVersion = "2.10.6"
+val jodaTimeVersion = "2.10.10"
 val parquetVersion = "1.11.1"
 val protoBufVersion = "3.13.0"
 val scalaTestVersion = "3.2.3"
@@ -142,7 +142,7 @@ lazy val ratatoolSampling = project
     libraryDependencies ++= Seq(
       "com.spotify" %% "scio-core" % scioVersion,
       "com.spotify" %% "scio-avro" % scioVersion,
-      "com.spotify" %% "scio-bigquery" % scioVersion,
+      "com.spotify" %% "scio-google-cloud-platform" % scioVersion,
       "com.spotify" %% "scio-test" % scioVersion % "test",
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
