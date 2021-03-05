@@ -3,7 +3,7 @@ Diffy
 
 Diffy contains record diff-ing classes that can be utilized by BigDiffy to perform Diffs over large datasets.
  Supported filesystems include Local, GCS (`gs://`), HDFS (`hdfs://`). There is also support for diff-ing directly from BigQuery tables.
- Currently supported formats are Avro, Protobuf, or BigQuery TableRow, but the CLI only supports Avro and TableRow.
+ Currently supported formats are Avro, Protobuf, or BigQuery TableRow, but the CLI only supports Avro and BigQuery TableRow.
  
 # BigDiffy
 
@@ -25,13 +25,16 @@ Usage: ratatool bigDiffy [dataflow_options] [options]
 
   --input-mode=(avro|bigquery)     Diff-ing Avro or BQ records
   [--output-mode=(gcs|bigquery)]   Saves to a text file in GCS or a BigQuery dataset. Defaults to GCS
-  --key=<key>                      '.' separated key field
+  --key=<key>                      '.' separated key field. Specify multiple --key params or multiple ',' separated key fields for multi key usage.
   --lhs=<path>                     LHS File path or BigQuery table
   --rhs=<path>                     RHS File path or BigQuery table
   --output=<output>                File path prefix for output
   --ignore=<keys>                  ',' separated field list to ignore
   --unordered=<keys>               ',' separated field list to treat as unordered
+  --unorderedFieldKey=<key>        ',' separated list of keys for fields which are unordered nested records. Mappings use ':'
+                                   For example --unorderedFieldKey=fieldPath:fieldKey,otherPath:otherKey
   [--with-header]                  Output all TSVs with header rows. Defaults to false
+  [--ignore-nan]                   Ignore NaN values when computing stats for differences
 
 Since this runs a Scio/Beam pipeline, Dataflow options will have to be provided. At a
 minimum, the following should be specified:
