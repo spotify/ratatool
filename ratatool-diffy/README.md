@@ -65,8 +65,9 @@ If you need to use `unorderedFieldKeys` to diff nested repeated records, then yo
  as this is currently unsupported from the CLI.
 
 ## Schema Evolution
-If you are trying to diff two schemas that are backwards compatible, you should put the "new" schema
- which is backwards compatible on the RHS. You can also add the new fields to the ignore list to
- prune them from the diff results. For BigQuery, the diff is applied across the union of the two
- schemas. For Avro, the RHS is used as the source of truth, and the diff is assumed to apply to all
- fields in the RHS unless it is specified in `ignore`.
+
+If you are diffing two avro datasets, their schemas must be backwards compatible (with the "new" schema on the RHS).
+
+For BigQuery datasets, the diff is applied across the union of the two schemas.
+
+You can also add the new fields to the ignore list to prune them from the diff results.
