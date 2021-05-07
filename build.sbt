@@ -28,12 +28,12 @@ val hadoopVersion = "2.10.1"
 val jodaTimeVersion = "2.10.10"
 val parquetVersion = "1.11.1"
 val protoBufVersion = "3.13.0"
-val scalaTestVersion = "3.2.3"
+val scalaTestVersion = "3.2.8"
 val scalaCheckVersion = "1.14.3"
-val scalaCollectionCompatVersion = "2.3.1"
+val scalaCollectionCompatVersion = "2.3.2"
 val scioVersion = "0.10.2"
-val scoptVersion = "4.0.1"
-val shapelessVersion = "2.3.3"
+val scoptVersion = "3.7.1"
+val shapelessVersion = "2.3.5"
 val slf4jVersion = "1.7.30"
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
@@ -45,7 +45,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   name := "ratatool",
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.12.10",
-  crossScalaVersions := Seq("2.12.10", "2.13.1"),
+  crossScalaVersions := Seq("2.12.10", "2.13.5"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions in (Compile,doc) ++= {
     scalaBinaryVersion.value match {
