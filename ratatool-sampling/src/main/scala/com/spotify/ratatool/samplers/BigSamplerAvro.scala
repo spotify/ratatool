@@ -19,10 +19,9 @@ package com.spotify.ratatool.samplers
 
 import java.nio.ByteBuffer
 import java.util.{List => JList}
-
 import com.google.common.hash.Hasher
 import com.spotify.ratatool.io.{AvroIO, FileStorage}
-import com.spotify.ratatool.samplers.util.{ByteEncoding, Precision, RawEncoding, SampleDistribution}
+import com.spotify.ratatool.samplers.util.{ByteEncoding, HashAlgorithm, Precision, RawEncoding, SampleDistribution}
 import com.spotify.scio.ScioContext
 import com.spotify.scio.io.{ClosedTap, MaterializeTap}
 import org.apache.avro.Schema
@@ -203,6 +202,7 @@ private[samplers] object BigSamplerAvro {
                                fields: Seq[String],
                                fraction: Double,
                                seed: Option[Int],
+                               hashAlgorithm: HashAlgorithm,
                                distribution: Option[SampleDistribution],
                                distributionFields: Seq[String],
                                precision: Precision,
@@ -221,7 +221,7 @@ private[samplers] object BigSamplerAvro {
 
       val coll = sc.avroFile(input, schema)
 
-      val sampledCollection = sampleAvro(coll, fraction, schema, fields, seed, distribution,
+      val sampledCollection = sampleAvro(coll, fraction, schema, fields, seed, hashAlgorithm, distribution,
         distributionFields, precision, maxKeySize, byteEncoding)
 
       val r = sampledCollection.saveAsAvroFile(output, schema = schema)

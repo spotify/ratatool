@@ -19,14 +19,13 @@ package com.spotify.ratatool.samplers
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.file.{Files, Path}
-
 import com.google.common.hash.Hasher
 import com.google.common.io.BaseEncoding
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.scalacheck._
 import com.spotify.ratatool.io.{AvroIO, FileStorage}
-import com.spotify.ratatool.samplers.util.{ByteHasher, HexEncoding}
+import com.spotify.ratatool.samplers.util.{ByteHasher, HexEncoding, MurmurHash}
 import org.apache.avro.generic.GenericRecord
 import org.scalacheck.Prop.{all, forAll, proved}
 import org.scalacheck.rng.Seed
@@ -43,7 +42,7 @@ object BigSamplerTest extends Properties("BigSampler") {
   private val testSeed = Some(42)
   private def newTestFarmHasher() = BigSampler.hashFun()
   private def newTestKissHasher(testSeed: Option[Int] = testSeed) =
-    BigSampler.hashFun(hashAlgorithm = BigSampler.MurmurHash, seed = testSeed)
+    BigSampler.hashFun(MurmurHash, seed = testSeed)
 
   /* using the same hasher for more than one test causes BufferOverflows,
     * gen a => Hasher not a Hasher
@@ -461,12 +460,13 @@ class BigSamplerBasicJobTest extends BigSamplerJobTestRoot {
     countAvroRecords(s"$outDir/*.avro") shouldBe totalElements
   }
 
-  it should "work for 50% with hash field and seed" in withOutFile { outDir =>
+  it should "work for 50% with hash field, murmur and seed" in withOutFile { outDir =>
     BigSampler.run(Array(
       s"--input=$dir/*.avro",
       s"--output=$outDir",
       "--sample=0.5",
       "--seed=42",
+      "--hashAlgorithm=murmur",
       "--fields=required_fields.int_field"))
     countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 2000
   }

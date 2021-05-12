@@ -49,21 +49,6 @@ object BigSampler extends Command {
   private[samplers] val utf8Charset = Charset.forName("UTF-8")
   private[samplers] val fieldSep = '.'
 
-  private[samplers] sealed trait HashAlgorithm {
-    def hashFn(seed: Option[Int]): Hasher
-  }
-  private[samplers] case object MurmurHash extends HashAlgorithm {
-    def hashFn(seed:Option[Int]): Hasher = {
-      Hashing.murmur3_128(seed.getOrElse(System.currentTimeMillis().toInt)).newHasher()
-    }
-  }
-  private[samplers] case object FarmHash extends HashAlgorithm {
-    def hashFn(seed: Option[Int]): Hasher = seed match {
-      case Some(s) => Hashing.farmHashFingerprint64().newHasher().putInt(s)
-      case _ => Hashing.farmHashFingerprint64().newHasher()
-    }
-  }
-
   /**
     * @param hashAlgorithm either MurmurHash (for backwards compatibility) or FarmHash
     * @param seed optional start value to ensure the same result every time if same seed passed in
@@ -119,6 +104,7 @@ object BigSampler extends Command {
         |  --output=<path>                            Output file path or BigQuery table
         |  [--fields=<field1,field2,...>]             An optional list of fields to include in hashing for sampling cohort selection
         |  [--seed=<seed>]                            An optional seed used in hashing for sampling cohort selection
+        |  [--hashAlgorithm=(murmur|farm)]            An optional arg to select the hashing algorithm used in conjunction with the seed. Either MurmurHash or FarmHash. Default is FarmHash.
         |  [--distribution=(uniform|stratified)]      An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
         |  [--distributionFields=<field1,field2,...>] An optional list of fields to sample for distribution. Must provide `distribution`
         |  [--exact]                                  An optional arg for higher precision distribution sampling.
@@ -175,7 +161,15 @@ object BigSampler extends Command {
         1e6.toInt
       }
 
-    val (samplePct, input, output, fields, seed, distribution, distributionFields, exact) = try {
+    val (samplePct,
+    input,
+    output,
+    fields,
+    seed,
+    distribution,
+    distributionFields,
+    exact,
+    hashAlgorithm) = try {
       val pct = args("sample").toFloat
       require(pct > 0.0F && pct <= 1.0F)
       (pct,
@@ -185,7 +179,9 @@ object BigSampler extends Command {
         args.optional("seed"),
         args.optional("distribution").map(SampleDistribution.fromString),
         args.list("distributionFields"),
-        Precision.fromBoolean(args.boolean("exact", default = false)))
+        Precision.fromBoolean(args.boolean("exact", default = false)),
+        args.optional("hashAlgorithm").map(HashAlgorithm.fromString).getOrElse(FarmHash)
+      )
     } catch {
       case e: Throwable =>
         usage()
@@ -224,6 +220,7 @@ object BigSampler extends Command {
         fields,
         samplePct,
         seed.map(_.toInt),
+        hashAlgorithm,
         distribution,
         distributionFields,
         exact,
@@ -243,6 +240,7 @@ object BigSampler extends Command {
         fields,
         samplePct,
         seed.map(_.toInt),
+        hashAlgorithm,
         distribution,
         distributionFields,
         exact,
@@ -263,6 +261,7 @@ object BigSampler extends Command {
    * @param fraction The sample rate
    * @param fields Fields to construct hash over for determinism
    * @param seed Seed used to salt the deterministic hash
+   * @param hashAlgorithm Hash algorithm, either MurmurHash or FarmHash
    * @param distribution Desired output sample distribution
    * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
    * @param precision Approximate or Exact precision
@@ -278,6 +277,7 @@ object BigSampler extends Command {
                                         fraction: Double,
                                         fields: Seq[String],
                                         seed: Option[Int],
+                                        hashAlgorithm: HashAlgorithm,
                                         distribution: Option[SampleDistribution],
                                         distributionFields: Seq[String],
                                         precision: Precision,
@@ -292,7 +292,7 @@ object BigSampler extends Command {
     : SCollection[(U, (T, Double))] = {
       s.map { v =>
         val hasher =
-          ByteHasher.wrap(BigSampler.hashFun(seed = seed), byteEncoding, utf8Charset)
+          ByteHasher.wrap(BigSampler.hashFun(hashAlgorithm, seed), byteEncoding, utf8Charset)
         val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
         (keyFn(v), (v, boundLong(hash.asLong)))
       }
@@ -310,7 +310,7 @@ object BigSampler extends Command {
       case (Deterministic, None, Approximate) =>
         s.flatMap { e =>
           val hasher =
-            ByteHasher.wrap(BigSampler.hashFun(seed = seed), byteEncoding, utf8Charset)
+            ByteHasher.wrap(BigSampler.hashFun(hashAlgorithm, seed), byteEncoding, utf8Charset)
           val hash = fields.foldLeft(hasher)((h, f) => hashFn(e, f, h)).hash
           BigSampler.diceElement(e, hash, fraction)
         }
@@ -318,7 +318,10 @@ object BigSampler extends Command {
       case (Deterministic, Some(StratifiedDistribution), Approximate) =>
         val sampled = s.flatMap { v =>
           val hasher =
-            ByteHasher.wrap(BigSampler.hashFun(seed = seed), byteEncoding, utf8Charset)
+            ByteHasher.wrap(
+              BigSampler.hashFun(hashAlgorithm, seed),
+              byteEncoding,
+              utf8Charset)
           val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
           BigSampler.diceElement(v, hash, fraction)
         }.keyBy(keyFn(_))
@@ -332,7 +335,7 @@ object BigSampler extends Command {
         val sampled = s.keyBy(keyFn(_))
           .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
           val hasher =
-            ByteHasher.wrap(BigSampler.hashFun(seed = seed), byteEncoding, utf8Charset)
+            ByteHasher.wrap(BigSampler.hashFun(hashAlgorithm, seed), byteEncoding, utf8Charset)
           val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
           BigSampler.diceElement(v, hash, prob).map(e => (k, e))
         }
