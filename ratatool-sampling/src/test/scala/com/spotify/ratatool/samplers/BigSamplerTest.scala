@@ -460,13 +460,12 @@ class BigSamplerBasicJobTest extends BigSamplerJobTestRoot {
     countAvroRecords(s"$outDir/*.avro") shouldBe totalElements
   }
 
-  it should "work for 50% with hash field, murmur and seed" in withOutFile { outDir =>
+  it should "work for 50% with hash field and seed" in withOutFile { outDir =>
     BigSampler.run(Array(
       s"--input=$dir/*.avro",
       s"--output=$outDir",
       "--sample=0.5",
       "--seed=42",
-      "--hashAlgorithm=murmur",
       "--fields=required_fields.int_field"))
     countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 2000
   }
