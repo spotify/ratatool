@@ -24,7 +24,7 @@ Usage: ratatool bigSampler [dataflow_options] [options]
   --output=<path>                            Output file path or BigQuery table
   [--fields=<field1,field2,...>]             An optional list of fields to include in hashing for sampling cohort selection
   [--seed=<seed>]                            An optional seed used in hashing for sampling cohort selection
-  [--hashAlgorithm=(murmur|farm)]            An optional arg to select the hashing algorithm used in conjunction with the seed. Either MurmurHash or FarmHash. Default is FarmHash.
+  [--hashAlgorithm=(murmur|farm)]            An optional arg to select the hashing algorithm for sampling cohort selection. Defaults to FarmHash for BigQuery compatibility
   [--distribution=(uniform|stratified)]      An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
   [--distributionFields=<field1,field2,...>] An optional list of fields to sample for distribution. Must provide `distribution`
   [--exact]                                  An optional arg for higher precision distribution sampling.

@@ -104,7 +104,7 @@ object BigSampler extends Command {
         |  --output=<path>                            Output file path or BigQuery table
         |  [--fields=<field1,field2,...>]             An optional list of fields to include in hashing for sampling cohort selection
         |  [--seed=<seed>]                            An optional seed used in hashing for sampling cohort selection
-        |  [--hashAlgorithm=(murmur|farm)]            An optional arg to select the hashing algorithm used in conjunction with the seed. Either MurmurHash or FarmHash. Default is FarmHash.
+        |  [--hashAlgorithm=(murmur|farm)]            An optional arg to select the hashing algorithm for sampling cohort selection. Defaults to FarmHash for BigQuery compatibility
         |  [--distribution=(uniform|stratified)]      An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
         |  [--distributionFields=<field1,field2,...>] An optional list of fields to sample for distribution. Must provide `distribution`
         |  [--exact]                                  An optional arg for higher precision distribution sampling.
@@ -166,10 +166,10 @@ object BigSampler extends Command {
     output,
     fields,
     seed,
+    hashAlgorithm,
     distribution,
     distributionFields,
-    exact,
-    hashAlgorithm) = try {
+    exact) = try {
       val pct = args("sample").toFloat
       require(pct > 0.0F && pct <= 1.0F)
       (pct,
@@ -177,10 +177,10 @@ object BigSampler extends Command {
         args("output"),
         args.list("fields"),
         args.optional("seed"),
+        args.optional("hashAlgorithm").map(HashAlgorithm.fromString).getOrElse(FarmHash),
         args.optional("distribution").map(SampleDistribution.fromString),
         args.list("distributionFields"),
-        Precision.fromBoolean(args.boolean("exact", default = false)),
-        args.optional("hashAlgorithm").map(HashAlgorithm.fromString).getOrElse(FarmHash)
+        Precision.fromBoolean(args.boolean("exact", default = false))
       )
     } catch {
       case e: Throwable =>
