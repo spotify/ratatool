@@ -19,13 +19,10 @@ package com.spotify.ratatool.samplers
 
 import java.nio.ByteBuffer
 import java.util.{List => JList}
+
 import com.google.common.hash.Hasher
 import com.spotify.ratatool.io.{AvroIO, FileStorage}
-import com.spotify.ratatool.samplers.util.{ByteEncoding,
-  HashAlgorithm,
-  Precision,
-  RawEncoding,
-  SampleDistribution}
+import com.spotify.ratatool.samplers.util._
 import com.spotify.scio.ScioContext
 import com.spotify.scio.io.{ClosedTap, MaterializeTap}
 import org.apache.avro.Schema
