@@ -19,6 +19,7 @@ package com.spotify.ratatool.samplers
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.file.{Files, Path}
+
 import com.google.common.hash.Hasher
 import com.google.common.io.BaseEncoding
 import com.spotify.ratatool.Schemas
