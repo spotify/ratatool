@@ -24,7 +24,11 @@ import com.spotify.ratatool.samplers.util._
 import com.spotify.scio.ScioContext
 import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.io.ClosedTap
-import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryIO, BigQueryOptions, PatchedBigQueryServicesImpl}
+import org.apache.beam.sdk.io.gcp.bigquery.{
+  BigQueryIO,
+  BigQueryOptions,
+  PatchedBigQueryServicesImpl
+}
 import org.slf4j.LoggerFactory
 
 import scala.jdk.CollectionConverters._
