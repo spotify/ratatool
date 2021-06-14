@@ -38,6 +38,7 @@ package object samplers {
    * @param fraction The sample rate
    * @param fields Fields to construct hash over for determinism
    * @param seed Seed used to salt the deterministic hash
+   * @param hashAlgorithm Hashing algorithm to use
    * @param distribution Desired output sample distribution
    * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
    * @param precision Approximate or Exact precision
@@ -51,6 +52,7 @@ package object samplers {
                                                  schema: => Schema,
                                                  fields: Seq[String] = Seq(),
                                                  seed: Option[Int] = None,
+                                                 hashAlgorithm: HashAlgorithm = FarmHash,
                                                  distribution: Option[SampleDistribution] = None,
                                                  distributionFields: Seq[String] = Seq(),
                                                  precision: Precision = Approximate,
@@ -60,7 +62,8 @@ package object samplers {
     val schemaSer = schema.toString(false)
     @transient lazy val schemaSerDe = new Schema.Parser().parse(schemaSer)
 
-    BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
+    BigSampler.sample(coll, fraction, fields, seed, hashAlgorithm, distribution, distributionFields,
+      precision,
       BigSamplerAvro.hashAvroField(schemaSerDe),
       BigSamplerAvro.buildKey(schemaSerDe, distributionFields),
       maxKeySize, byteEncoding)
@@ -72,6 +75,7 @@ package object samplers {
    * @param fraction The sample rate
    * @param fields Fields to construct hash over for determinism
    * @param seed Seed used to salt the deterministic hash
+   * @param hashAlgorithm Hashing algorithm to use
    * @param distribution Desired output sample distribution
    * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
    * @param precision Approximate or Exact precision
@@ -84,6 +88,7 @@ package object samplers {
                      schema: TableSchema,
                      fields: Seq[String] = Seq(),
                      seed: Option[Int] = None,
+                     hashAlgorithm: HashAlgorithm = FarmHash,
                      distribution: Option[SampleDistribution] = None,
                      distributionFields: Seq[String] = Seq(),
                      precision: Precision = Approximate,
@@ -94,7 +99,8 @@ package object samplers {
     @transient lazy val schemaFields =
       JsonSerDe.fromJsonString(schemaStr, classOf[TableSchema]).getFields.asScala.toList
 
-    BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
+    BigSampler.sample(coll, fraction, fields, seed, hashAlgorithm, distribution, distributionFields,
+      precision,
       BigSamplerBigQuery.hashTableRow(schemaFields),
       BigSamplerBigQuery.buildKey(schemaFields, distributionFields),
       maxKeySize, byteEncoding)
@@ -106,6 +112,7 @@ package object samplers {
    * @param fraction The sample rate
    * @param fields Fields to construct hash over for determinism
    * @param seed Seed used to salt the deterministic hash
+   * @param hashAlgorithm Hashing algorithm to use
    * @param distribution Desired output sample distribution
    * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
    * @param precision Approximate or Exact precision
@@ -118,13 +125,15 @@ package object samplers {
                                                    fraction: Double,
                                                    fields: Seq[String] = Seq(),
                                                    seed: Option[Int] = None,
+                                                   hashAlgorithm: HashAlgorithm = FarmHash,
                                                    distribution: Option[SampleDistribution]=None,
                                                    distributionFields: Seq[String] = Seq(),
                                                    precision: Precision = Approximate,
                                                    maxKeySize: Int = 1e6.toInt,
                                                    byteEncoding: ByteEncoding = RawEncoding)
   : SCollection[T] = {
-    BigSampler.sample(coll, fraction, fields, seed, distribution, distributionFields, precision,
+    BigSampler.sample(coll, fraction, fields, seed, hashAlgorithm, distribution, distributionFields,
+      precision,
       BigSamplerProto.hashProtobufField,
       BigSamplerProto.buildKey(distributionFields),
       maxKeySize, byteEncoding)

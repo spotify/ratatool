@@ -18,15 +18,17 @@
 package com.spotify.ratatool.samplers
 
 import java.util.{List => JList}
-
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableReference}
 import com.google.common.hash.Hasher
-import com.spotify.ratatool.samplers.util.{ByteEncoding, Precision, RawEncoding, SampleDistribution}
+import com.spotify.ratatool.samplers.util._
 import com.spotify.scio.ScioContext
 import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.io.ClosedTap
-import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryIO, BigQueryOptions,
-  PatchedBigQueryServicesImpl}
+import org.apache.beam.sdk.io.gcp.bigquery.{
+  BigQueryIO,
+  BigQueryOptions,
+  PatchedBigQueryServicesImpl
+}
 import org.slf4j.LoggerFactory
 
 import scala.jdk.CollectionConverters._
@@ -136,6 +138,7 @@ private[samplers] object BigSamplerBigQuery {
                                fields: List[String],
                                fraction: Double,
                                seed: Option[Int],
+                               hashAlgorithm: HashAlgorithm,
                                distribution: Option[SampleDistribution],
                                distributionFields: List[String],
                                precision: Precision,
@@ -156,8 +159,8 @@ private[samplers] object BigSamplerBigQuery {
 
       val coll = sc.bigQueryTable(Table.Ref(inputTbl))
 
-      val sampledCollection = sampleTableRow(coll, fraction, schema, fields, seed, distribution,
-        distributionFields, precision, sizePerKey, byteEncoding)
+      val sampledCollection = sampleTableRow(coll, fraction, schema, fields, seed, hashAlgorithm,
+        distribution, distributionFields, precision, sizePerKey, byteEncoding)
 
       val r = sampledCollection
         .saveAsBigQueryTable(Table.Ref(outputTbl), schema, WRITE_EMPTY, CREATE_IF_NEEDED,

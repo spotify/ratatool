@@ -24,6 +24,7 @@ Usage: ratatool bigSampler [dataflow_options] [options]
   --output=<path>                            Output file path or BigQuery table
   [--fields=<field1,field2,...>]             An optional list of fields to include in hashing for sampling cohort selection
   [--seed=<seed>]                            An optional seed used in hashing for sampling cohort selection
+  [--hashAlgorithm=(murmur|farm)]            An optional arg to select the hashing algorithm for sampling cohort selection. Defaults to FarmHash for BigQuery compatibility
   [--distribution=(uniform|stratified)]      An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
   [--distributionFields=<field1,field2,...>] An optional list of fields to sample for distribution. Must provide `distribution`
   [--exact]                                  An optional arg for higher precision distribution sampling.
@@ -58,6 +59,7 @@ Here is the example for Protobuf. There is also `sampleAvro` and `sampleBigQuery
 * @param fraction The sample rate
 * @param fields Fields to construct hash over for determinism
 * @param seed Seed used to salt the deterministic hash
+* @param hashAlgorithm Hashing algorithm to use
 * @param distribution Desired output sample distribution
 * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
 * @param precision Approximate or Exact precision
@@ -69,6 +71,7 @@ def sampleProto[T <: AbstractMessage : ClassTag](coll: SCollection[T],
                                                 fraction: Double,
                                                 fields: Seq[String] = Seq(),
                                                 seed: Option[Int] = None,
+                                                hashAlgorithm: HashAlgorithm = FarmHash,
                                                 distribution: Option[SampleDistribution]=None,
                                                 distributionFields: Seq[String] = Seq(),
                                                 precision: Precision = Approximate,

@@ -17,10 +17,7 @@
 
 package com.spotify.ratatool.samplers.util
 
-import java.nio.charset.Charset
-
-import com.google.common.hash.{Funnel, HashCode, Hasher}
-import com.google.common.io.BaseEncoding
+import com.google.common.hash.{Hasher, Hashing}
 
 trait SampleDistribution
 case object StratifiedDistribution extends SampleDistribution
@@ -86,6 +83,36 @@ object ByteEncoding {
     }
     else {
       throw new IllegalArgumentException(s"Invalid byte encoding $s")
+    }
+  }
+}
+
+sealed trait HashAlgorithm {
+  def hashFn(seed: Option[Int]): Hasher
+}
+
+case object MurmurHash extends HashAlgorithm {
+  def hashFn(seed:Option[Int]): Hasher = {
+    Hashing.murmur3_128(seed.getOrElse(System.currentTimeMillis().toInt)).newHasher()
+  }
+}
+case object FarmHash extends HashAlgorithm {
+  def hashFn(seed: Option[Int]): Hasher = seed match {
+    case Some(s) => Hashing.farmHashFingerprint64().newHasher().putInt(s)
+    case _ => Hashing.farmHashFingerprint64().newHasher()
+  }
+}
+
+object HashAlgorithm {
+  def fromString(s: String): HashAlgorithm = {
+    if(s == "murmur") {
+      MurmurHash
+    }
+    else if(s == "farm") {
+      FarmHash
+    }
+    else {
+      throw new IllegalArgumentException(s"Invalid hashing function $s")
     }
   }
 }

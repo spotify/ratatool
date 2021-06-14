@@ -26,7 +26,7 @@ import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.scalacheck._
 import com.spotify.ratatool.io.{AvroIO, FileStorage}
-import com.spotify.ratatool.samplers.util.{ByteHasher, HexEncoding}
+import com.spotify.ratatool.samplers.util.{ByteHasher, HexEncoding, MurmurHash}
 import org.apache.avro.generic.GenericRecord
 import org.scalacheck.Prop.{all, forAll, proved}
 import org.scalacheck.rng.Seed
@@ -43,7 +43,7 @@ object BigSamplerTest extends Properties("BigSampler") {
   private val testSeed = Some(42)
   private def newTestFarmHasher() = BigSampler.hashFun()
   private def newTestKissHasher(testSeed: Option[Int] = testSeed) =
-    BigSampler.hashFun(hashAlgorithm = BigSampler.MurmurHash, seed = testSeed)
+    BigSampler.hashFun(MurmurHash, seed = testSeed)
 
   /* using the same hasher for more than one test causes BufferOverflows,
     * gen a => Hasher not a Hasher
