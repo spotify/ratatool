@@ -32,7 +32,7 @@ val scalaTestVersion = "3.2.8"
 val scalaCheckVersion = "1.14.3"
 val scalaCollectionCompatVersion = "2.3.2"
 val scioVersion = "0.10.2"
-val scoptVersion = "3.7.1"
+val scoptVersion = "4.0.1"
 val shapelessVersion = "2.3.5"
 val slf4jVersion = "1.7.30"
 
