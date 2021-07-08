@@ -1,5 +1,5 @@
 addSbtPlugin("com.cavorite" % "sbt-avro-1-8" % "1.1.9")
-addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.13")
+addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.14")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.5")
 addSbtPlugin("com.github.sbt" % "sbt-release" % "1.0.15")
 addSbtPlugin("com.jsuereth" % "sbt-pgp" % "2.0.1")
