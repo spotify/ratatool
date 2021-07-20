@@ -34,7 +34,7 @@ val scalaCollectionCompatVersion = "2.3.2"
 val scioVersion = "0.10.2"
 val scoptVersion = "3.7.1"
 val shapelessVersion = "2.3.5"
-val slf4jVersion = "1.7.30"
+val slf4jVersion = "1.7.32"
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
   scalaBinaryVersion.value == "2.13"
