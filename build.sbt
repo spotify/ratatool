@@ -46,6 +46,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.12.10",
   crossScalaVersions := Seq("2.12.10", "2.13.6"),
+  resolvers += "confluent" at "https://packages.confluent.io/maven/",
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions in (Compile,doc) ++= {
     scalaBinaryVersion.value match {
