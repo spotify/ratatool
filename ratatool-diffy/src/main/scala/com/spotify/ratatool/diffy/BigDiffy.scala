@@ -484,7 +484,16 @@ object BigDiffy extends Command with Serializable {
     @tailrec
     def get(xs: Array[String], i: Int, r: java.util.Map[String, AnyRef]): String =
       if (i == xs.length - 1) {
-        r.get(xs(i)).toString
+        val valueOfKey = r.get(xs(i))
+        if (valueOfKey == null) {
+          logger.warn(
+            s"""Null value found for key: ${xs.mkString(".")}.
+               | If this is not expected check your data or use a different key.""".stripMargin)
+        }
+
+        // Implicitly converts nulls to "null"
+        // Same as for Avro string case above
+        String.valueOf(valueOfKey)
       } else {
         get(xs, i + 1, r.get(xs(i)).asInstanceOf[java.util.Map[String, AnyRef]])
       }
