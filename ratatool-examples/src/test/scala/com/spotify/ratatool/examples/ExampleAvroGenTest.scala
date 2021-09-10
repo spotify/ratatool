@@ -22,7 +22,7 @@ import java.util.UUID
 import com.spotify.ratatool.avro.specific.{EnumField, ExampleRecord}
 import com.spotify.ratatool.examples.scalacheck.ExampleAvroGen
 import org.scalacheck.{Gen, Properties}
-import org.scalacheck.Prop.{AnyOperators, BooleanOperators, forAll}
+import org.scalacheck.Prop.{AnyOperators, propBoolean, forAll}
 
 import scala.jdk.CollectionConverters._
 
