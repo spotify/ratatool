@@ -18,23 +18,21 @@
 package com.spotify.ratatool.diffy
 
 import org.apache.avro.util.Utf8
-import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
-
 import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
 import com.spotify.ratatool.scalacheck._
 import com.spotify.scio.testing.PipelineSpec
-
 import com.google.api.services.bigquery.model.TableRow
+import org.apache.beam.sdk.coders.shaded.ScioAvroCoder
 
 import scala.language.higherKinds
 
 class BigDiffyTest extends PipelineSpec {
 
   val keys = (1 to 1000).map(k => MultiKey("key" + k))
-  val coder = AvroCoder.of(classOf[TestRecord])
+  val coder = ScioAvroCoder.of(classOf[TestRecord], true)
 
   /** Fixed to a small range so that Std. Dev. & Variance calculations are easier to predict */
   val rnr = specificRecordOf[RequiredNestedRecord]
