@@ -20,7 +20,7 @@ package com.spotify.ratatool.scalacheck
 import com.google.api.services.bigquery.model.TableRow
 import com.spotify.ratatool.Schemas
 import org.scalacheck.{Arbitrary, Gen, Properties}
-import org.scalacheck.Prop.{propBoolean, all, forAll}
+import org.scalacheck.Prop.{all, forAll, propBoolean}
 
 object TableRowGeneratorTest extends Properties("TableRowGenerator") {
   property("round trip") = forAll(tableRowOf(Schemas.tableSchema)) { m =>
@@ -33,18 +33,26 @@ object TableRowGeneratorTest extends Properties("TableRowGenerator") {
     .amend(Gen.choose(10L, 20L))(_.getRecord(n).set("int_field"))
     .amend(Gen.choose(10.0, 20.0))(_.getRecord(n).set("float_field"))
     .amend(Gen.const(true))(_.getRecord(n).set("boolean_field"))
-    .amend(Gen.const("hello"))(_.getRecord(n).set("string_field"),
-      m => s => m.getRecord(n).set("upper_string_field")(s.asInstanceOf[String].toUpperCase))
+    .amend(Gen.const("hello"))(
+      _.getRecord(n).set("string_field"),
+      m => s => m.getRecord(n).set("upper_string_field")(s.asInstanceOf[String].toUpperCase)
+    )
 
   val richTupGen = (tableRowOf(Schemas.tableSchema), tableRowOf(Schemas.tableSchema)).tupled
-    .amend2(Gen.choose(10L, 20L))(_.getRecord(r).set("int_field"),
-      a => a.getRecord(r).set("int_field"))
-    .amend2(Arbitrary.arbString.arbitrary)(_.getRecord(r).set("string_field"),
-      a => a.getRecord(r).set("string_field"))
-    .amend2(Arbitrary.arbBool.arbitrary)(_.getRecord(r).set("boolean_field"),
-      _.getRecord(r).set("boolean_field"))
+    .amend2(Gen.choose(10L, 20L))(
+      _.getRecord(r).set("int_field"),
+      a => a.getRecord(r).set("int_field")
+    )
+    .amend2(Arbitrary.arbString.arbitrary)(
+      _.getRecord(r).set("string_field"),
+      a => a.getRecord(r).set("string_field")
+    )
+    .amend2(Arbitrary.arbBool.arbitrary)(
+      _.getRecord(r).set("boolean_field"),
+      _.getRecord(r).set("boolean_field")
+    )
 
-  property("support RichTableRowGen") = forAll (richGen) { r =>
+  property("support RichTableRowGen") = forAll(richGen) { r =>
     val fields = r.get(n).asInstanceOf[java.util.LinkedHashMap[String, Any]]
     val i = fields.get("int_field").asInstanceOf[Long]
     val f = fields.get("float_field").asInstanceOf[Double]
@@ -52,11 +60,11 @@ object TableRowGeneratorTest extends Properties("TableRowGenerator") {
     val s = fields.get("string_field").asInstanceOf[String]
     val upper = fields.get("upper_string_field").asInstanceOf[String]
     all(
-      "Int"     |: i >= 10L && i <= 20L,
-      "Float"   |: f >= 10.0 && f <= 20.0,
+      "Int" |: i >= 10L && i <= 20L,
+      "Float" |: f >= 10.0 && f <= 20.0,
       "Boolean" |: b == true,
-      "String"  |: s == "hello",
-      "String"  |: upper == "HELLO"
+      "String" |: s == "hello",
+      "String" |: upper == "HELLO"
     )
   }
 
@@ -64,8 +72,8 @@ object TableRowGeneratorTest extends Properties("TableRowGenerator") {
     val ar = a.get(r).asInstanceOf[java.util.LinkedHashMap[String, Any]]
     val br = b.get(r).asInstanceOf[java.util.LinkedHashMap[String, Any]]
     (a.get("int_field").asInstanceOf[Long] == b.get("int_field").asInstanceOf[Long]
-      && a.get("string_field").asInstanceOf[String] == b.get("string_field").asInstanceOf[String] &&
-      a.get("boolean_field").asInstanceOf[Boolean] == b.get("boolean_field").asInstanceOf[Boolean])
+    && a.get("string_field").asInstanceOf[String] == b.get("string_field").asInstanceOf[String] &&
+    a.get("boolean_field").asInstanceOf[Boolean] == b.get("boolean_field").asInstanceOf[Boolean])
   }
 
 }

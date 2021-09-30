@@ -26,10 +26,11 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 /** Field level diff tool for ProtoBuf records. */
-class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.empty,
-                                                     unordered: Set[String] = Set.empty,
-                                                     unorderedFieldKeys: Map[String, String]= Map())
-  extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
+class ProtoBufDiffy[T <: AbstractMessage: ClassTag](
+  ignore: Set[String] = Set.empty,
+  unordered: Set[String] = Set.empty,
+  unorderedFieldKeys: Map[String, String] = Map()
+) extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
 
   override def apply(x: T, y: T): Seq[Delta] =
     diff(Option(x), Option(y), descriptor.getFields.asScala.toList, "")
@@ -38,11 +39,16 @@ class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.e
   private lazy val descriptor: Descriptor =
     implicitly[ClassTag[T]].runtimeClass
       .getMethod("getDescriptor")
-      .invoke(null).asInstanceOf[Descriptor]
+      .invoke(null)
+      .asInstanceOf[Descriptor]
 
   // scalastyle:off cyclomatic.complexity method.length
-  private def diff(x: Option[AbstractMessage], y: Option[AbstractMessage],
-                   fields: Seq[FieldDescriptor], root: String): Seq[Delta] = {
+  private def diff(
+    x: Option[AbstractMessage],
+    y: Option[AbstractMessage],
+    fields: Seq[FieldDescriptor],
+    root: String
+  ): Seq[Delta] = {
     def getField(f: FieldDescriptor)(m: AbstractMessage): Option[AnyRef] =
       if (f.isRepeated) {
         Option(m.getField(f))
@@ -53,58 +59,73 @@ class ProtoBufDiffy[T <: AbstractMessage : ClassTag](ignore: Set[String] = Set.e
     def getFieldDescriptor(f: FieldDescriptor, s: String): FieldDescriptor = {
       f.getMessageType.getFields.asScala.find(field => field.getName == s) match {
         case Some(d) => d
-        case None => throw new Exception(s"Field $s not found in ${f.getFullName}")
+        case None    => throw new Exception(s"Field $s not found in ${f.getFullName}")
       }
     }
 
-    fields.flatMap { f =>
-      val name = f.getName
-      val fullName = if (root.isEmpty) name else root + "." + name
-      if (f.isRepeated && unordered.contains(fullName)) {
-        if (f.getJavaType == JavaType.MESSAGE
-          && unorderedFieldKeys.contains(fullName)) {
-          val l = x.flatMap(outer =>
-            Option(outer.getField(f).asInstanceOf[java.util.List[AbstractMessage]].asScala))
-            .getOrElse(List())
-            .flatMap(inner => Try(getFieldDescriptor(f, unorderedFieldKeys(fullName))).toOption
-              .flatMap(fd => getField(fd)(inner)).map(k => (k, inner))).toMap
-          val r = y.flatMap(outer =>
-            Option(outer.getField(f).asInstanceOf[java.util.List[AbstractMessage]].asScala))
-            .getOrElse(List())
-            .flatMap(inner => Try(getFieldDescriptor(f, unorderedFieldKeys(fullName))).toOption
-              .flatMap(fd => getField(fd)(inner)).map(k => (k, inner))).toMap
-          (l.keySet ++ r.keySet).flatMap(k =>
-            diff(l.get(k),
-              r.get(k),
-              f.getMessageType.getFields.asScala.toList,
-              fullName))
-        }
-        else {
-          val a = x.flatMap(r =>
-            Option(r.getField(f).asInstanceOf[java.util.List[AbstractMessage]])).map(sortList)
-          val b = y.flatMap(r =>
-            Option(r.getField(f).asInstanceOf[java.util.List[AbstractMessage]])).map(sortList)
-          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
-        }
-      } else {
-        f.getJavaType match {
-          case JavaType.MESSAGE if !f.isRepeated =>
-            val a = x.flatMap(m => getField(f)(m).asInstanceOf[Option[AbstractMessage]])
-            val b = y.flatMap(m => getField(f)(m).asInstanceOf[Option[AbstractMessage]])
-            if (a.isEmpty && b.isEmpty) {
-              Nil
-            } else if (a.isEmpty || b.isEmpty) {
-              Seq(Delta(fullName, a, b, UnknownDelta))
-            } else {
-              diff(a, b, f.getMessageType.getFields.asScala.toList, fullName)
-            }
-          case _ =>
-            val a = x.flatMap(r => Option(r.getField(f)))
-            val b = y.flatMap(r => Option(r.getField(f)))
+    fields
+      .flatMap { f =>
+        val name = f.getName
+        val fullName = if (root.isEmpty) name else root + "." + name
+        if (f.isRepeated && unordered.contains(fullName)) {
+          if (
+            f.getJavaType == JavaType.MESSAGE
+            && unorderedFieldKeys.contains(fullName)
+          ) {
+            val l = x
+              .flatMap(outer =>
+                Option(outer.getField(f).asInstanceOf[java.util.List[AbstractMessage]].asScala)
+              )
+              .getOrElse(List())
+              .flatMap(inner =>
+                Try(getFieldDescriptor(f, unorderedFieldKeys(fullName))).toOption
+                  .flatMap(fd => getField(fd)(inner))
+                  .map(k => (k, inner))
+              )
+              .toMap
+            val r = y
+              .flatMap(outer =>
+                Option(outer.getField(f).asInstanceOf[java.util.List[AbstractMessage]].asScala)
+              )
+              .getOrElse(List())
+              .flatMap(inner =>
+                Try(getFieldDescriptor(f, unorderedFieldKeys(fullName))).toOption
+                  .flatMap(fd => getField(fd)(inner))
+                  .map(k => (k, inner))
+              )
+              .toMap
+            (l.keySet ++ r.keySet).flatMap(k =>
+              diff(l.get(k), r.get(k), f.getMessageType.getFields.asScala.toList, fullName)
+            )
+          } else {
+            val a = x
+              .flatMap(r => Option(r.getField(f).asInstanceOf[java.util.List[AbstractMessage]]))
+              .map(sortList)
+            val b = y
+              .flatMap(r => Option(r.getField(f).asInstanceOf[java.util.List[AbstractMessage]]))
+              .map(sortList)
             if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
+          }
+        } else {
+          f.getJavaType match {
+            case JavaType.MESSAGE if !f.isRepeated =>
+              val a = x.flatMap(m => getField(f)(m).asInstanceOf[Option[AbstractMessage]])
+              val b = y.flatMap(m => getField(f)(m).asInstanceOf[Option[AbstractMessage]])
+              if (a.isEmpty && b.isEmpty) {
+                Nil
+              } else if (a.isEmpty || b.isEmpty) {
+                Seq(Delta(fullName, a, b, UnknownDelta))
+              } else {
+                diff(a, b, f.getMessageType.getFields.asScala.toList, fullName)
+              }
+            case _ =>
+              val a = x.flatMap(r => Option(r.getField(f)))
+              val b = y.flatMap(r => Option(r.getField(f)))
+              if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
+          }
         }
       }
-    }.filter(d => !ignore.contains(d.field))
+      .filter(d => !ignore.contains(d.field))
   }
   // scalastyle:on cyclomatic.complexity method.length
 

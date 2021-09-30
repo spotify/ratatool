@@ -27,11 +27,8 @@ import java.util.{Random => JRandom}
 
 object Random {
 
-  /**
-   * Modified version of Scio RandomValueSampler to allow sampling on a per-element probability
-   */
-  abstract class RandomValueSampler[K, V, R]()
-    extends DoFn[((K, V), Double), (K, V)] {
+  /** Modified version of Scio RandomValueSampler to allow sampling on a per-element probability */
+  abstract class RandomValueSampler[K, V, R]() extends DoFn[((K, V), Double), (K, V)] {
 
     protected lazy val rngs: ConcurrentHashMap[K, R] = new ConcurrentHashMap[K, R]()
     protected var seed: Long = -1
@@ -44,7 +41,8 @@ object Random {
       require(
         fraction >= (0.0 - RandomSampler.roundingEpsilon)
           && fraction <= (1.0 + RandomSampler.roundingEpsilon),
-        s"Sampling fractions must be on interval [0, 1], Key: $key, Fraction: $fraction")
+        s"Sampling fractions must be on interval [0, 1], Key: $key, Fraction: $fraction"
+      )
 
       rngs.putIfAbsent(key, init())
       val count = samples(fraction, rngs.get(key))
@@ -61,8 +59,7 @@ object Random {
 
   }
 
-  class BernoulliValueSampler[K, V]
-    extends RandomValueSampler[K, V, JRandom] {
+  class BernoulliValueSampler[K, V] extends RandomValueSampler[K, V, JRandom] {
 
     // TODO: Is seed properly handled here
     // TODO: is it necessary to setSeed for each instance like Spark does?
@@ -84,8 +81,7 @@ object Random {
       }
   }
 
-  class RandomValueAssigner[K, V]()
-    extends DoFn[(K, V), (K, (V, Double))] {
+  class RandomValueAssigner[K, V]() extends DoFn[(K, V), (K, (V, Double))] {
     protected lazy val rngs: ConcurrentHashMap[K, JRandom] = new ConcurrentHashMap[K, JRandom]()
     protected var seed: Long = -1
 

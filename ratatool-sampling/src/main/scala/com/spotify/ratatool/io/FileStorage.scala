@@ -37,17 +37,18 @@ private[ratatool] object FileStorage {
 
 private[ratatool] class FileStorage(protected[io] val path: String) {
 
-  def exists: Boolean = ! FileSystems.`match`(path).metadata.isEmpty
+  def exists: Boolean = !FileSystems.`match`(path).metadata.isEmpty
 
   def listFiles: Seq[Metadata] = FileSystems.`match`(path).metadata().asScala.toList
 
   def isDone: Boolean = {
     val partPattern = "([0-9]{5})-of-([0-9]{5})".r
-    val metadata = try {
-      listFiles
-    } catch {
-      case e: FileNotFoundException => Seq.empty
-    }
+    val metadata =
+      try {
+        listFiles
+      } catch {
+        case e: FileNotFoundException => Seq.empty
+      }
     val nums = metadata.flatMap { meta =>
       val m = partPattern.findAllIn(meta.resourceId().toString)
       if (m.hasNext) {
@@ -64,9 +65,9 @@ private[ratatool] class FileStorage(protected[io] val path: String) {
       // found xxxxx-of-yyyyy pattern
       val parts = nums.map(_._1).sorted
       val total = nums.map(_._2).toSet
-      metadata.size == nums.size &&  // all paths matched
-        total.size == 1 && total.head == parts.size &&  // yyyyy part
-        parts.head == 0 && parts.last + 1 == parts.size // xxxxx part
+      metadata.size == nums.size && // all paths matched
+      total.size == 1 && total.head == parts.size && // yyyyy part
+      parts.head == 0 && parts.last + 1 == parts.size // xxxxx part
     } else {
       true
     }

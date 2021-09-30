@@ -22,7 +22,7 @@ import java.util.UUID
 import com.spotify.ratatool.avro.specific.{EnumField, ExampleRecord}
 import com.spotify.ratatool.examples.scalacheck.ExampleAvroGen
 import org.scalacheck.{Gen, Properties}
-import org.scalacheck.Prop.{AnyOperators, propBoolean, forAll}
+import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
 
 import scala.jdk.CollectionConverters._
 
@@ -37,7 +37,7 @@ object ExampleAvroGenTest extends Properties("ExampleAvroGenerator") {
     (m.getIndependentIntField == 0
       && m.getDependentIntField == Int.MaxValue) :| "Max if indep is 0" ||
     (m.getIndependentIntField != 0
-      && m.getDependentIntField == m.getIndependentIntField/2) :| "Half when indep is not 0"
+      && m.getDependentIntField == m.getIndependentIntField / 2) :| "Half when indep is not 0"
   }
 
   property("generates valid dependent enum") = forAll(gen) { m =>
@@ -57,13 +57,12 @@ object ExampleAvroGenTest extends Properties("ExampleAvroGenerator") {
   }
 
   property("the record id is the same when using amend2 generators") =
-    forAll(ExampleAvroGen.exampleRecordAmend2Gen) {
-      case (gen1, gen2) => gen1.getRecordId == gen2.getRecordId
+    forAll(ExampleAvroGen.exampleRecordAmend2Gen) { case (gen1, gen2) =>
+      gen1.getRecordId == gen2.getRecordId
     }
 
   property("the record id is the same when using amend2 for correlated fields") =
-    forAll(ExampleAvroGen.correlatedRecordGen) {
-      correlatedGen =>
-        correlatedGen.getRecordId == correlatedGen.getNestedRecordField.getParentRecordId
+    forAll(ExampleAvroGen.correlatedRecordGen) { correlatedGen =>
+      correlatedGen.getRecordId == correlatedGen.getNestedRecordField.getParentRecordId
     }
 }

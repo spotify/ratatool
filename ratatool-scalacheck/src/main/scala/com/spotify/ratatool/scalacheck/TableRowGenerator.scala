@@ -63,13 +63,12 @@ trait TableRowGeneratorOps {
   private def instantGen: Gen[Instant] = Gen.choose(0L, Long.MaxValue).map(l => new Instant(l))
 
   /** Generate a BigQuery [[TableRow]] record. */
-  def tableRowOf(schema: TableSchema): Gen[TableRow] = {
-   tableRowOfList(schema.getFields.asScala.toList)
-  }
+  def tableRowOf(schema: TableSchema): Gen[TableRow] =
+    tableRowOfList(schema.getFields.asScala.toList)
 
   /**
-   * Generate a TableRow from an `Iterable[TableFieldSchema]` so this can be reused
-   * by `RECORD` fields
+   * Generate a TableRow from an `Iterable[TableFieldSchema]` so this can be reused by `RECORD`
+   * fields
    */
   private def tableRowOfList(row: Iterable[TableFieldSchema]): Gen[TableRow] = {
     def buildRow(r: TableRow, v: List[TableFieldValue]): TableRow = {
@@ -93,13 +92,16 @@ trait TableRowGeneratorOps {
   }
 
   /**
-   * Generate a TableRow from an `Iterable[TableFieldSchema]` so this can be reused
-   * by `RECORD` fields
+   * Generate a TableRow from an `Iterable[TableFieldSchema]` so this can be reused by `RECORD`
+   * fields
    */
-  private def linkedMapOfList(row: Iterable[TableFieldSchema])
-  : Gen[util.LinkedHashMap[String, Any]] = {
-    def buildMap(r: util.LinkedHashMap[String, Any], v: List[TableFieldValue])
-    : util.LinkedHashMap[String, Any] = {
+  private def linkedMapOfList(
+    row: Iterable[TableFieldSchema]
+  ): Gen[util.LinkedHashMap[String, Any]] = {
+    def buildMap(
+      r: util.LinkedHashMap[String, Any],
+      v: List[TableFieldValue]
+    ): util.LinkedHashMap[String, Any] = {
       v.foreach { s =>
         s.value match {
           /** Workaround for type erasure */
@@ -124,17 +126,19 @@ trait TableRowGeneratorOps {
     val n = fieldSchema.getName
     def genV(): Gen[TableFieldValue] = fieldSchema.getType match {
       case "INTEGER" => Arbitrary.arbInt.arbitrary.map(TableFieldValue(n, _))
-      case "FLOAT" => Arbitrary.arbFloat.arbitrary.map(TableFieldValue(n, _))
+      case "FLOAT"   => Arbitrary.arbFloat.arbitrary.map(TableFieldValue(n, _))
       case "BOOLEAN" => Arbitrary.arbBool.arbitrary.map(TableFieldValue(n, _))
-      case "STRING" => Arbitrary.arbString.arbitrary.map(TableFieldValue(n, _))
-      case "TIMESTAMP" => instantGen.map(i =>
-        TableFieldValue(n, timeStampFormatter.print(i) + " UTC"))
-      case "DATE" => instantGen.map(i => TableFieldValue(n, dateFormatter.print(i)))
-      case "TIME" =>  instantGen.map(i => TableFieldValue(n, timeFormatter.print(i)))
-      case "DATETIME" =>  instantGen.map(i => TableFieldValue(n, dateTimeFormatter.print(i)))
-      case "BYTES" => Gen.listOf(Arbitrary.arbByte.arbitrary)
-        .map(i => ByteBuffer.wrap(i.toArray))
-        .map(v => TableFieldValue(n, BaseEncoding.base64().encode(v.array())))
+      case "STRING"  => Arbitrary.arbString.arbitrary.map(TableFieldValue(n, _))
+      case "TIMESTAMP" =>
+        instantGen.map(i => TableFieldValue(n, timeStampFormatter.print(i) + " UTC"))
+      case "DATE"     => instantGen.map(i => TableFieldValue(n, dateFormatter.print(i)))
+      case "TIME"     => instantGen.map(i => TableFieldValue(n, timeFormatter.print(i)))
+      case "DATETIME" => instantGen.map(i => TableFieldValue(n, dateTimeFormatter.print(i)))
+      case "BYTES" =>
+        Gen
+          .listOf(Arbitrary.arbByte.arbitrary)
+          .map(i => ByteBuffer.wrap(i.toArray))
+          .map(v => TableFieldValue(n, BaseEncoding.base64().encode(v.array())))
       case "RECORD" =>
         linkedMapOfList(fieldSchema.getFields.asScala).map(TableFieldValue(n, _))
 
@@ -143,9 +147,10 @@ trait TableRowGeneratorOps {
 
     fieldSchema.getMode match {
       case "REQUIRED" => genV()
-      case "NULLABLE" => Arbitrary.arbBool.arbitrary.flatMap { e =>
-        if (e) genV() else Gen.const(TableFieldValue(n, null))
-      }
+      case "NULLABLE" =>
+        Arbitrary.arbBool.arbitrary.flatMap { e =>
+          if (e) genV() else Gen.const(TableFieldValue(n, null))
+        }
       case "REPEATED" => Gen.nonEmptyListOf(genV()).map(l => TableFieldValue(n, l))
 
       case m => throw new RuntimeException(s"Unknown mode: $m")

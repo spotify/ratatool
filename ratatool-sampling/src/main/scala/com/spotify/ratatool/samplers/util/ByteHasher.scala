@@ -34,21 +34,17 @@ object ByteHasher {
 }
 
 class ByteHasher(hasher: Hasher, encoding: BaseEncoding, charset: Charset) extends Hasher {
-  override def putByte(b: Byte): Hasher = {
+  override def putByte(b: Byte): Hasher =
     hasher.putString(encoding.encode(Array(b)), charset)
-  }
 
-  override def putBytes(bytes: Array[Byte]): Hasher = {
+  override def putBytes(bytes: Array[Byte]): Hasher =
     hasher.putString(encoding.encode(bytes), charset)
-  }
 
-  override def putBytes(bytes: Array[Byte], off: Int, len: Int): Hasher = {
+  override def putBytes(bytes: Array[Byte], off: Int, len: Int): Hasher =
     hasher.putString(encoding.encode(bytes, off, len), charset)
-  }
 
-  override def putBytes(bytes: java.nio.ByteBuffer): Hasher = {
+  override def putBytes(bytes: java.nio.ByteBuffer): Hasher =
     hasher.putBytes(bytes)
-  }
 
   override def putShort(s: Short): Hasher = hasher.putShort(s)
 

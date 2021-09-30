@@ -39,6 +39,7 @@ object Schemas {
     .parseAndClose(
       this.getClass.getResourceAsStream("/schema.json"),
       Charsets.UTF_8,
-      classOf[TableSchema])
+      classOf[TableSchema]
+    )
 
 }

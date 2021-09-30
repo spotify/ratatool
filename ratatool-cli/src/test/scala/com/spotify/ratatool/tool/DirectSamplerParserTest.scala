@@ -27,15 +27,16 @@ class DirectSamplerParserTest extends AnyFlatSpec with Matchers {
 
   "ToolParser" should "parse avro command" in {
     val c = config.copy(mode = "avro")
-    parse("avro --in in --out out -n 1000") should equal (Some(c))
-    parse("avro --in in --out out -n 1000 --head") should equal (Some(c.copy(head = true)))
+    parse("avro --in in --out out -n 1000") should equal(Some(c))
+    parse("avro --in in --out out -n 1000 --head") should equal(Some(c.copy(head = true)))
   }
 
   it should "parse bigquery command" in {
     val c = config.copy(mode = "bigquery")
-    parse("bigquery --in in --out out -n 1000") should equal (None)
-    parse("bigquery --in in --out out -n 1000 --head") should equal (Some(c.copy(head = true)))
-    parse("bigquery --in in --out out -n 1000 --head --tableOut table:out ") should equal (
-      Some(c.copy(head = true, tableOut = "table:out")))
+    parse("bigquery --in in --out out -n 1000") should equal(None)
+    parse("bigquery --in in --out out -n 1000 --head") should equal(Some(c.copy(head = true)))
+    parse("bigquery --in in --out out -n 1000 --head --tableOut table:out ") should equal(
+      Some(c.copy(head = true, tableOut = "table:out"))
+    )
   }
 }

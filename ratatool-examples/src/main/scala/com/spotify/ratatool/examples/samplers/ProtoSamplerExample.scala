@@ -23,18 +23,17 @@ import com.spotify.ratatool.samplers._
 import com.spotify.ratatool.samplers.util.StratifiedDistribution
 import com.spotify.scio.avro._
 
-
 object ProtoSamplerExample {
 
   def main(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
-    sampleProto[TestRecord](sc.protobufFile[TestRecord](args("input")),
+    sampleProto[TestRecord](
+      sc.protobufFile[TestRecord](args("input")),
       0.01,
       distribution = Some(StratifiedDistribution),
       distributionFields = Seq("required_fields.string_field")
     ).saveAsProtobufFile(args("output"))
-
 
     sc.run().waitUntilDone()
   }

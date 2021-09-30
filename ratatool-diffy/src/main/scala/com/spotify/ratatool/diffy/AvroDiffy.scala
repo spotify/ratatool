@@ -25,13 +25,15 @@ import scala.util.Try
 import scala.jdk.CollectionConverters._
 
 /** Field level diff tool for Avro records. */
-class AvroDiffy[T <: GenericRecord : Coder](ignore: Set[String] = Set.empty,
-                                            unordered: Set[String] = Set.empty,
-                                            unorderedFieldKeys: Map[String, String] = Map())
-  extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
+class AvroDiffy[T <: GenericRecord: Coder](
+  ignore: Set[String] = Set.empty,
+  unordered: Set[String] = Set.empty,
+  unorderedFieldKeys: Map[String, String] = Map()
+) extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
 
   override def apply(x: T, y: T): Seq[Delta] = {
-    new SchemaValidatorBuilder().canReadStrategy.validateLatest()
+    new SchemaValidatorBuilder().canReadStrategy
+      .validateLatest()
       .validate(y.getSchema, List(x.getSchema).asJava)
     diff(Option(x), Option(y), "")
   }
@@ -42,62 +44,73 @@ class AvroDiffy[T <: GenericRecord : Coder](ignore: Set[String] = Set.empty,
         schema.getTypes.asScala.map(_.getType).contains(Schema.Type.RECORD))
 
   // scalastyle:off cyclomatic.complexity method.length
-  private def diff(x: Option[GenericRecord], y: Option[GenericRecord], root: String)
-  : Seq[Delta] = {
+  private def diff(x: Option[GenericRecord], y: Option[GenericRecord], root: String): Seq[Delta] = {
     // If a y exists we assume it has the superset of all fields, since x must be backwards
     // compatible with it based on the SchemaValidator check in apply()
     val schemaFields = (x, y) match {
       case (Some(xVal), None) => xVal.getSchema.getFields.asScala.toList
-      case (_, Some(yVal)) => yVal.getSchema.getFields.asScala.toList
-      case _ => List()
+      case (_, Some(yVal))    => yVal.getSchema.getFields.asScala.toList
+      case _                  => List()
     }
 
-    schemaFields.flatMap { f =>
-      val name = f.name()
-      val fullName = if (root.isEmpty) name else root + "." + name
-      getRawType(f.schema()).getType match {
-        case Schema.Type.RECORD =>
-          val a = x.flatMap(r => Option(r.get(name).asInstanceOf[GenericRecord]))
-          val b = y.flatMap(r => Option(r.get(name).asInstanceOf[GenericRecord]))
-          (a, b) match {
-            case (None, None) => Nil
-            case (Some(_), None) => Seq(Delta(fullName, a, None, UnknownDelta))
-            case (None, Some(_)) => Seq(Delta(fullName, None, b, UnknownDelta))
-            case (Some(_), Some(_)) => diff(a, b, fullName)
-          }
-        case Schema.Type.ARRAY if unordered.contains(fullName) =>
-          if (unorderedFieldKeys.contains(fullName)
-            && isAvroRecordType(f.schema().getElementType)) {
-            val l = x.flatMap(outer =>
-              Option(outer.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList))
-              .getOrElse(List())
-              .flatMap(inner =>
-                Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner)))
-              .toMap
-            val r = y.flatMap(outer =>
-              Option(outer.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList))
-              .getOrElse(List())
-              .flatMap(inner =>
-                Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner)))
-              .toMap
-            (l.keySet ++ r.keySet).flatMap(k => diff(l.get(k), r.get(k), fullName)).toList
-          } else {
-            val a = x.flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]]))
-              .map(sortList)
-            val b = y.flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]]))
-              .map(sortList)
-            if (a == b) {
-              Nil
-            } else {
-              Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
+    schemaFields
+      .flatMap { f =>
+        val name = f.name()
+        val fullName = if (root.isEmpty) name else root + "." + name
+        getRawType(f.schema()).getType match {
+          case Schema.Type.RECORD =>
+            val a = x.flatMap(r => Option(r.get(name).asInstanceOf[GenericRecord]))
+            val b = y.flatMap(r => Option(r.get(name).asInstanceOf[GenericRecord]))
+            (a, b) match {
+              case (None, None)       => Nil
+              case (Some(_), None)    => Seq(Delta(fullName, a, None, UnknownDelta))
+              case (None, Some(_))    => Seq(Delta(fullName, None, b, UnknownDelta))
+              case (Some(_), Some(_)) => diff(a, b, fullName)
             }
-          }
-        case _ =>
-          val a = x.flatMap(r => Option(r.get(name)))
-          val b = y.flatMap(r => Option(r.get(name)))
-          if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
+          case Schema.Type.ARRAY if unordered.contains(fullName) =>
+            if (
+              unorderedFieldKeys.contains(fullName)
+              && isAvroRecordType(f.schema().getElementType)
+            ) {
+              val l = x
+                .flatMap(outer =>
+                  Option(outer.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList)
+                )
+                .getOrElse(List())
+                .flatMap(inner =>
+                  Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner))
+                )
+                .toMap
+              val r = y
+                .flatMap(outer =>
+                  Option(outer.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList)
+                )
+                .getOrElse(List())
+                .flatMap(inner =>
+                  Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner))
+                )
+                .toMap
+              (l.keySet ++ r.keySet).flatMap(k => diff(l.get(k), r.get(k), fullName)).toList
+            } else {
+              val a = x
+                .flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]]))
+                .map(sortList)
+              val b = y
+                .flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]]))
+                .map(sortList)
+              if (a == b) {
+                Nil
+              } else {
+                Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
+              }
+            }
+          case _ =>
+            val a = x.flatMap(r => Option(r.get(name)))
+            val b = y.flatMap(r => Option(r.get(name)))
+            if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
+        }
       }
-    }.filter(d => !ignore.contains(d.field))
+      .filter(d => !ignore.contains(d.field))
   }
   // scalastyle:on cyclomatic.complexity method.length
 

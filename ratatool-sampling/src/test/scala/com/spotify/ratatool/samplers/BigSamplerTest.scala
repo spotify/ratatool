@@ -46,9 +46,9 @@ object BigSamplerTest extends Properties("BigSampler") {
     BigSampler.hashFun(MurmurHash, seed = testSeed)
 
   /* using the same hasher for more than one test causes BufferOverflows,
-    * gen a => Hasher not a Hasher
-    */
-  private val randomHashGen = Gen.oneOf( () => newTestFarmHasher(), () => newTestKissHasher())
+   * gen a => Hasher not a Hasher
+   */
+  private val randomHashGen = Gen.oneOf(() => newTestFarmHasher(), () => newTestKissHasher())
 
   property("dice on the same element should match") = forAll { i: Int =>
     val hasher1 = newTestFarmHasher()
@@ -67,24 +67,24 @@ object BigSamplerTest extends Properties("BigSampler") {
 
   private val negativeHashCodeStringGen: Gen[(String, Hasher)] = for {
     hasher <- randomHashGen
-    str <- Gen.alphaNumStr.suchThat(str => {
+    str <- Gen.alphaNumStr.suchThat { str =>
       hasher().putString(str, BigSampler.utf8Charset).hash().asLong < 0
-    })
+    }
   } yield (str, hasher())
 
-  property("dice on hash values that return negative Long representations should still bucket so " +
-    "that all values are returned at 100% and none are at 0% " +
-    "(should respect modular arithmetic to split when the Long is negative, the same as it would " +
-    "if it was positive)") =
+  property(
+    "dice on hash values that return negative Long representations should still bucket so " +
+      "that all values are returned at 100% and none are at 0%. This should respect modular " +
+      "arithmetic to split when the Long is negative, the same as it would " +
+      "if it was positive."
+  ) = forAll(negativeHashCodeStringGen) { case (s, hasher) =>
+    val hash = hasher.putString(s, BigSampler.utf8Charset).hash()
+    BigSampler.diceElement(s, hash, 1.0).contains(s)
+    BigSampler.diceElement(s, hash, 0).isEmpty
+  }
 
-    forAll(negativeHashCodeStringGen){ case (s, hasher) =>
-      val hash = hasher.putString(s, BigSampler.utf8Charset).hash()
-      BigSampler.diceElement(s, hash, 1.0).contains(s)
-      BigSampler.diceElement(s, hash, 0).isEmpty
-    }
-
-  property("farm hasher should return the same hash all the time - no seed in FarmHash") =
-    forAll { i: Int =>
+  property("farm hasher should return the same hash all the time - no seed in FarmHash") = forAll {
+    i: Int =>
       val hasher1 = newTestFarmHasher()
       val hasher2 = newTestFarmHasher()
       hasher1.putInt(i).hash() == hasher2.putInt(i).hash()
@@ -105,7 +105,8 @@ object BigSamplerTest extends Properties("BigSampler") {
     "timestamp_field",
     "date_field",
     "time_field",
-    "datetime_field")
+    "datetime_field"
+  )
 
   private val richTableRowHasherGen = for {
     tr <- richTableRowGen
@@ -115,41 +116,44 @@ object BigSamplerTest extends Properties("BigSampler") {
   property("should hash on supported types in TableRow") = forAll(richTableRowHasherGen) {
     case (r, hasher) => {
       all(
-        supportedTableRowTypes.map(t => s"required_fields.$t").map(f => {
-          BigSampler.hashTableRow(r,
-            f,
-            tblSchemaFields.toList,
-            hasher)
-          proved
-        } :| f
-        ): _*)
+        supportedTableRowTypes
+          .map(t => s"required_fields.$t")
+          .map(f =>
+            {
+              BigSampler.hashTableRow(r, f, tblSchemaFields.toList, hasher)
+              proved
+            } :| f
+          ): _*
+      )
     }
   }
 
   property("should hash on supported nullable types in TableRow") = forAll(richTableRowHasherGen) {
-  case (r, hasher) =>
-    all(
-      supportedTableRowTypes.map(t => s"nullable_fields.$t").map(f => {
-        BigSampler.hashTableRow(r,
-          f,
-          tblSchemaFields.toList,
-          hasher)
-        proved
-      } :| f
-      ): _*)
+    case (r, hasher) =>
+      all(
+        supportedTableRowTypes
+          .map(t => s"nullable_fields.$t")
+          .map(f =>
+            {
+              BigSampler.hashTableRow(r, f, tblSchemaFields.toList, hasher)
+              proved
+            } :| f
+          ): _*
+      )
   }
 
   property("should hash on supported repeated types in TableRow") = forAll(richTableRowHasherGen) {
     case (r, hasher) =>
-    all(
-      supportedTableRowTypes.map(t => s"repeated_fields.$t").map( f =>
-        {
-          BigSampler.hashTableRow(r,
-            f,
-            tblSchemaFields.toList,
-            hasher)
-          proved} :| f
-      ): _*)
+      all(
+        supportedTableRowTypes
+          .map(t => s"repeated_fields.$t")
+          .map(f =>
+            {
+              BigSampler.hashTableRow(r, f, tblSchemaFields.toList, hasher)
+              proved
+            } :| f
+          ): _*
+      )
   }
 
   private val avroSchema = TestRecord.SCHEMA$
@@ -163,7 +167,8 @@ object BigSamplerTest extends Properties("BigSampler") {
     "double_field",
     "enum_field",
     "bytes_field",
-    "fixed_field")
+    "fixed_field"
+  )
 
   private val richAvroHasherGen = for {
     r <- specificAvroGen
@@ -172,41 +177,44 @@ object BigSamplerTest extends Properties("BigSampler") {
 
   property("should hash on supported required specific types") = forAll(richAvroHasherGen) {
     case (r, hasher) =>
-    all(
-      supportedAvroTypes.map(t => s"required_fields.$t").map( f =>
-        {
-          BigSampler.hashAvroField(r,
-            f,
-            avroSchema,
-            hasher)
-          proved} :| f
-      ): _*)
+      all(
+        supportedAvroTypes
+          .map(t => s"required_fields.$t")
+          .map(f =>
+            {
+              BigSampler.hashAvroField(r, f, avroSchema, hasher)
+              proved
+            } :| f
+          ): _*
+      )
   }
 
   property("should hash on supported nullable specific types") = forAll(richAvroHasherGen) {
     case (r, hasher) =>
-    all(
-      supportedAvroTypes.map(t => s"nullable_fields.$t").map( f =>
-        {
-          BigSampler.hashAvroField(r,
-            f,
-            avroSchema,
-            hasher)
-            proved} :| f
-      ): _*)
+      all(
+        supportedAvroTypes
+          .map(t => s"nullable_fields.$t")
+          .map(f =>
+            {
+              BigSampler.hashAvroField(r, f, avroSchema, hasher)
+              proved
+            } :| f
+          ): _*
+      )
   }
 
   property("should hash on supported repeated specific types") = forAll(richAvroHasherGen) {
     case (r, hasher) =>
-    all(
-      supportedAvroTypes.map(t => s"repeated_fields.$t").map( f =>
-        {
-          BigSampler.hashAvroField(r,
-            f,
-            avroSchema,
-            hasher)
-          proved} :| f
-      ): _*)
+      all(
+        supportedAvroTypes
+          .map(t => s"repeated_fields.$t")
+          .map(f =>
+            {
+              BigSampler.hashAvroField(r, f, avroSchema, hasher)
+              proved
+            } :| f
+          ): _*
+      )
   }
 
   private val genericAvroGen = genericRecordOf(TestRecord.SCHEMA$)
@@ -218,51 +226,51 @@ object BigSamplerTest extends Properties("BigSampler") {
   property("should hash on supported required generic types") = forAll(genericAvroHasherGen) {
     case (r, hasher) =>
       all(
-        supportedAvroTypes.map(t => s"required_fields.$t").map( f =>
-          {
-            BigSampler.hashAvroField(r,
-              f,
-              avroSchema,
-              hasher)
-            proved} :| f
-        ): _*)
+        supportedAvroTypes
+          .map(t => s"required_fields.$t")
+          .map(f =>
+            {
+              BigSampler.hashAvroField(r, f, avroSchema, hasher)
+              proved
+            } :| f
+          ): _*
+      )
   }
 
   property("should hash on supported nullable generic types") = forAll(genericAvroHasherGen) {
     case (r, hasher) =>
       all(
-        supportedAvroTypes.map(t => s"nullable_fields.$t").map( f =>
-          {
-            BigSampler.hashAvroField(r,
-              f,
-              avroSchema,
-              hasher)
-            proved} :| f
-        ): _*)
+        supportedAvroTypes
+          .map(t => s"nullable_fields.$t")
+          .map(f =>
+            {
+              BigSampler.hashAvroField(r, f, avroSchema, hasher)
+              proved
+            } :| f
+          ): _*
+      )
   }
 
   property("should hash on supported repeated generic types") = forAll(genericAvroHasherGen) {
     case (r, hasher) =>
       all(
-        supportedAvroTypes.map(t => s"repeated_fields.$t").map( f =>
-          {
-            BigSampler.hashAvroField(r,
-              f,
-              avroSchema,
-              hasher)
-            proved} :| f
-        ): _*)
+        supportedAvroTypes
+          .map(t => s"repeated_fields.$t")
+          .map(f =>
+            {
+              BigSampler.hashAvroField(r, f, avroSchema, hasher)
+              proved
+            } :| f
+          ): _*
+      )
   }
 
-  private val supportedCommonFields = Seq(
-    "int_field",
-    "float_field",
-    "boolean_field",
-    "string_field")
+  private val supportedCommonFields =
+    Seq("int_field", "float_field", "boolean_field", "string_field")
   private val records = Seq("nullable_fields", "repeated_fields", "required_fields")
 
-  property("hash of the same single field should match, farmhash") = forAll(
-    Gen.zip(specificAvroGen, Gen.oneOf(supportedCommonFields), Gen.oneOf(records)).map {
+  property("hash of the same single field should match, farmhash") =
+    forAll(Gen.zip(specificAvroGen, Gen.oneOf(supportedCommonFields), Gen.oneOf(records)).map {
       case (i, f, r) =>
         val tbGen =
           richTableRowGen
@@ -278,8 +286,8 @@ object BigSamplerTest extends Properties("BigSampler") {
       tblHash == avroHash
     }
 
-  property("hash of the same single field should match, kisshash") = forAll(
-    Gen.zip(specificAvroGen, Gen.oneOf(supportedCommonFields), Gen.oneOf(records)).map {
+  property("hash of the same single field should match, kisshash") =
+    forAll(Gen.zip(specificAvroGen, Gen.oneOf(supportedCommonFields), Gen.oneOf(records)).map {
       case (i, f, r) =>
         val tbGen =
           richTableRowGen
@@ -288,128 +296,155 @@ object BigSamplerTest extends Properties("BigSampler") {
             )(_.getRecord(r).set(f))
         (i, tbGen.sample.get, s"$r.$f")
     }) { case (avro, tblRow, f) =>
-    val tblHash = BigSampler
-      .hashTableRow(tblRow, f, tblSchemaFields.toList, newTestKissHasher())
-      .hash()
-    val avroHash = BigSampler.hashAvroField(avro, f, avroSchema, newTestKissHasher()).hash()
-    tblHash == avroHash
-  }
+      val tblHash = BigSampler
+        .hashTableRow(tblRow, f, tblSchemaFields.toList, newTestKissHasher())
+        .hash()
+      val avroHash = BigSampler.hashAvroField(avro, f, avroSchema, newTestKissHasher()).hash()
+      tblHash == avroHash
+    }
 
-  property("hash of the same fields from the same record should match, farmHash") = forAll(
-    Gen.zip(specificAvroGen, Gen.someOf(supportedCommonFields), Gen.oneOf(records)).map {
+  property("hash of the same fields from the same record should match, farmHash") =
+    forAll(Gen.zip(specificAvroGen, Gen.someOf(supportedCommonFields), Gen.oneOf(records)).map {
       case (i, fs, r) =>
-        val tbGen = fs.foldLeft(richTableRowGen)((gen, f) => gen.amend(
-          Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f)))
+        val tbGen = fs.foldLeft(richTableRowGen)((gen, f) =>
+          gen.amend(Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f))
+        )
         (i, tbGen.sample.get, fs.map(f => s"$r.$f"))
     }) { case (avro, tblRow, fs) =>
-    val hashes = fs.foldLeft((newTestFarmHasher(), newTestFarmHasher())){ case ((h1, h2), f) =>
-      (BigSampler.hashTableRow(tblRow, f, tblSchemaFields.toList, h1),
-        BigSampler.hashAvroField(avro, f, avroSchema, h2))
+      val hashes = fs.foldLeft((newTestFarmHasher(), newTestFarmHasher())) { case ((h1, h2), f) =>
+        (
+          BigSampler.hashTableRow(tblRow, f, tblSchemaFields.toList, h1),
+          BigSampler.hashAvroField(avro, f, avroSchema, h2)
+        )
+      }
+      hashes._1.hash() == hashes._2.hash()
     }
-    hashes._1.hash() == hashes._2.hash()
-  }
 
-  property("hash of the same fields from the same record should match, kissHash") = forAll(
-    Gen.zip(specificAvroGen, Gen.someOf(supportedCommonFields), Gen.oneOf(records)).map {
+  property("hash of the same fields from the same record should match, kissHash") =
+    forAll(Gen.zip(specificAvroGen, Gen.someOf(supportedCommonFields), Gen.oneOf(records)).map {
       case (i, fs, r) =>
-        val tbGen = fs.foldLeft(richTableRowGen)((gen, f) => gen.amend(
-          Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f)))
+        val tbGen = fs.foldLeft(richTableRowGen)((gen, f) =>
+          gen.amend(Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f))
+        )
         (i, tbGen.sample.get, fs.map(f => s"$r.$f"))
     }) { case (avro, tblRow, fs) =>
-    val hashes = fs.foldLeft((newTestKissHasher(), newTestKissHasher())){ case ((h1, h2), f) =>
-      (BigSampler.hashTableRow(tblRow, f, tblSchemaFields.toList, h1),
-        BigSampler.hashAvroField(avro, f, avroSchema, h2))
+      val hashes = fs.foldLeft((newTestKissHasher(), newTestKissHasher())) { case ((h1, h2), f) =>
+        (
+          BigSampler.hashTableRow(tblRow, f, tblSchemaFields.toList, h1),
+          BigSampler.hashAvroField(avro, f, avroSchema, h2)
+        )
+      }
+      hashes._1.hash() == hashes._2.hash()
     }
-    hashes._1.hash() == hashes._2.hash()
-  }
 
   property("hash of the same fields from multiple record should match, farmHash") = forAll(
-    Gen.zip(
-      specificAvroGen,
-      Gen.someOf(supportedCommonFields).suchThat(_.nonEmpty),
-      Gen.someOf(records).suchThat(_.nonEmpty)).map {
-      case (i, fs, rs) =>
-        val crossFieldToRecord = for {f <- fs; r <- rs} yield (f,r)
-        val tbGen = crossFieldToRecord.foldLeft(richTableRowGen){ case (gen, (f, r)) =>
-          gen.amend(Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f))}
-        (i, tbGen.sample.get, crossFieldToRecord.map{ case (f,r) => s"$r.$f" })
-    }) { case (avro, tblRow, fields) =>
-    val hashes = fields.foldLeft((newTestFarmHasher(), newTestFarmHasher())){ case ((h1, h2), f) =>
-      (BigSampler.hashTableRow(tblRow, f, tblSchemaFields.toList, h1),
-        BigSampler.hashAvroField(avro, f, avroSchema, h2))
+    Gen
+      .zip(
+        specificAvroGen,
+        Gen.someOf(supportedCommonFields).suchThat(_.nonEmpty),
+        Gen.someOf(records).suchThat(_.nonEmpty)
+      )
+      .map { case (i, fs, rs) =>
+        val crossFieldToRecord = for {
+          f <- fs
+          r <- rs
+        } yield (f, r)
+        val tbGen = crossFieldToRecord.foldLeft(richTableRowGen) { case (gen, (f, r)) =>
+          gen.amend(Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f))
+        }
+        (i, tbGen.sample.get, crossFieldToRecord.map { case (f, r) => s"$r.$f" })
+      }
+  ) { case (avro, tblRow, fields) =>
+    val hashes = fields.foldLeft((newTestFarmHasher(), newTestFarmHasher())) { case ((h1, h2), f) =>
+      (
+        BigSampler.hashTableRow(tblRow, f, tblSchemaFields.toList, h1),
+        BigSampler.hashAvroField(avro, f, avroSchema, h2)
+      )
     }
     hashes._1.hash() == hashes._2.hash()
   }
 
   property("hash of the same fields from multiple record should match, kissHash") = forAll(
-    Gen.zip(
-      specificAvroGen,
-      Gen.someOf(supportedCommonFields).suchThat(_.nonEmpty),
-      Gen.someOf(records).suchThat(_.nonEmpty)).map {
-      case (i, fs, rs) =>
-        val crossFieldToRecord = for {f <- fs; r <- rs} yield (f,r)
-        val tbGen = crossFieldToRecord.foldLeft(richTableRowGen){ case (gen, (f, r)) =>
-          gen.amend(Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f))}
-        (i, tbGen.sample.get, crossFieldToRecord.map{ case (f,r) => s"$r.$f" })
-    }) { case (avro, tblRow, fields) =>
-    val hashes = fields.foldLeft((newTestKissHasher(), newTestKissHasher())){ case ((h1, h2), f) =>
-      (BigSampler.hashTableRow(tblRow, f, tblSchemaFields.toList, h1),
-        BigSampler.hashAvroField(avro, f, avroSchema, h2))
+    Gen
+      .zip(
+        specificAvroGen,
+        Gen.someOf(supportedCommonFields).suchThat(_.nonEmpty),
+        Gen.someOf(records).suchThat(_.nonEmpty)
+      )
+      .map { case (i, fs, rs) =>
+        val crossFieldToRecord = for {
+          f <- fs
+          r <- rs
+        } yield (f, r)
+        val tbGen = crossFieldToRecord.foldLeft(richTableRowGen) { case (gen, (f, r)) =>
+          gen.amend(Gen.const(i.get(r).asInstanceOf[GenericRecord].get(f)))(_.getRecord(r).set(f))
+        }
+        (i, tbGen.sample.get, crossFieldToRecord.map { case (f, r) => s"$r.$f" })
+      }
+  ) { case (avro, tblRow, fields) =>
+    val hashes = fields.foldLeft((newTestKissHasher(), newTestKissHasher())) { case ((h1, h2), f) =>
+      (
+        BigSampler.hashTableRow(tblRow, f, tblSchemaFields.toList, h1),
+        BigSampler.hashAvroField(avro, f, avroSchema, h2)
+      )
     }
     hashes._1.hash() == hashes._2.hash()
   }
 
-  property("hashes of bytes, hex strings, and fixed should be the same") = forAll(
-    specificAvroGen) { case avro =>
-    val hexEncode = BaseEncoding.base16.lowerCase
-    avro.getRequiredFields.setBytesField(
-      ByteBuffer.wrap(avro.getRequiredFields.getFixedField.bytes))
-    avro.getRequiredFields.setStringField(
-      hexEncode.encode(avro.getRequiredFields.getFixedField.bytes))
+  property("hashes of bytes, hex strings, and fixed should be the same") = forAll(specificAvroGen) {
+    case avro =>
+      val hexEncode = BaseEncoding.base16.lowerCase
+      avro.getRequiredFields.setBytesField(
+        ByteBuffer.wrap(avro.getRequiredFields.getFixedField.bytes)
+      )
+      avro.getRequiredFields.setStringField(
+        hexEncode.encode(avro.getRequiredFields.getFixedField.bytes)
+      )
 
-    val hasher1 =
-      ByteHasher.wrap(newTestKissHasher(Some(0)), HexEncoding, BigSampler.utf8Charset)
-    val bytesHash =
-      BigSampler.hashAvroField(avro, "required_fields.bytes_field", avroSchema,
-        hasher1).hash()
+      val hasher1 =
+        ByteHasher.wrap(newTestKissHasher(Some(0)), HexEncoding, BigSampler.utf8Charset)
+      val bytesHash =
+        BigSampler.hashAvroField(avro, "required_fields.bytes_field", avroSchema, hasher1).hash()
 
-    val hasher2 =
-      ByteHasher.wrap(newTestKissHasher(Some(0)), HexEncoding, BigSampler.utf8Charset)
-    val fixedHash =
-      BigSampler.hashAvroField(avro, "required_fields.fixed_field", avroSchema,
-        hasher2).hash()
+      val hasher2 =
+        ByteHasher.wrap(newTestKissHasher(Some(0)), HexEncoding, BigSampler.utf8Charset)
+      val fixedHash =
+        BigSampler.hashAvroField(avro, "required_fields.fixed_field", avroSchema, hasher2).hash()
 
-    val hasher3 = newTestKissHasher(Some(0))
-    val stringHash =
-      BigSampler.hashAvroField(avro, "required_fields.string_field", avroSchema,
-        hasher3).hash()
+      val hasher3 = newTestKissHasher(Some(0))
+      val stringHash =
+        BigSampler.hashAvroField(avro, "required_fields.string_field", avroSchema, hasher3).hash()
 
-    bytesHash == fixedHash && fixedHash == stringHash
+      bytesHash == fixedHash && fixedHash == stringHash
   }
 }
 
 /**
- * Base testing class for BigSampler. Adding a new subclass here rqeuires also adding a line to
- * test it in travis.yml
+ * Base testing class for BigSampler. Adding a new subclass here rqeuires also adding a line to test
+ * it in travis.yml
  */
-sealed trait BigSamplerJobTestRoot extends AnyFlatSpec
-  with Matchers with BeforeAndAfterAllConfigMap {
+sealed trait BigSamplerJobTestRoot
+    extends AnyFlatSpec
+    with Matchers
+    with BeforeAndAfterAllConfigMap {
   val schema = Schemas.avroSchema
   def data1Size: Int
   def data2Size: Int
   def totalElements: Int = data1Size + data2Size
 
-  val data1: List[GenericRecord] = Gen.listOfN(data1Size, genericRecordOf(schema))
+  val data1: List[GenericRecord] = Gen
+    .listOfN(data1Size, genericRecordOf(schema))
     .pureApply(Gen.Parameters.default.withSize(5), Seed.random())
-    .map{ gr =>
+    .map { gr =>
       val req = gr.get("required_fields").asInstanceOf[GenericRecord]
       req.put("string_field", "large_strata")
       gr.put("required_fields", req)
       gr
     }
-  val data2: List[GenericRecord] = Gen.listOfN(data2Size, genericRecordOf(schema))
+  val data2: List[GenericRecord] = Gen
+    .listOfN(data2Size, genericRecordOf(schema))
     .pureApply(Gen.Parameters.default.withSize(5), Seed.random())
-    .map{ gr =>
+    .map { gr =>
       val req = gr.get("required_fields").asInstanceOf[GenericRecord]
       req.put("string_field", "small_strata")
       gr.put("required_fields", req)
@@ -439,7 +474,8 @@ sealed trait BigSamplerJobTestRoot extends AnyFlatSpec
 
   protected def countAvroRecords(p: String, f: GenericRecord => Boolean = _ => true): Long =
     FileStorage(p).listFiles.foldLeft(0)((i, m) =>
-      i + AvroIO.readFromFile[GenericRecord](m.resourceId().toString).count(f))
+      i + AvroIO.readFromFile[GenericRecord](m.resourceId().toString).count(f)
+    )
 }
 
 class BigSamplerBasicJobTest extends BigSamplerJobTestRoot {
@@ -462,12 +498,15 @@ class BigSamplerBasicJobTest extends BigSamplerJobTestRoot {
   }
 
   it should "work for 50% with hash field and seed" in withOutFile { outDir =>
-    BigSampler.run(Array(
-      s"--input=$dir/*.avro",
-      s"--output=$outDir",
-      "--sample=0.5",
-      "--seed=42",
-      "--fields=required_fields.int_field"))
+    BigSampler.run(
+      Array(
+        s"--input=$dir/*.avro",
+        s"--output=$outDir",
+        "--sample=0.5",
+        "--seed=42",
+        "--fields=required_fields.int_field"
+      )
+    )
     countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 2000
   }
 }
@@ -477,101 +516,133 @@ class BigSamplerApproxDistJobTest extends BigSamplerJobTestRoot {
   override def data2Size: Int = 2500
 
   "BigSampler" should "stratify across a single field" in withOutFile { outDir =>
-    BigSampler.run(Array(
-      s"--input=$dir/*.avro",
-      s"--output=$outDir",
-      "--sample=0.5",
-      "--distribution=stratified",
-      "--distributionFields=required_fields.string_field"
-    ))
-    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+    BigSampler.run(
+      Array(
+        s"--input=$dir/*.avro",
+        s"--output=$outDir",
+        "--sample=0.5",
+        "--distribution=stratified",
+        "--distributionFields=required_fields.string_field"
+      )
+    )
+    val largeStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "large_strata")
-      .toDouble
-    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "large_strata"
+    ).toDouble
+    val smallStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "small_strata")
-      .toDouble
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "small_strata"
+    ).toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.5 +- 250
-    largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.05
-    smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.05
+    largeStrataCount / totalCount shouldBe (data1Size.toDouble / totalElements) +- 0.05
+    smallStrataCount / totalCount shouldBe (data2Size.toDouble / totalElements) +- 0.05
   }
 
   it should "stratify across a single field with hash field" in withOutFile { outDir =>
-    BigSampler.run(Array(
-      s"--input=$dir/*.avro",
-      s"--output=$outDir",
-      "--sample=0.5",
-      "--distribution=stratified",
-      "--distributionFields=required_fields.string_field",
-      "--fields=required_fields.long_field,required_fields.int_field"
-    ))
-    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+    BigSampler.run(
+      Array(
+        s"--input=$dir/*.avro",
+        s"--output=$outDir",
+        "--sample=0.5",
+        "--distribution=stratified",
+        "--distributionFields=required_fields.string_field",
+        "--fields=required_fields.long_field,required_fields.int_field"
+      )
+    )
+    val largeStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "large_strata")
-      .toDouble
-    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "large_strata"
+    ).toDouble
+    val smallStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "small_strata")
-      .toDouble
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "small_strata"
+    ).toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.5 +- 2000
-    largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.05
-    smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.05
+    largeStrataCount / totalCount shouldBe (data1Size.toDouble / totalElements) +- 0.05
+    smallStrataCount / totalCount shouldBe (data2Size.toDouble / totalElements) +- 0.05
   }
 
   it should "sample uniformly across a single field" in withOutFile { outDir =>
-    BigSampler.run(Array(
-      s"--input=$dir/*.avro",
-      s"--output=$outDir",
-      "--sample=0.1",
-      "--distribution=uniform",
-      "--distributionFields=required_fields.string_field"
-    ))
-    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+    BigSampler.run(
+      Array(
+        s"--input=$dir/*.avro",
+        s"--output=$outDir",
+        "--sample=0.1",
+        "--distribution=uniform",
+        "--distributionFields=required_fields.string_field"
+      )
+    )
+    val largeStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "large_strata")
-      .toDouble
-    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "large_strata"
+    ).toDouble
+    val smallStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "small_strata")
-      .toDouble
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "small_strata"
+    ).toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.1 +- 750
-    largeStrataCount/totalCount shouldBe 0.5 +- 0.05
-    smallStrataCount/totalCount shouldBe 0.5 +- 0.05
+    largeStrataCount / totalCount shouldBe 0.5 +- 0.05
+    smallStrataCount / totalCount shouldBe 0.5 +- 0.05
   }
 
   it should "sample uniformly across a single field with hash field" in withOutFile { outDir =>
-    BigSampler.run(Array(
-      s"--input=$dir/*.avro",
-      s"--output=$outDir",
-      "--sample=0.1",
-      "--distribution=uniform",
-      "--distributionFields=required_fields.string_field",
-      "--fields=required_fields.long_field,required_fields.int_field"
-    ))
-    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+    BigSampler.run(
+      Array(
+        s"--input=$dir/*.avro",
+        s"--output=$outDir",
+        "--sample=0.1",
+        "--distribution=uniform",
+        "--distributionFields=required_fields.string_field",
+        "--fields=required_fields.long_field,required_fields.int_field"
+      )
+    )
+    val largeStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "large_strata")
-      .toDouble
-    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "large_strata"
+    ).toDouble
+    val smallStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "small_strata")
-      .toDouble
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "small_strata"
+    ).toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.1 +- 750
-    largeStrataCount/totalCount shouldBe 0.5 +- 0.1
-    smallStrataCount/totalCount shouldBe 0.5 +- 0.1
+    largeStrataCount / totalCount shouldBe 0.5 +- 0.1
+    smallStrataCount / totalCount shouldBe 0.5 +- 0.1
   }
 }
 
@@ -580,103 +651,135 @@ class BigSamplerExactDistJobTest extends BigSamplerJobTestRoot {
   override def data2Size: Int = 1250
 
   "BigSampler" should "stratify across a single field exactly" in withOutFile { outDir =>
-    BigSampler.run(Array(
-      s"--input=$dir/*.avro",
-      s"--output=$outDir",
-      "--sample=0.4",
-      "--distribution=stratified",
-      "--distributionFields=required_fields.string_field"
-    ))
-    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+    BigSampler.run(
+      Array(
+        s"--input=$dir/*.avro",
+        s"--output=$outDir",
+        "--sample=0.4",
+        "--distribution=stratified",
+        "--distributionFields=required_fields.string_field"
+      )
+    )
+    val largeStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "large_strata")
-      .toDouble
-    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "large_strata"
+    ).toDouble
+    val smallStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "small_strata")
-      .toDouble
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "small_strata"
+    ).toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.4 +- 125
-    largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.02
-    smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.02
+    largeStrataCount / totalCount shouldBe (data1Size.toDouble / totalElements) +- 0.02
+    smallStrataCount / totalCount shouldBe (data2Size.toDouble / totalElements) +- 0.02
   }
 
   it should "stratify across a single field with hash field exactly" in withOutFile { outDir =>
-    BigSampler.run(Array(
-      s"--input=$dir/*.avro",
-      s"--output=$outDir",
-      "--sample=0.5",
-      "--distribution=stratified",
-      "--distributionFields=required_fields.string_field",
-      "--fields=required_fields.long_field,required_fields.int_field",
-      "--exact"
-    ))
-    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+    BigSampler.run(
+      Array(
+        s"--input=$dir/*.avro",
+        s"--output=$outDir",
+        "--sample=0.5",
+        "--distribution=stratified",
+        "--distributionFields=required_fields.string_field",
+        "--fields=required_fields.long_field,required_fields.int_field",
+        "--exact"
+      )
+    )
+    val largeStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "large_strata")
-      .toDouble
-    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "large_strata"
+    ).toDouble
+    val smallStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "small_strata")
-      .toDouble
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "small_strata"
+    ).toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.5 +- 150
-    largeStrataCount/totalCount shouldBe (data1Size.toDouble/totalElements) +- 0.02
-    smallStrataCount/totalCount shouldBe (data2Size.toDouble/totalElements) +- 0.02
+    largeStrataCount / totalCount shouldBe (data1Size.toDouble / totalElements) +- 0.02
+    smallStrataCount / totalCount shouldBe (data2Size.toDouble / totalElements) +- 0.02
   }
 
   it should "sample uniformly across a single field exactly" in withOutFile { outDir =>
-    BigSampler.run(Array(
-      s"--input=$dir/*.avro",
-      s"--output=$outDir",
-      "--sample=0.25",
-      "--distribution=uniform",
-      "--distributionFields=required_fields.string_field",
-      "--exact"
-    ))
-    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+    BigSampler.run(
+      Array(
+        s"--input=$dir/*.avro",
+        s"--output=$outDir",
+        "--sample=0.25",
+        "--distribution=uniform",
+        "--distributionFields=required_fields.string_field",
+        "--exact"
+      )
+    )
+    val largeStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "large_strata")
-      .toDouble
-    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "large_strata"
+    ).toDouble
+    val smallStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "small_strata")
-      .toDouble
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "small_strata"
+    ).toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.25 +- 125
-    largeStrataCount/totalCount shouldBe 0.5 +- 0.02
-    smallStrataCount/totalCount shouldBe 0.5 +- 0.02
+    largeStrataCount / totalCount shouldBe 0.5 +- 0.02
+    smallStrataCount / totalCount shouldBe 0.5 +- 0.02
   }
 
   it should "sample uniformly across a single field with hash exactly" in withOutFile { outDir =>
-    BigSampler.run(Array(
-      s"--input=$dir/*.avro",
-      s"--output=$outDir",
-      "--sample=0.2",
-      "--distribution=uniform",
-      "--distributionFields=required_fields.string_field",
-      "--fields=required_fields.long_field,required_fields.int_field",
-      "--exact"
-    ))
-    val largeStrataCount = countAvroRecords(s"$outDir/*.avro",
+    BigSampler.run(
+      Array(
+        s"--input=$dir/*.avro",
+        s"--output=$outDir",
+        "--sample=0.2",
+        "--distribution=uniform",
+        "--distributionFields=required_fields.string_field",
+        "--fields=required_fields.long_field,required_fields.int_field",
+        "--exact"
+      )
+    )
+    val largeStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "large_strata")
-      .toDouble
-    val smallStrataCount = countAvroRecords(s"$outDir/*.avro",
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "large_strata"
+    ).toDouble
+    val smallStrataCount = countAvroRecords(
+      s"$outDir/*.avro",
       (gr: GenericRecord) =>
-        gr.get("required_fields").asInstanceOf[GenericRecord]
-          .get("string_field").toString == "small_strata")
-      .toDouble
+        gr.get("required_fields")
+          .asInstanceOf[GenericRecord]
+          .get("string_field")
+          .toString == "small_strata"
+    ).toDouble
     val totalCount = countAvroRecords(s"$outDir/*.avro").toDouble
     totalCount shouldBe totalElements * 0.2 +- 125
-    largeStrataCount/totalCount shouldBe 0.5 +- 0.025
-    smallStrataCount/totalCount shouldBe 0.5 +- 0.025
+    largeStrataCount / totalCount shouldBe 0.5 +- 0.025
+    smallStrataCount / totalCount shouldBe 0.5 +- 0.025
   }
 }

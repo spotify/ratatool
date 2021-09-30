@@ -31,9 +31,12 @@ class BigSamplerAvroTest extends PipelineSpec {
     val fields = Seq("nullable_fields.string_field")
 
     val record = specificRecordOf[TestRecord]
-      .amend(specificRecordOf[NullableNestedRecord]
-        .amend(Gen.const(null))(_.setStringField))(_.setNullableFields)
-      .sample.get
+      .amend(
+        specificRecordOf[NullableNestedRecord]
+          .amend(Gen.const(null))(_.setStringField)
+      )(_.setNullableFields)
+      .sample
+      .get
 
     BigSamplerAvro.buildKey(schema, fields)(record) shouldBe List("null")
   }

@@ -31,8 +31,10 @@ private[ratatool] object JsonSerDe {
       Try(jsonFactory.toString(item)) match {
         case Success(s) => s
         case Failure(e) =>
-          throw new RuntimeException(String.format("Cannot serialize %s to a JSON string.",
-            item.getClass.getSimpleName), e)
+          throw new RuntimeException(
+            String.format("Cannot serialize %s to a JSON string.", item.getClass.getSimpleName),
+            e
+          )
       }
     }
   }
@@ -45,7 +47,9 @@ private[ratatool] object JsonSerDe {
         case Success(t) => t
         case Failure(e) =>
           throw new RuntimeException(
-            String.format("Cannot deserialize %s from a JSON string: %s.", clazz, json), e)
+            String.format("Cannot deserialize %s from a JSON string: %s.", clazz, json),
+            e
+          )
       }
     }
   }

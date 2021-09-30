@@ -23,6 +23,7 @@ import java.util.{HashMap => JHashMap, Map => JMap}
 import scala.jdk.CollectionConverters._
 
 object FixRandomData {
+
   /** Fix equality for maps by converting Utf8 to String */
   def apply(x: TestRecord): TestRecord = {
     def fixHashMap[T](xs: JMap[CharSequence, T]): JMap[CharSequence, T] = {

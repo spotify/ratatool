@@ -34,109 +34,174 @@ package object samplers {
   //scalastyle:off parameter.number
   /**
    * Sample wrapper function for Avro GenericRecord
-   * @param coll The input SCollection to be sampled
-   * @param fraction The sample rate
-   * @param fields Fields to construct hash over for determinism
-   * @param seed Seed used to salt the deterministic hash
-   * @param hashAlgorithm Hashing algorithm to use
-   * @param distribution Desired output sample distribution
-   * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
-   * @param precision Approximate or Exact precision
-   * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
-   * @param byteEncoding Determines how bytes are encoded prior to hashing.
-   * @tparam T Record Type
-   * @return SCollection containing Sample population
+   * @param coll
+   *   The input SCollection to be sampled
+   * @param fraction
+   *   The sample rate
+   * @param fields
+   *   Fields to construct hash over for determinism
+   * @param seed
+   *   Seed used to salt the deterministic hash
+   * @param hashAlgorithm
+   *   Hashing algorithm to use
+   * @param distribution
+   *   Desired output sample distribution
+   * @param distributionFields
+   *   Fields to construct distribution over (strata = set of unique fields)
+   * @param precision
+   *   Approximate or Exact precision
+   * @param maxKeySize
+   *   Maximum allowed size per key (can be tweaked for very large data sets)
+   * @param byteEncoding
+   *   Determines how bytes are encoded prior to hashing.
+   * @tparam T
+   *   Record Type
+   * @return
+   *   SCollection containing Sample population
    */
-  def sampleAvro[T <: GenericRecord : ClassTag : Coder](coll: SCollection[T],
-                                                 fraction: Double,
-                                                 schema: => Schema,
-                                                 fields: Seq[String] = Seq(),
-                                                 seed: Option[Int] = None,
-                                                 hashAlgorithm: HashAlgorithm = FarmHash,
-                                                 distribution: Option[SampleDistribution] = None,
-                                                 distributionFields: Seq[String] = Seq(),
-                                                 precision: Precision = Approximate,
-                                                 maxKeySize: Int = 1e6.toInt,
-                                                 byteEncoding: ByteEncoding = RawEncoding)
-  : SCollection[T] = {
+  def sampleAvro[T <: GenericRecord: ClassTag: Coder](
+    coll: SCollection[T],
+    fraction: Double,
+    schema: => Schema,
+    fields: Seq[String] = Seq(),
+    seed: Option[Int] = None,
+    hashAlgorithm: HashAlgorithm = FarmHash,
+    distribution: Option[SampleDistribution] = None,
+    distributionFields: Seq[String] = Seq(),
+    precision: Precision = Approximate,
+    maxKeySize: Int = 1e6.toInt,
+    byteEncoding: ByteEncoding = RawEncoding
+  ): SCollection[T] = {
     val schemaSer = schema.toString(false)
     @transient lazy val schemaSerDe = new Schema.Parser().parse(schemaSer)
 
-    BigSampler.sample(coll, fraction, fields, seed, hashAlgorithm, distribution, distributionFields,
+    BigSampler.sample(
+      coll,
+      fraction,
+      fields,
+      seed,
+      hashAlgorithm,
+      distribution,
+      distributionFields,
       precision,
       BigSamplerAvro.hashAvroField(schemaSerDe),
       BigSamplerAvro.buildKey(schemaSerDe, distributionFields),
-      maxKeySize, byteEncoding)
+      maxKeySize,
+      byteEncoding
+    )
   }
 
   /**
    * Sample wrapper function for BigQuery TableRow
-   * @param coll The input SCollection to be sampled
-   * @param fraction The sample rate
-   * @param fields Fields to construct hash over for determinism
-   * @param seed Seed used to salt the deterministic hash
-   * @param hashAlgorithm Hashing algorithm to use
-   * @param distribution Desired output sample distribution
-   * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
-   * @param precision Approximate or Exact precision
-   * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
-   * @param byteEncoding Determines how bytes are encoded prior to hashing.
-   * @return SCollection containing Sample population
+   * @param coll
+   *   The input SCollection to be sampled
+   * @param fraction
+   *   The sample rate
+   * @param fields
+   *   Fields to construct hash over for determinism
+   * @param seed
+   *   Seed used to salt the deterministic hash
+   * @param hashAlgorithm
+   *   Hashing algorithm to use
+   * @param distribution
+   *   Desired output sample distribution
+   * @param distributionFields
+   *   Fields to construct distribution over (strata = set of unique fields)
+   * @param precision
+   *   Approximate or Exact precision
+   * @param maxKeySize
+   *   Maximum allowed size per key (can be tweaked for very large data sets)
+   * @param byteEncoding
+   *   Determines how bytes are encoded prior to hashing.
+   * @return
+   *   SCollection containing Sample population
    */
-  def sampleTableRow(coll: SCollection[TableRow],
-                     fraction: Double,
-                     schema: TableSchema,
-                     fields: Seq[String] = Seq(),
-                     seed: Option[Int] = None,
-                     hashAlgorithm: HashAlgorithm = FarmHash,
-                     distribution: Option[SampleDistribution] = None,
-                     distributionFields: Seq[String] = Seq(),
-                     precision: Precision = Approximate,
-                     maxKeySize: Int = 1e6.toInt,
-                     byteEncoding: ByteEncoding = RawEncoding)
-  : SCollection[TableRow] = {
+  def sampleTableRow(
+    coll: SCollection[TableRow],
+    fraction: Double,
+    schema: TableSchema,
+    fields: Seq[String] = Seq(),
+    seed: Option[Int] = None,
+    hashAlgorithm: HashAlgorithm = FarmHash,
+    distribution: Option[SampleDistribution] = None,
+    distributionFields: Seq[String] = Seq(),
+    precision: Precision = Approximate,
+    maxKeySize: Int = 1e6.toInt,
+    byteEncoding: ByteEncoding = RawEncoding
+  ): SCollection[TableRow] = {
     val schemaStr = JsonSerDe.toJsonString(schema)
     @transient lazy val schemaFields =
       JsonSerDe.fromJsonString(schemaStr, classOf[TableSchema]).getFields.asScala.toList
 
-    BigSampler.sample(coll, fraction, fields, seed, hashAlgorithm, distribution, distributionFields,
+    BigSampler.sample(
+      coll,
+      fraction,
+      fields,
+      seed,
+      hashAlgorithm,
+      distribution,
+      distributionFields,
       precision,
       BigSamplerBigQuery.hashTableRow(schemaFields),
       BigSamplerBigQuery.buildKey(schemaFields, distributionFields),
-      maxKeySize, byteEncoding)
+      maxKeySize,
+      byteEncoding
+    )
   }
 
   /**
    * Sample wrapper function for Protobuf Message
-   * @param coll The input SCollection to be sampled
-   * @param fraction The sample rate
-   * @param fields Fields to construct hash over for determinism
-   * @param seed Seed used to salt the deterministic hash
-   * @param hashAlgorithm Hashing algorithm to use
-   * @param distribution Desired output sample distribution
-   * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
-   * @param precision Approximate or Exact precision
-   * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
-   * @param byteEncoding Determines how bytes are encoded prior to hashing.
-   * @tparam T Record Type
-   * @return SCollection containing Sample population
+   * @param coll
+   *   The input SCollection to be sampled
+   * @param fraction
+   *   The sample rate
+   * @param fields
+   *   Fields to construct hash over for determinism
+   * @param seed
+   *   Seed used to salt the deterministic hash
+   * @param hashAlgorithm
+   *   Hashing algorithm to use
+   * @param distribution
+   *   Desired output sample distribution
+   * @param distributionFields
+   *   Fields to construct distribution over (strata = set of unique fields)
+   * @param precision
+   *   Approximate or Exact precision
+   * @param maxKeySize
+   *   Maximum allowed size per key (can be tweaked for very large data sets)
+   * @param byteEncoding
+   *   Determines how bytes are encoded prior to hashing.
+   * @tparam T
+   *   Record Type
+   * @return
+   *   SCollection containing Sample population
    */
-  def sampleProto[T <: AbstractMessage : ClassTag](coll: SCollection[T],
-                                                   fraction: Double,
-                                                   fields: Seq[String] = Seq(),
-                                                   seed: Option[Int] = None,
-                                                   hashAlgorithm: HashAlgorithm = FarmHash,
-                                                   distribution: Option[SampleDistribution]=None,
-                                                   distributionFields: Seq[String] = Seq(),
-                                                   precision: Precision = Approximate,
-                                                   maxKeySize: Int = 1e6.toInt,
-                                                   byteEncoding: ByteEncoding = RawEncoding)
-  : SCollection[T] = {
-    BigSampler.sample(coll, fraction, fields, seed, hashAlgorithm, distribution, distributionFields,
+  def sampleProto[T <: AbstractMessage: ClassTag](
+    coll: SCollection[T],
+    fraction: Double,
+    fields: Seq[String] = Seq(),
+    seed: Option[Int] = None,
+    hashAlgorithm: HashAlgorithm = FarmHash,
+    distribution: Option[SampleDistribution] = None,
+    distributionFields: Seq[String] = Seq(),
+    precision: Precision = Approximate,
+    maxKeySize: Int = 1e6.toInt,
+    byteEncoding: ByteEncoding = RawEncoding
+  ): SCollection[T] = {
+    BigSampler.sample(
+      coll,
+      fraction,
+      fields,
+      seed,
+      hashAlgorithm,
+      distribution,
+      distributionFields,
       precision,
       BigSamplerProto.hashProtobufField,
       BigSamplerProto.buildKey(distributionFields),
-      maxKeySize, byteEncoding)
+      maxKeySize,
+      byteEncoding
+    )
   }
   //scalastyle:on parameter.number
 

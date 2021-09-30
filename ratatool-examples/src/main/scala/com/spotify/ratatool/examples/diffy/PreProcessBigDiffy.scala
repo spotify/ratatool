@@ -25,9 +25,8 @@ import com.spotify.scio.avro._
 import org.apache.beam.sdk.coders.shaded.ScioAvroCoder
 
 object PreProcessBigDiffy {
-  def recordKeyFn(r: ExampleRecord): MultiKey = {
+  def recordKeyFn(r: ExampleRecord): MultiKey =
     MultiKey(r.getRecordId.toString)
-  }
 
   def mapFn(coder: => ScioAvroCoder[ExampleRecord])(r: ExampleRecord): ExampleRecord = {
     val o = CoderUtils.clone(coder, r)
@@ -42,9 +41,14 @@ object PreProcessBigDiffy {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
     val (lhsPath, rhsPath, output, header, ignore, unordered) =
-      (args("lhs"), args("rhs"), args("output"),
-        args.boolean("with-header", false), args.list("ignore").toSet,
-        args.list("unordered").toSet)
+      (
+        args("lhs"),
+        args("rhs"),
+        args("output"),
+        args.boolean("with-header", false),
+        args.list("ignore").toSet,
+        args.list("unordered").toSet
+      )
 
     val lhs = sc.avroFile[ExampleRecord](lhsPath).map(mapFn(coder))
     val rhs = sc.avroFile[ExampleRecord](rhsPath).map(mapFn(coder))
