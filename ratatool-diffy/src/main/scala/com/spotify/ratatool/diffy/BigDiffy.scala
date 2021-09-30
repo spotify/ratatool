@@ -48,10 +48,8 @@ import scala.util.{Failure, Success, Try}
 /**
  * Diff type between two records of the same key.
  *
- * SAME - the two records are identical.
- * DIFFERENT - the two records are different.
- * MISSING_LHS - left hand side record is missing.
- * MISSING_RHS - right hand side record is missing.
+ * SAME - the two records are identical. DIFFERENT - the two records are different. MISSING_LHS -
+ * left hand side record is missing. MISSING_RHS - right hand side record is missing.
  */
 object DiffType extends Enumeration {
   val SAME, DIFFERENT, MISSING_LHS, MISSING_RHS = Value
@@ -68,13 +66,12 @@ object MultiKey {
 /**
  * Key-field level [[DiffType]] and delta.
  *
- * If DiffType are SAME, MISSING_LHS, or MISSING_RHS they will appear once with no Delta
- * If DiffType is DIFFERENT, there is one KeyStats for every field that is different for that key
- *  with that field's Delta
+ * If DiffType are SAME, MISSING_LHS, or MISSING_RHS they will appear once with no Delta If DiffType
+ * is DIFFERENT, there is one KeyStats for every field that is different for that key with that
+ * field's Delta
  *
- * keys - primary being compared.
- * diffType - how the two records of the given key compares.
- * delta - a single field's difference including field name, values, and distance
+ * keys - primary being compared. diffType - how the two records of the given key compares. delta -
+ * a single field's difference including field name, values, and distance
  */
 case class KeyStats(keys: MultiKey, diffType: DiffType.Value, delta: Option[Delta]) {
   override def toString: String = {
@@ -86,34 +83,40 @@ case class KeyStats(keys: MultiKey, diffType: DiffType.Value, delta: Option[Delt
 /**
  * Global level statistics.
  *
- * numTotal - number of total unique keys.
- * numSame - number of keys with same records on both sides.
- * numDiff - number of keys with different records on both sides.
- * numMissingLhs - number of keys with missing left hand side record.
- * numMissingRhs - number of keys with missing right hand side record.
+ * numTotal - number of total unique keys. numSame - number of keys with same records on both sides.
+ * numDiff - number of keys with different records on both sides. numMissingLhs - number of keys
+ * with missing left hand side record. numMissingRhs - number of keys with missing right hand side
+ * record.
  */
-case class GlobalStats(numTotal: Long, numSame: Long, numDiff: Long,
-                       numMissingLhs: Long, numMissingRhs: Long) {
+case class GlobalStats(
+  numTotal: Long,
+  numSame: Long,
+  numDiff: Long,
+  numMissingLhs: Long,
+  numMissingRhs: Long
+) {
   override def toString: String = s"$numTotal\t$numSame\t$numDiff\t$numMissingLhs\t$numMissingRhs"
 }
 
 /**
  * Delta level statistics, mean, and the four standardized moments.
  *
- * deltaType - one of NUMERIC, STRING, VECTOR
- * min - minimum distance seen
- * max - maximum distance seen
- * count - number of differences seen
- * mean - mean of all differences
- * variance - squared deviation from the mean
- * stddev - standard deviation from the mean
- * skewness - measure of data asymmetry in all deltas
- * kurtosis - measure of distribution sharpness and tail thickness in deltas
+ * deltaType - one of NUMERIC, STRING, VECTOR min - minimum distance seen max - maximum distance
+ * seen count - number of differences seen mean - mean of all differences variance - squared
+ * deviation from the mean stddev - standard deviation from the mean skewness - measure of data
+ * asymmetry in all deltas kurtosis - measure of distribution sharpness and tail thickness in deltas
  */
-case class DeltaStats(deltaType: DeltaType.Value,
-                      min: Double, max: Double, count: Long,
-                      mean: Double, variance: Double, stddev: Double,
-                      skewness: Double, kurtosis: Double) {
+case class DeltaStats(
+  deltaType: DeltaType.Value,
+  min: Double,
+  max: Double,
+  count: Long,
+  mean: Double,
+  variance: Double,
+  stddev: Double,
+  skewness: Double,
+  kurtosis: Double
+) {
   override def toString: String =
     s"$deltaType\t$min\t$max\t$count\t$mean\t$variance\t$stddev\t$skewness\t$kurtosis"
 }
@@ -121,23 +124,28 @@ case class DeltaStats(deltaType: DeltaType.Value,
 /**
  * Field level statistics.
  *
- * field - "." separated field identifier.
- * count - number of records with different values of the given field.
- * fraction - fraction over total number of keys with different records on both sides.
+ * field - "." separated field identifier. count - number of records with different values of the
+ * given field. fraction - fraction over total number of keys with different records on both sides.
  * deltaStats - statistics of field value deltas.
  */
-case class FieldStats(field: String,
-                      count: Long,
-                      fraction: Double,
-                      deltaStats: Option[DeltaStats]) {
+case class FieldStats(
+  field: String,
+  count: Long,
+  fraction: Double,
+  deltaStats: Option[DeltaStats]
+) {
   override def toString: String =
     s"$field\t$count\t$fraction\t" + deltaStats.map(d => "\t" + d).getOrElse("")
 }
 
 /** Big diff between two data sets given a primary key. */
-class BigDiffy[T : Coder](@transient val lhs: SCollection[T], @transient val rhs: SCollection[T],
-                          diffy: Diffy[T], keyFn: T => MultiKey, ignoreNan: Boolean = false)
-  extends Serializable {
+class BigDiffy[T: Coder](
+  @transient val lhs: SCollection[T],
+  @transient val rhs: SCollection[T],
+  diffy: Diffy[T],
+  keyFn: T => MultiKey,
+  ignoreNan: Boolean = false
+) extends Serializable {
 
   private lazy val _deltas: BigDiffy.DeltaSCollection =
     BigDiffy.computeDeltas(lhs, rhs, diffy, keyFn)
@@ -145,12 +153,12 @@ class BigDiffy[T : Coder](@transient val lhs: SCollection[T], @transient val rhs
   private lazy val globalAndFieldStats: SCollection[(GlobalStats, Iterable[FieldStats])] =
     BigDiffy.computeGlobalAndFieldStats(_deltas, ignoreNan)
 
-
   /**
-    * attempt to derive a Coder here will fail with divergent implicits
-    * so we fall back to kryo serialization
-    * */
+   * attempt to derive a Coder here will fail with divergent implicits so we fall back to kryo
+   * serialization
+   */
   implicit val deltasCoder: Coder[(MultiKey, String, Any, Any)] = Coder.kryo
+
   /**
    * Key and field level delta.
    *
@@ -165,12 +173,11 @@ class BigDiffy[T : Coder](@transient val lhs: SCollection[T], @transient val rhs
   lazy val globalStats: SCollection[GlobalStats] = globalAndFieldStats.keys
 
   /** Key level statistics. */
-  lazy val keyStats: SCollection[KeyStats] = _deltas.flatMap {
-    case (k, (dfs, dt)) =>
-      dfs match {
-        case Nil => Seq(KeyStats(k, dt, None))
-        case _ => dfs.map(d => KeyStats(k, dt, Some(d)))
-      }
+  lazy val keyStats: SCollection[KeyStats] = _deltas.flatMap { case (k, (dfs, dt)) =>
+    dfs match {
+      case Nil => Seq(KeyStats(k, dt, None))
+      case _   => dfs.map(d => KeyStats(k, dt, Some(d)))
+    }
   }
 
   /** Field level statistics. */
@@ -190,8 +197,29 @@ object BigDiffy extends Command with Serializable {
   // (field, deltas, diff type)
   type DeltaSCollection = SCollection[(MultiKey, (Seq[Delta], DiffType.Value))]
 
-  private def computeDeltas[T : Coder](lhs: SCollection[T], rhs: SCollection[T],
-                                       diffy: Diffy[T], keyFn: T => MultiKey): DeltaSCollection = {
+  private def extractDeltaStats(
+    tup: (DeltaType.Value, Min[Double], Max[Double], Moments)
+  ): DeltaStats = {
+    val (dt, min, max, m) = tup
+    DeltaStats(
+      deltaType = dt,
+      min = min.get,
+      max = max.get,
+      count = m.count,
+      mean = m.mean,
+      variance = m.variance,
+      stddev = m.stddev,
+      skewness = m.skewness,
+      kurtosis = m.kurtosis
+    )
+  }
+
+  private def computeDeltas[T: Coder](
+    lhs: SCollection[T],
+    rhs: SCollection[T],
+    diffy: Diffy[T],
+    keyFn: T => MultiKey
+  ): DeltaSCollection = {
     // extract keys and prefix records with L/R sub-key
     val lKeyed = lhs.map(t => (keyFn(t), ("l", t)))
     val rKeyed = rhs.map(t => (keyFn(t), ("r", t)))
@@ -202,12 +230,10 @@ object BigDiffy extends Command with Serializable {
     val accMissingLhs = ScioMetrics.counter[Long]("MISSING_LHS")
     val accMissingRhs = ScioMetrics.counter[Long]("MISSING_RHS")
 
-    (lKeyed ++ rKeyed)
-      .groupByKey
+    (lKeyed ++ rKeyed).groupByKey
       .map { case (key, values) => // values is a list of tuples: "l" -> record or "r" -> record
         if (values.size > 2) {
-          throw new RuntimeException(
-            s"""More than two values found for key: $key.
+          throw new RuntimeException(s"""More than two values found for key: $key.
                | Your key must be unique in both SCollections""".stripMargin)
         }
 
@@ -223,8 +249,8 @@ object BigDiffy extends Command with Serializable {
       }
       .map { x =>
         x._2._2 match {
-          case DiffType.SAME => accSame.inc()
-          case DiffType.DIFFERENT => accDiff.inc()
+          case DiffType.SAME        => accSame.inc()
+          case DiffType.DIFFERENT   => accDiff.inc()
           case DiffType.MISSING_LHS => accMissingLhs.inc()
           case DiffType.MISSING_RHS => accMissingRhs.inc()
         }
@@ -233,8 +259,10 @@ object BigDiffy extends Command with Serializable {
   }
 
   //scalastyle:off cyclomatic.complexity
-  private def computeGlobalAndFieldStats(deltas: DeltaSCollection, ignoreNan: Boolean)
-  : SCollection[(GlobalStats, Iterable[FieldStats])] = {
+  private def computeGlobalAndFieldStats(
+    deltas: DeltaSCollection,
+    ignoreNan: Boolean
+  ): SCollection[(GlobalStats, Iterable[FieldStats])] = {
     // Semigroup[DeltaType.Value] so it can be propagated during sum over Map
     implicit val deltaTypeSemigroup = new Semigroup[DeltaType.Value] {
       override def plus(l: DeltaType.Value, r: DeltaType.Value): DeltaType.Value = l
@@ -248,7 +276,7 @@ object BigDiffy extends Command with Serializable {
         val m = mutable.Map.empty[String, MapVal]
         ds.foreach { d =>
           val optD = d.delta match {
-            case UnknownDelta => None
+            case UnknownDelta                             => None
             case TypedDelta(t, v) if ignoreNan && v.isNaN => None
             case TypedDelta(t, v) =>
               Some((t, Min(v), Max(v), Moments.aggregator.prepare(v)))
@@ -258,8 +286,8 @@ object BigDiffy extends Command with Serializable {
         }
         // also sum global statistics
         val dtVec = dt match {
-          case DiffType.SAME => (1L, 1L, 0L, 0L, 0L)
-          case DiffType.DIFFERENT => (1L, 0L, 1L, 0L, 0L)
+          case DiffType.SAME        => (1L, 1L, 0L, 0L, 0L)
+          case DiffType.DIFFERENT   => (1L, 0L, 1L, 0L, 0L)
           case DiffType.MISSING_LHS => (1L, 0L, 0L, 1L, 0L)
           case DiffType.MISSING_RHS => (1L, 0L, 0L, 0L, 1L)
         }
@@ -269,15 +297,9 @@ object BigDiffy extends Command with Serializable {
       .map { case (dtVec, fieldMap) =>
         val globalKeyStats = GlobalStats.tupled(dtVec)
         val fieldStats = fieldMap.map { case (field, (count, optD)) =>
-          val deltaStats = optD.map { d =>
-            val (dt, min, max, m) = d
-            DeltaStats(deltaType = dt, min = min.get, max = max.get, count = m.count,
-              mean = m.mean, variance = m.variance, stddev = m.stddev,
-              skewness = m.skewness, kurtosis = m.kurtosis)
-          }
+          val deltaStats = optD.map(extractDeltaStats _)
           val globalKeyStats = GlobalStats.tupled(dtVec)
-          FieldStats(
-            field, count, count.toDouble / globalKeyStats.numDiff, deltaStats)
+          FieldStats(field, count, count.toDouble / globalKeyStats.numDiff, deltaStats)
         }
         (globalKeyStats, fieldStats)
       }
@@ -285,35 +307,52 @@ object BigDiffy extends Command with Serializable {
   //scalastyle:on cyclomatic.complexity
 
   /** Diff two data sets. */
-  def diff[T: ClassTag : Coder](lhs: SCollection[T], rhs: SCollection[T],
-                                d: Diffy[T], keyFn: T => MultiKey,
-                                ignoreNan: Boolean = false): BigDiffy[T] =
+  def diff[T: ClassTag: Coder](
+    lhs: SCollection[T],
+    rhs: SCollection[T],
+    d: Diffy[T],
+    keyFn: T => MultiKey,
+    ignoreNan: Boolean = false
+  ): BigDiffy[T] =
     new BigDiffy[T](lhs, rhs, d, keyFn, ignoreNan)
 
   /** Diff two Avro data sets. */
-  def diffAvro[T <: SpecificRecordBase: ClassTag : Coder](sc: ScioContext,
-                                                          lhs: String, rhs: String,
-                                                          keyFn: T => MultiKey,
-                                                          diffy: AvroDiffy[T],
-                                                          ignoreNan: Boolean = false): BigDiffy[T] =
+  def diffAvro[T <: SpecificRecordBase: ClassTag: Coder](
+    sc: ScioContext,
+    lhs: String,
+    rhs: String,
+    keyFn: T => MultiKey,
+    diffy: AvroDiffy[T],
+    ignoreNan: Boolean = false
+  ): BigDiffy[T] =
     diff(sc.avroFile[T](lhs), sc.avroFile[T](rhs), diffy, keyFn, ignoreNan)
 
   /** Diff two ProtoBuf data sets. */
-  def diffProtoBuf[T <: AbstractMessage : ClassTag](sc: ScioContext,
-                                                     lhs: String, rhs: String,
-                                                     keyFn: T => MultiKey,
-                                                     diffy: ProtoBufDiffy[T]): BigDiffy[T] =
+  def diffProtoBuf[T <: AbstractMessage: ClassTag](
+    sc: ScioContext,
+    lhs: String,
+    rhs: String,
+    keyFn: T => MultiKey,
+    diffy: ProtoBufDiffy[T]
+  ): BigDiffy[T] =
     diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
 
   /** Diff two TableRow data sets. */
-  def diffTableRow(sc: ScioContext,
-                   lhs: String, rhs: String,
-                   keyFn: TableRow => MultiKey,
-                   diffy: TableRowDiffy,
-                   ignoreNan: Boolean = false): BigDiffy[TableRow] =
-    diff(sc.bigQueryTable(Table.Spec(lhs)), sc.bigQueryTable(Table.Spec(rhs)), diffy, keyFn,
-      ignoreNan)
-
+  def diffTableRow(
+    sc: ScioContext,
+    lhs: String,
+    rhs: String,
+    keyFn: TableRow => MultiKey,
+    diffy: TableRowDiffy,
+    ignoreNan: Boolean = false
+  ): BigDiffy[TableRow] =
+    diff(
+      sc.bigQueryTable(Table.Spec(lhs)),
+      sc.bigQueryTable(Table.Spec(rhs)),
+      diffy,
+      keyFn,
+      ignoreNan
+    )
 
   /** Merge two BigQuery TableSchemas. */
   def mergeTableSchema(x: TableSchema, y: TableSchema): TableSchema = {
@@ -326,21 +365,40 @@ object BigDiffy extends Command with Serializable {
   case class DeltaBigQuery(field: String, left: String, right: String, delta: DeltaValueBigQuery)
   case class DeltaValueBigQuery(deltaType: String, deltaValue: Option[Double])
   @BigQueryType.toTable
-  case class GlobalStatsBigQuery(numTotal: Long, numSame: Long, numDiff: Long,
-                                 numMissingLhs: Long, numMissingRhs: Long)
+  case class GlobalStatsBigQuery(
+    numTotal: Long,
+    numSame: Long,
+    numDiff: Long,
+    numMissingLhs: Long,
+    numMissingRhs: Long
+  )
   @BigQueryType.toTable
-  case class FieldStatsBigQuery(field: String,
-                        count: Long,
-                        fraction: Double,
-                        deltaStats: Option[DeltaStatsBigQuery])
-  case class DeltaStatsBigQuery(deltaType: String,
-                        min: Double, max: Double, count: Long,
-                        mean: Double, variance: Double, stddev: Double,
-                        skewness: Double, kurtosis: Double)
+  case class FieldStatsBigQuery(
+    field: String,
+    count: Long,
+    fraction: Double,
+    deltaStats: Option[DeltaStatsBigQuery]
+  )
+  case class DeltaStatsBigQuery(
+    deltaType: String,
+    min: Double,
+    max: Double,
+    count: Long,
+    mean: Double,
+    variance: Double,
+    stddev: Double,
+    skewness: Double,
+    kurtosis: Double
+  )
 
+  //scalastyle:off method.length
   /** saves stats to either GCS as text, or BigQuery */
-  def saveStats[T](bigDiffy: BigDiffy[T], output: String, withHeader: Boolean = false,
-                   outputMode: OutputMode = GCS): Unit = {
+  def saveStats[T](
+    bigDiffy: BigDiffy[T],
+    output: String,
+    withHeader: Boolean = false,
+    outputMode: OutputMode = GCS
+  ): Unit = {
     outputMode match {
       case GCS =>
         // Saving to GCS, either with or without header
@@ -349,13 +407,34 @@ object BigDiffy extends Command with Serializable {
         val globalStatsPath = s"$output/global"
 
         if (withHeader) {
-          bigDiffy.keyStats.map(_.toString).saveAsTextFileWithHeader(keyStatsPath,
-            Seq("key", "difftype").mkString("\t"))
-          bigDiffy.fieldStats.map(_.toString).saveAsTextFileWithHeader(fieldStatsPath,
-            Seq("field", "count", "fraction", "deltaType", "min", "max", "count", "mean",
-              "variance", "stddev", "skewness", "kurtosis").mkString("\t"))
-          bigDiffy.globalStats.map(_.toString).saveAsTextFileWithHeader(globalStatsPath,
-            Seq("numTotal", "numSame", "numDiff", "numMissingLhs", "numMissingRhs").mkString("\t"))
+          bigDiffy.keyStats
+            .map(_.toString)
+            .saveAsTextFileWithHeader(keyStatsPath, Seq("key", "difftype").mkString("\t"))
+          bigDiffy.fieldStats
+            .map(_.toString)
+            .saveAsTextFileWithHeader(
+              fieldStatsPath,
+              Seq(
+                "field",
+                "count",
+                "fraction",
+                "deltaType",
+                "min",
+                "max",
+                "count",
+                "mean",
+                "variance",
+                "stddev",
+                "skewness",
+                "kurtosis"
+              ).mkString("\t")
+            )
+          bigDiffy.globalStats
+            .map(_.toString)
+            .saveAsTextFileWithHeader(
+              globalStatsPath,
+              Seq("numTotal", "numSame", "numDiff", "numMissingLhs", "numMissingRhs").mkString("\t")
+            )
         } else {
           bigDiffy.keyStats.saveAsTextFile(keyStatsPath)
           bigDiffy.fieldStats.saveAsTextFile(fieldStatsPath)
@@ -363,64 +442,95 @@ object BigDiffy extends Command with Serializable {
         }
       case BQ =>
         // Saving to BQ, header irrelevant
-        bigDiffy.keyStats.map(stat =>
-          KeyStatsBigQuery(stat.keys.toString, stat.diffType.toString, stat.delta.map(d => {
-            val dv = d.delta match {
-              case TypedDelta(dt, v) =>
-                DeltaValueBigQuery(dt.toString, Option(v))
-              case _ =>
-              DeltaValueBigQuery("UNKNOWN", None)
-            }
-            DeltaBigQuery(d.field,
-              d.left.map(_.toString).getOrElse("null"),
-              d.right.map(_.toString).getOrElse("null"),
-              dv)})
-          ))
+        bigDiffy.keyStats
+          .map(stat =>
+            KeyStatsBigQuery(
+              stat.keys.toString,
+              stat.diffType.toString,
+              stat.delta.map { d =>
+                val dv = d.delta match {
+                  case TypedDelta(dt, v) =>
+                    DeltaValueBigQuery(dt.toString, Option(v))
+                  case _ =>
+                    DeltaValueBigQuery("UNKNOWN", None)
+                }
+                DeltaBigQuery(
+                  d.field,
+                  d.left.map(_.toString).getOrElse("null"),
+                  d.right.map(_.toString).getOrElse("null"),
+                  dv
+                )
+              }
+            )
+          )
           .saveAsTypedBigQueryTable(Table.Spec(s"${output}_keys"))
-        bigDiffy.fieldStats.map(stat =>
-          FieldStatsBigQuery(stat.field, stat.count, stat.fraction, stat.deltaStats.map(ds =>
-            DeltaStatsBigQuery(ds.deltaType.toString, ds.min, ds.max, ds.count, ds.mean,
-              ds.variance, ds.stddev, ds.skewness, ds.kurtosis)
-          )))
+        bigDiffy.fieldStats
+          .map(stat =>
+            FieldStatsBigQuery(
+              stat.field,
+              stat.count,
+              stat.fraction,
+              stat.deltaStats.map(ds =>
+                DeltaStatsBigQuery(
+                  ds.deltaType.toString,
+                  ds.min,
+                  ds.max,
+                  ds.count,
+                  ds.mean,
+                  ds.variance,
+                  ds.stddev,
+                  ds.skewness,
+                  ds.kurtosis
+                )
+              )
+            )
+          )
           .saveAsTypedBigQueryTable(Table.Spec(s"${output}_fields"))
-        bigDiffy.globalStats.map( stat =>
-          GlobalStatsBigQuery(stat.numTotal, stat.numSame, stat.numDiff,
-            stat.numMissingLhs, stat.numMissingRhs))
+        bigDiffy.globalStats
+          .map(stat =>
+            GlobalStatsBigQuery(
+              stat.numTotal,
+              stat.numSame,
+              stat.numDiff,
+              stat.numMissingLhs,
+              stat.numMissingRhs
+            )
+          )
           .saveAsTypedBigQueryTable(Table.Spec(s"${output}_global"))
     }
   }
+  //scalastyle:on method.length
 
-  private def mergeFields(x: Seq[TableFieldSchema],
-                          y: Seq[TableFieldSchema]): Seq[TableFieldSchema] = {
+  private def mergeFields(
+    x: Seq[TableFieldSchema],
+    y: Seq[TableFieldSchema]
+  ): Seq[TableFieldSchema] = {
     val xMap = x.map(f => (f.getName, f)).toMap
     val yMap = x.map(f => (f.getName, f)).toMap
     val names = mutable.LinkedHashSet.empty[String]
     xMap.foreach(kv => names.add(kv._1))
     yMap.foreach(kv => names.add(kv._1))
-    names
-      .map { n =>
-        (xMap.get(n), yMap.get(n)) match {
-          case (Some(f), None) => f
-          case (None, Some(f)) => f
-          case (Some(fx), Some(fy)) =>
-            assert(fx.getType == fy.getType && fx.getMode == fy.getMode)
-            if (fx.getType == "RECORD") {
-              fx.setFields(
-                mergeFields(fx.getFields.asScala.toList, fy.getFields.asScala.toList).asJava
-              )
-            } else {
-              fx
-            }
-          case _ => throw new RuntimeException
-        }
+    names.map { n =>
+      (xMap.get(n), yMap.get(n)) match {
+        case (Some(f), None) => f
+        case (None, Some(f)) => f
+        case (Some(fx), Some(fy)) =>
+          assert(fx.getType == fy.getType && fx.getMode == fy.getMode)
+          if (fx.getType == "RECORD") {
+            fx.setFields(
+              mergeFields(fx.getFields.asScala.toList, fy.getFields.asScala.toList).asJava
+            )
+          } else {
+            fx
+          }
+        case _ => throw new RuntimeException
       }
-      .toSeq
+    }.toSeq
   }
 
   private def usage(): Unit = {
     // scalastyle:off regex line.size.limit
-    println(
-      s"""BigDiffy - pair-wise field-level statistical diff
+    println(s"""BigDiffy - pair-wise field-level statistical diff
         |Usage: ratatool $command [dataflow_options] [options]
         |
         |  --input-mode=(avro|bigquery)     Diff-ing Avro or BQ records
@@ -461,8 +571,7 @@ object BigDiffy extends Command with Serializable {
       if (i == xs.length - 1) {
         val valueOfKey = r.get(xs(i))
         if (valueOfKey == null) {
-          logger.warn(
-            s"""Null value found for key: ${xs.mkString(".")}.
+          logger.warn(s"""Null value found for key: ${xs.mkString(".")}.
                | If this is not expected check your data or use a different key.""".stripMargin)
         }
         // handle bytes keys custom, so we get bytebuffer actual content and not toString metadata
@@ -477,7 +586,7 @@ object BigDiffy extends Command with Serializable {
       }
 
     val xs = keys.map(_.split('.'))
-    (r: GenericRecord) =>  MultiKey(xs.map(x => get(x, 0, r)))
+    (r: GenericRecord) => MultiKey(xs.map(x => get(x, 0, r)))
   }
 
   private[diffy] def tableRowKeyFn(keys: Seq[String]): TableRow => MultiKey = {
@@ -486,8 +595,7 @@ object BigDiffy extends Command with Serializable {
       if (i == xs.length - 1) {
         val valueOfKey = r.get(xs(i))
         if (valueOfKey == null) {
-          logger.warn(
-            s"""Null value found for key: ${xs.mkString(".")}.
+          logger.warn(s"""Null value found for key: ${xs.mkString(".")}.
                | If this is not expected check your data or use a different key.""".stripMargin)
         }
 
@@ -499,7 +607,7 @@ object BigDiffy extends Command with Serializable {
       }
 
     val xs = keys.map(_.split('.'))
-    (r: TableRow) =>  MultiKey(xs.map(x => get(x, 0, r)))
+    (r: TableRow) => MultiKey(xs.map(x => get(x, 0, r)))
   }
 
   private[diffy] def unorderedKeysMap(unorderedKeysArgs: List[String]): Try[Map[String, String]] = {
@@ -514,7 +622,8 @@ object BigDiffy extends Command with Serializable {
 
   implicit class TextFileHeader(coll: SCollection[String]) {
     def saveAsTextFileWithHeader(path: String, header: String): ClosedTap[Nothing] = {
-      val transform = TextIO.write()
+      val transform = TextIO
+        .write()
         .to(pathWithShards(path))
         .withSuffix(".txt")
         .withNumShards(0)
@@ -532,13 +641,33 @@ object BigDiffy extends Command with Serializable {
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
-    val (inputMode, keys, lhs, rhs, output, header, ignore, unordered,
-    unorderedKeysList, outputMode, ignoreNan) = {
+    val (
+      inputMode,
+      keys,
+      lhs,
+      rhs,
+      output,
+      header,
+      ignore,
+      unordered,
+      unorderedKeysList,
+      outputMode,
+      ignoreNan
+    ) = {
       try {
-        (args("input-mode"), args.list("key"), args("lhs"), args("rhs"), args("output"),
-          args.boolean("with-header", false), args.list("ignore").toSet,
-          args.list("unordered").toSet, args.list("unorderedFieldKey"),
-          args.optional("output-mode"), args.boolean("ignore-nan", false))
+        (
+          args("input-mode"),
+          args.list("key"),
+          args("lhs"),
+          args("rhs"),
+          args("output"),
+          args.boolean("with-header", false),
+          args.list("ignore").toSet,
+          args.list("unordered").toSet,
+          args.list("unorderedFieldKey"),
+          args.optional("output-mode"),
+          args.boolean("ignore-nan", false)
+        )
       } catch {
         case e: Throwable =>
           usage()
@@ -554,23 +683,27 @@ object BigDiffy extends Command with Serializable {
     }
 
     val om: OutputMode = outputMode match {
-      case Some("gcs") => GCS
+      case Some("gcs")      => GCS
       case Some("bigquery") => BQ
-      case None => GCS
-      case m => throw new IllegalArgumentException(s"output mode $m not supported")
+      case None             => GCS
+      case m                => throw new IllegalArgumentException(s"output mode $m not supported")
     }
 
     if (om == GCS && !output.startsWith("gs://")) {
       // if combo of inputs is invalid, error out early
-      throw new IllegalArgumentException(s"Output mode is GCS, " +
-        s"but output $output is not a valid GCS location")
+      throw new IllegalArgumentException(
+        s"Output mode is GCS, " +
+          s"but output $output is not a valid GCS location"
+      )
     }
 
     // validity checks passed, ok to run the diff
     val result = inputMode match {
       case "avro" =>
         val schema = new AvroSampler(rhs, conf = Some(sc.options))
-          .sample(1, head = true).head.getSchema
+          .sample(1, head = true)
+          .head
+          .getSchema
         implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)
         val lhsSCollection = sc.avroFile(lhs, schema)

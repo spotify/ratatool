@@ -40,15 +40,18 @@ private[samplers] object BigSamplerAvro {
   private val log = LoggerFactory.getLogger(BigSamplerAvro.getClass)
 
   private def resolveUnion(schema: Schema, value: Object): Schema = {
-    if(schema.getType == Type.UNION) {
+    if (schema.getType == Type.UNION) {
       schema.getTypes.get(SpecificData.get().resolveUnion(schema, value))
     } else {
       schema
     }
   }
 
-  private[samplers] def getField(r: GenericRecord, fieldPath: List[String], schema: Schema)
-  : (String, Schema, AnyRef) = {
+  private[samplers] def getField(
+    r: GenericRecord,
+    fieldPath: List[String],
+    schema: Schema
+  ): (String, Schema, AnyRef) = {
     // Resolve the record in case it is a union
     val recordSchema = resolveUnion(schema, r)
 
@@ -67,81 +70,87 @@ private[samplers] object BigSamplerAvro {
   }
 
   /**
-   * Builds a key function per record
-   * Sets do not have deterministic ordering so we return a sorted list
+   * Builds a key function per record Sets do not have deterministic ordering so we return a sorted
+   * list
    */
-  private[samplers] def buildKey(schema: => Schema,
-                                 distributionFields: Seq[String])(gr: GenericRecord)
-  : List[String] = {
-    distributionFields.map{ f =>
-      val fieldValue = getAvroField(gr, f.split(BigSampler.fieldSep).toList, schema)
-      // Avro caches toString in the Utf8 class which results in an IllegalMutationException
-      // later on if we don't materialize the string once before. Ignoring this prevents us
-      // from printing the key in e.g. SamplerSCollectionFunctions.logDistributionDiffs.
+  private[samplers] def buildKey(schema: => Schema, distributionFields: Seq[String])(
+    gr: GenericRecord
+  ): List[String] = {
+    distributionFields
+      .map { f =>
+        val fieldValue = getAvroField(gr, f.split(BigSampler.fieldSep).toList, schema)
+        // Avro caches toString in the Utf8 class which results in an IllegalMutationException
+        // later on if we don't materialize the string once before. Ignoring this prevents us
+        // from printing the key in e.g. SamplerSCollectionFunctions.logDistributionDiffs.
 
-      // It's not possible to derive compile-time coders for Any or AnyRef/Object, so we return a
-      // Set[String] with the toString values for each field to use as our key.
-      // Of course, if it's null we can't call toString on it, so we wrap.
-      Option(fieldValue).map(_.toString).getOrElse("null")
-    }.toSet.toList.sorted
+        // It's not possible to derive compile-time coders for Any or AnyRef/Object, so we return a
+        // Set[String] with the toString values for each field to use as our key.
+        // Of course, if it's null we can't call toString on it, so we wrap.
+        Option(fieldValue).map(_.toString).getOrElse("null")
+      }
+      .toSet
+      .toList
+      .sorted
   }
 
   @tailrec
-  private[samplers] def getAvroField(r: GenericRecord,
-                                     fieldPath: List[String],
-                                     schema: Schema): Any = {
+  private[samplers] def getAvroField(
+    r: GenericRecord,
+    fieldPath: List[String],
+    schema: Schema
+  ): Any = {
 
     val (fieldName, fieldSchema, fieldValue) = getField(r, fieldPath, schema)
 
     if (fieldValue == null) {
-      log.debug(s"Field `${fieldName}` of type ${fieldSchema.getType} is null, will not look" +
-      " for nested values")
+      log.debug(
+        s"Field `${fieldName}` of type ${fieldSchema.getType} is null, will not look" +
+          " for nested values"
+      )
       null
     } else {
       fieldSchema.getType match {
         case Type.RECORD if fieldPath.tail.nonEmpty =>
-          getAvroField(
-            fieldValue.asInstanceOf[GenericRecord],
-            fieldPath.tail,
-            fieldSchema)
-        case Type.ARRAY | Type.MAP => throw new UnsupportedOperationException(
-          s"Type `${fieldSchema.getType}` of `${fieldName}` is not supported as stratification " +
-            s"key!")
+          getAvroField(fieldValue.asInstanceOf[GenericRecord], fieldPath.tail, fieldSchema)
+        case Type.ARRAY | Type.MAP =>
+          throw new UnsupportedOperationException(
+            s"Type `${fieldSchema.getType}` of `${fieldName}` is not supported as stratification " +
+              s"key!"
+          )
         case _ => fieldValue
       }
     }
   }
 
-  private[samplers] def hashAvroField(schema: Schema)
-                                     (r: GenericRecord, fieldStr: String, hasher: Hasher)
-  : Hasher = {
+  private[samplers] def hashAvroField(
+    schema: Schema
+  )(r: GenericRecord, fieldStr: String, hasher: Hasher): Hasher =
     hashAvroField(schema, r, fieldStr.split(BigSampler.fieldSep).toList, hasher)
-  }
 
-  private[samplers] def hashAvroField(schema: Schema, r: GenericRecord,
-                                                      fieldPath: List[String],
-                                                      hasher: Hasher)
-  : Hasher = {
+  private[samplers] def hashAvroField(
+    schema: Schema,
+    r: GenericRecord,
+    fieldPath: List[String],
+    hasher: Hasher
+  ): Hasher = {
     val (fieldName, fieldSchema, fieldValue) = getField(r, fieldPath, schema)
     if (fieldValue == null) {
       log.debug(
-        s"Field `${fieldName}` of type ${fieldSchema.getType} is null - won't account for hash")
+        s"Field `${fieldName}` of type ${fieldSchema.getType} is null - won't account for hash"
+      )
       hasher
     } else {
-      val vs = if(fieldSchema.getType == Type.ARRAY) {
+      val vs = if (fieldSchema.getType == Type.ARRAY) {
         val elementType = fieldSchema.getElementType
-        fieldValue.asInstanceOf[JList[AnyRef]].asScala.map(v =>  (v, resolveUnion(elementType, v)))
+        fieldValue.asInstanceOf[JList[AnyRef]].asScala.map(v => (v, resolveUnion(elementType, v)))
       } else {
         Seq((fieldValue, fieldSchema))
       }
 
-      vs.foldLeft(hasher){ case (h, (v, s)) =>
+      vs.foldLeft(hasher) { case (h, (v, s)) =>
         s.getType match {
           case Type.RECORD =>
-            hashAvroField(s,
-              v.asInstanceOf[GenericRecord],
-              fieldPath.tail,
-              hasher)
+            hashAvroField(s, v.asInstanceOf[GenericRecord], fieldPath.tail, hasher)
           case _ => hashPrimitive(fieldName, s, v, h)
         }
       }
@@ -149,67 +158,84 @@ private[samplers] object BigSamplerAvro {
   }
 
   // scalastyle:off cyclomatic.complexity
-  private def hashPrimitive(fieldName: String, fieldSchema: Schema, fieldValue: AnyRef,
-                            hasher: Hasher)
-  : Hasher = {
+  private def hashPrimitive(
+    fieldName: String,
+    fieldSchema: Schema,
+    fieldValue: AnyRef,
+    hasher: Hasher
+  ): Hasher = {
     fieldSchema.getType match {
       case Type.ENUM => hashEnum(fieldName, fieldSchema, fieldValue, hasher)
       case Type.STRING =>
         hasher.putString(fieldValue.asInstanceOf[CharSequence], BigSampler.utf8Charset)
       case Type.BYTES => hashBytes(fieldName, fieldSchema, fieldValue, hasher)
       // to keep it consistent with BigQuery INT - convert int to long
-      case Type.INT => hasher.putLong(fieldValue.asInstanceOf[Int].toLong)
-      case Type.LONG => hasher.putLong(fieldValue.asInstanceOf[Long])
-      case Type.FLOAT => hasher.putFloat(fieldValue.asInstanceOf[Float])
-      case Type.DOUBLE => hasher.putDouble(fieldValue.asInstanceOf[Double])
+      case Type.INT     => hasher.putLong(fieldValue.asInstanceOf[Int].toLong)
+      case Type.LONG    => hasher.putLong(fieldValue.asInstanceOf[Long])
+      case Type.FLOAT   => hasher.putFloat(fieldValue.asInstanceOf[Float])
+      case Type.DOUBLE  => hasher.putDouble(fieldValue.asInstanceOf[Double])
       case Type.BOOLEAN => hasher.putBoolean(fieldValue.asInstanceOf[Boolean])
-      case Type.FIXED => hashBytes(fieldName, fieldSchema, fieldValue, hasher)
-      case Type.NULL => hasher // Ignore nulls
-      case t => throw new UnsupportedOperationException(
-        s"Type `${fieldSchema.getType}` of `${fieldName}` is not supported as sampling key!")
+      case Type.FIXED   => hashBytes(fieldName, fieldSchema, fieldValue, hasher)
+      case Type.NULL    => hasher // Ignore nulls
+      case t =>
+        throw new UnsupportedOperationException(
+          s"Type `${fieldSchema.getType}` of `${fieldName}` is not supported as sampling key!"
+        )
     }
   }
 
   // scalastyle:on cyclomatic.complexity
 
-  private def hashEnum(fieldName: String, fieldSchema: Schema, fieldValue: AnyRef, hasher: Hasher)
-  : Hasher = {
+  private def hashEnum(
+    fieldName: String,
+    fieldSchema: Schema,
+    fieldValue: AnyRef,
+    hasher: Hasher
+  ): Hasher = {
     // Enum has two possible types depending on if v came from a specific or generic record
     fieldValue match {
-      case sv: Enum[_] => hasher.putString(sv.name, BigSampler.utf8Charset)
+      case sv: Enum[_]                => hasher.putString(sv.name, BigSampler.utf8Charset)
       case gv: GenericData.EnumSymbol => hasher.putString(gv.toString, BigSampler.utf8Charset)
-      case _ => throw new UnsupportedOperationException(
-        s"Internal type of `${fieldName}` not consistent with `${fieldSchema.getType}`!")
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"Internal type of `${fieldName}` not consistent with `${fieldSchema.getType}`!"
+        )
     }
   }
 
-  private def hashBytes(fieldName: String, fieldSchema: Schema, fieldValue: AnyRef,
-                        hasher: Hasher)
-  : Hasher = {
+  private def hashBytes(
+    fieldName: String,
+    fieldSchema: Schema,
+    fieldValue: AnyRef,
+    hasher: Hasher
+  ): Hasher = {
     // Types depend on whether v came from a specific or generic record
     fieldValue match {
-      case sv: Array[Byte] => hasher.putBytes(sv)
-      case gv: ByteBuffer => hasher.putBytes(gv.array())
+      case sv: Array[Byte]  => hasher.putBytes(sv)
+      case gv: ByteBuffer   => hasher.putBytes(gv.array())
       case fv: GenericFixed => hasher.putBytes(fv.bytes())
-      case _ => throw new UnsupportedOperationException(
-        s"Internal type of `${fieldName}` not consistent with `${fieldSchema.getType}`!")
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"Internal type of `${fieldName}` not consistent with `${fieldSchema.getType}`!"
+        )
     }
   }
 
   //scalastyle:off method.length cyclomatic.complexity parameter.number
-  private[samplers] def sample(sc: ScioContext,
-                               input: String,
-                               output: String,
-                               fields: Seq[String],
-                               fraction: Double,
-                               seed: Option[Int],
-                               hashAlgorithm: HashAlgorithm,
-                               distribution: Option[SampleDistribution],
-                               distributionFields: Seq[String],
-                               precision: Precision,
-                               maxKeySize: Int,
-                               byteEncoding: ByteEncoding = RawEncoding)
-  : ClosedTap[GenericRecord] = {
+  private[samplers] def sample(
+    sc: ScioContext,
+    input: String,
+    output: String,
+    fields: Seq[String],
+    fraction: Double,
+    seed: Option[Int],
+    hashAlgorithm: HashAlgorithm,
+    distribution: Option[SampleDistribution],
+    distributionFields: Seq[String],
+    precision: Precision,
+    maxKeySize: Int,
+    byteEncoding: ByteEncoding = RawEncoding
+  ): ClosedTap[GenericRecord] = {
     val schema = AvroIO.getAvroSchemaFromFile(input)
     val outputParts = if (output.endsWith("/")) output + "part*" else output + "/part*"
     if (FileStorage(outputParts).isDone) {
@@ -222,8 +248,19 @@ private[samplers] object BigSamplerAvro {
 
       val coll = sc.avroFile(input, schema)
 
-      val sampledCollection = sampleAvro(coll, fraction, schema, fields, seed, hashAlgorithm,
-        distribution, distributionFields, precision, maxKeySize, byteEncoding)
+      val sampledCollection = sampleAvro(
+        coll,
+        fraction,
+        schema,
+        fields,
+        seed,
+        hashAlgorithm,
+        distribution,
+        distributionFields,
+        precision,
+        maxKeySize,
+        byteEncoding
+      )
 
       val r = sampledCollection.saveAsAvroFile(output, schema = schema)
       sc.run().waitUntilDone()

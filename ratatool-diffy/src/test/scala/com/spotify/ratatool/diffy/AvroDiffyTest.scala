@@ -43,9 +43,8 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
     val y = NullableNestedRecord.newBuilder().setIntField(10).setLongField(20L).build()
     val z = NullableNestedRecord.newBuilder().setIntField(10).setLongField(200L).build()
 
-    d(x, y) should equal (Nil)
-    d(x, z) should equal (Seq(
-      Delta("long_field", Option(20L), Option(200L), NumericDelta(180.0))))
+    d(x, y) should equal(Nil)
+    d(x, z) should equal(Seq(Delta("long_field", Option(20L), Option(200L), NumericDelta(180.0))))
   }
 
   it should "support nested fields" in {
@@ -67,19 +66,24 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
     z2.setNullableNestedField(null)
     val z3 = CoderUtils.clone(coder, z2)
 
-    d(x, y) should equal (Nil)
-    d(x, z1) should equal (Seq(
-      Delta("nullable_nested_field.long_field", Option(20L), Option(200L), NumericDelta(180.0)),
-      Delta("nullable_nested_field.string_field", Option("hello"), Option("Hello"), StringDelta
-      (1.0))))
-    d(x, z2) should equal (Seq(
-      Delta("nullable_nested_field", Option(nnr), None, UnknownDelta)))
-    d(z2, z3) should equal (Nil)
+    d(x, y) should equal(Nil)
+    d(x, z1) should equal(
+      Seq(
+        Delta("nullable_nested_field.long_field", Option(20L), Option(200L), NumericDelta(180.0)),
+        Delta(
+          "nullable_nested_field.string_field",
+          Option("hello"),
+          Option("Hello"),
+          StringDelta(1.0)
+        )
+      )
+    )
+    d(x, z2) should equal(Seq(Delta("nullable_nested_field", Option(nnr), None, UnknownDelta)))
+    d(z2, z3) should equal(Nil)
   }
 
   it should "support repeated fields" in {
     val coder = ScioAvroCoder.of(classOf[TestRecord], true)
-
 
     val x = specificRecordOf[TestRecord].sample.get
     x.getRepeatedFields.setIntField(jl(10, 11))
@@ -91,13 +95,23 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
     z.getRepeatedFields.setLongField(jl(-20L, -21L))
     z.getRepeatedFields.setStringField(jl("Hello", "World"))
 
-    d(x, y) should equal (Nil)
-    d(x, z) should equal (Seq(
-      Delta("repeated_fields.long_field", Option(jl(20L, 21L)), Option(jl(-20L, -21L)),
-        VectorDelta(2.0)),
-      Delta("repeated_fields.string_field",
-        Option(jl("hello", "world")), Option(jl("Hello", "World")),
-        UnknownDelta)))
+    d(x, y) should equal(Nil)
+    d(x, z) should equal(
+      Seq(
+        Delta(
+          "repeated_fields.long_field",
+          Option(jl(20L, 21L)),
+          Option(jl(-20L, -21L)),
+          VectorDelta(2.0)
+        ),
+        Delta(
+          "repeated_fields.string_field",
+          Option(jl("hello", "world")),
+          Option(jl("Hello", "World")),
+          UnknownDelta
+        )
+      )
+    )
   }
 
   it should "support ignore" in {
@@ -106,9 +120,8 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
     val z = NullableNestedRecord.newBuilder().setIntField(20).setLongField(200L).build()
 
     val di = new AvroDiffy[GenericRecord](Set("int_field"))
-    di(x, y) should equal (Nil)
-    di(x, z) should equal (Seq(
-      Delta("long_field", Option(20L), Option(200L), NumericDelta(180.0))))
+    di(x, y) should equal(Nil)
+    di(x, z) should equal(Seq(Delta("long_field", Option(20L), Option(200L), NumericDelta(180.0))))
   }
 
   it should "support unordered" in {
@@ -125,10 +138,11 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
     z.setRepeatedNestedField(jl(a, c, b))
 
     val du = new AvroDiffy[GenericRecord](unordered = Set("repeated_nested_field"))
-    du(x, y) should equal (Nil)
-    du(x, z) should equal (Nil)
-    d(x, z) should equal (Seq(
-      Delta("repeated_nested_field", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta)))
+    du(x, y) should equal(Nil)
+    du(x, z) should equal(Nil)
+    d(x, z) should equal(
+      Seq(Delta("repeated_nested_field", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta))
+    )
   }
 
   it should "support unordered nested" in {
@@ -151,12 +165,14 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
 
     val du = new AvroDiffy[DeeplyRepeatedRecord](
       unordered = Set("repeated_record", "repeated_record.nested_repeated_field"),
-      unorderedFieldKeys = Map("repeated_record" -> "string_field"))
+      unorderedFieldKeys = Map("repeated_record" -> "string_field")
+    )
 
-    du(x, y) should equal (Nil)
-    du(x, z) should equal (Nil)
-    d(x, z) should equal (Seq(
-      Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta)))
+    du(x, y) should equal(Nil)
+    du(x, z) should equal(Nil)
+    d(x, z) should equal(
+      Seq(Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta))
+    )
   }
 
   it should "support unordered nested of different lengths" in {
@@ -180,24 +196,34 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
 
     val du = new AvroDiffy[DeeplyRepeatedRecord](
       unordered = Set("repeated_record", "repeated_record.nested_repeated_field"),
-      unorderedFieldKeys = Map("repeated_record" -> "string_field"))
+      unorderedFieldKeys = Map("repeated_record" -> "string_field")
+    )
 
-    du(x, y) should equal (Seq(
-      Delta("repeated_record.nested_repeated_field", Option(jl(10, 20, 30)), None, UnknownDelta),
-      Delta("repeated_record.string_field", Option("b"), None, UnknownDelta)
-    ))
+    du(x, y) should equal(
+      Seq(
+        Delta("repeated_record.nested_repeated_field", Option(jl(10, 20, 30)), None, UnknownDelta),
+        Delta("repeated_record.string_field", Option("b"), None, UnknownDelta)
+      )
+    )
   }
 
   it should "support schema evolution if ignored" in {
     val inner = avroOf(Schemas.evolvedSimpleAvroSchema.getField("nullable_fields").schema())
-        .flatMap(r => Arbitrary.arbString.arbitrary.map { s =>
+      .flatMap(r =>
+        Arbitrary.arbString.arbitrary.map { s =>
           r.put("string_field", s)
           r
-        })
-    val x = avroOf(Schemas.evolvedSimpleAvroSchema).flatMap(r => inner.map { i =>
-      r.put("nullable_fields", i)
-      r
-    }).sample.get
+        }
+      )
+    val x = avroOf(Schemas.evolvedSimpleAvroSchema)
+      .flatMap(r =>
+        inner.map { i =>
+          r.put("nullable_fields", i)
+          r
+        }
+      )
+      .sample
+      .get
     val y = new GenericRecordBuilder(Schemas.simpleAvroSchema)
       .set(
         "nullable_fields",
@@ -209,49 +235,65 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
       .set(
         "required_fields",
         new GenericRecordBuilder(Schemas.simpleAvroSchema.getField("required_fields").schema())
-          .set("boolean_field",
-            x.get("required_fields").asInstanceOf[GenericRecord].get("boolean_field"))
-          .set("string_field",
-            x.get("required_fields").asInstanceOf[GenericRecord].get("string_field"))
+          .set(
+            "boolean_field",
+            x.get("required_fields").asInstanceOf[GenericRecord].get("boolean_field")
+          )
+          .set(
+            "string_field",
+            x.get("required_fields").asInstanceOf[GenericRecord].get("string_field")
+          )
           .build()
-      ).build()
+      )
+      .build()
 
     val d = new AvroDiffy[GenericRecord]()
     val di = new AvroDiffy[GenericRecord](ignore = Set("nullable_fields.string_field"))
-    di(y, x) should equal (Nil)
-    d(y, x) should equal(Seq(
-      Delta(
-        "nullable_fields.string_field",
-        None,
-        Option(x.get("nullable_fields").asInstanceOf[GenericRecord].get("string_field")
-          .asInstanceOf[String]),
-        UnknownDelta
+    di(y, x) should equal(Nil)
+    d(y, x) should equal(
+      Seq(
+        Delta(
+          "nullable_fields.string_field",
+          None,
+          Option(
+            x.get("nullable_fields")
+              .asInstanceOf[GenericRecord]
+              .get("string_field")
+              .asInstanceOf[String]
+          ),
+          UnknownDelta
+        )
       )
-    ))
+    )
   }
 
   it should "support bytes keys in avroKeyFn" in {
     val ba = "testing".toCharArray.map(_.toByte)
     val hex = BaseEncoding.base16().encode(ba)
 
-
     val bytes = ByteBuffer.wrap(ba)
     val x = new GenericRecordBuilder(Schemas.simpleAvroByteFieldSchema)
       .set(
         "nullable_fields",
-        new GenericRecordBuilder(Schemas.simpleAvroByteFieldSchema.getField("nullable_fields")
-          .schema())
+        new GenericRecordBuilder(
+          Schemas.simpleAvroByteFieldSchema
+            .getField("nullable_fields")
+            .schema()
+        )
           .set("byte_field", bytes)
           .build()
       )
       .set(
         "required_fields",
-        new GenericRecordBuilder(Schemas.simpleAvroByteFieldSchema.getField("required_fields")
-          .schema())
+        new GenericRecordBuilder(
+          Schemas.simpleAvroByteFieldSchema
+            .getField("required_fields")
+            .schema()
+        )
           .set("byte_field", bytes)
           .build()
-      ).build()
-
+      )
+      .build()
 
     BigDiffy.avroKeyFn(Seq("nullable_fields.byte_field"))(x) should equal(MultiKey(hex))
   }

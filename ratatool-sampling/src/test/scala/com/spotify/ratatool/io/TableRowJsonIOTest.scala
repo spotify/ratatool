@@ -32,27 +32,35 @@ class TableRowJsonIOTest extends AnyFlatSpec with Matchers {
    * Reduce bounds of the float from [[org.scalacheck.Arbitrary.arbFloat]] to avoid floating point
    * precision errors with `.toString()`
    */
-  private def floatGen = Gen.choose[Float](0.0F, 1.0F)
+  private def floatGen = Gen.choose[Float](0.0f, 1.0f)
 
   private val schema = Schemas.tableSchema
-  private val data = Gen.listOfN(100,
-    tableRowOf(schema)
-      .amend(Gen.oneOf(
-        Gen.const(null),
-        floatGen
-      ))(_.getRecord("nullable_fields").set("float_field"))
-      .amend(floatGen)(_.getRecord("required_fields").set("float_field"))
-      .amend(Gen.nonEmptyListOf(floatGen)
-        .map(_.asJava)
-      )(_.getRecord("repeated_fields").set("float_field"))
-  ).sample.get
+  private val data = Gen
+    .listOfN(
+      100,
+      tableRowOf(schema)
+        .amend(
+          Gen.oneOf(
+            Gen.const(null),
+            floatGen
+          )
+        )(_.getRecord("nullable_fields").set("float_field"))
+        .amend(floatGen)(_.getRecord("required_fields").set("float_field"))
+        .amend(
+          Gen
+            .nonEmptyListOf(floatGen)
+            .map(_.asJava)
+        )(_.getRecord("repeated_fields").set("float_field"))
+    )
+    .sample
+    .get
 
   "TableRowJsonIO" should "work with stream" in {
     val out = new ByteArrayOutputStream()
     TableRowJsonIO.writeToOutputStream(data, out)
     val in = new ByteArrayInputStream(out.toByteArray)
     val result = TableRowJsonIO.readFromInputStream(in).toList.map(_.toString)
-    result should equal (data.map(_.toString))
+    result should equal(data.map(_.toString))
   }
 
   it should "work with file" in {
@@ -60,7 +68,7 @@ class TableRowJsonIOTest extends AnyFlatSpec with Matchers {
     file.deleteOnExit()
     TableRowJsonIO.writeToFile(data, file)
     val result = TableRowJsonIO.readFromFile(file).toList.map(_.toString)
-    result should equal (data.map(_.toString))
+    result should equal(data.map(_.toString))
   }
 
 }

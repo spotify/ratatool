@@ -33,7 +33,7 @@ import scala.collection.mutable.ListBuffer
  * Only head mode is supported.
  */
 class BigQuerySampler(tableRef: TableReference, protected val seed: Option[Long] = None)
-  extends Sampler[TableRow]{
+    extends Sampler[TableRow] {
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[BigQuerySampler])
 
@@ -53,8 +53,11 @@ class BigQuerySampler(tableRef: TableReference, protected val seed: Option[Long]
   override def sample(n: Long, head: Boolean): Seq[TableRow] = {
     require(n > 0, "n must be > 0")
     require(head, "BigQuery can only be used with --head")
-    logger.info("Taking a sample of {} from BigQuery table {}", n,
-      BigQueryHelpers.toTableSpec(tableRef))
+    logger.info(
+      "Taking a sample of {} from BigQuery table {}",
+      n,
+      BigQueryHelpers.toTableSpec(tableRef)
+    )
 
     val numRows = BigInt(table.getNumRows)
 

@@ -21,8 +21,7 @@ import com.google.api.services.bigquery.model.TableRow
 import com.spotify.ratatool.examples.scalacheck.ExampleTableRowGen
 import com.spotify.ratatool.scalacheck._
 import org.scalacheck.{Gen, Properties}
-import org.scalacheck.Prop.{AnyOperators, forAll}
-
+import org.scalacheck.Prop.{forAll, AnyOperators}
 
 object ExampleTableRowGenTest extends Properties("ExampleTableRowGenerator") {
   val gen: Gen[TableRow] = ExampleTableRowGen.tableRowGen
@@ -50,8 +49,8 @@ object ExampleTableRowGenTest extends Properties("ExampleTableRowGenerator") {
     }
 
   property("the record id is the same when using amend2 for correlated fields") =
-    forAll(ExampleTableRowGen.correlatedRecordGen) {
-      case (correlatedRecord) => correlatedRecord.get("record_id") ==
+    forAll(ExampleTableRowGen.correlatedRecordGen) { case (correlatedRecord) =>
+      correlatedRecord.get("record_id") ==
         correlatedRecord.get("parent_record_id")
     }
 

@@ -21,10 +21,10 @@ import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
 import org.apache.beam.sdk.coders.shaded.ScioAvroCoder
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck._
-import org.scalacheck.Prop.{AnyOperators, all, forAll, propBoolean}
+import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 
 object AvroGeneratorTest extends Properties("AvroGenerator") {
-  property("round trips") = forAll (specificRecordOf[TestRecord]) { m =>
+  property("round trips") = forAll(specificRecordOf[TestRecord]) { m =>
     val coder = ScioAvroCoder.of(classOf[TestRecord], true)
 
     val bytes = CoderUtils.encodeToByteArray(coder, m)
@@ -38,14 +38,15 @@ object AvroGeneratorTest extends Properties("AvroGenerator") {
     .amend(Gen.choose(10.0f, 20.0f))(_.getNullableFields.setFloatField)
     .amend(Gen.choose(10.0, 20.0))(_.getNullableFields.setDoubleField)
     .amend(Gen.const(true))(_.getNullableFields.setBooleanField)
-    .amend(Gen.const("hello"))(_.getNullableFields.setStringField,
-      m => s => m.getNullableFields.setUpperStringField(s.toUpperCase))
+    .amend(Gen.const("hello"))(
+      _.getNullableFields.setStringField,
+      m => s => m.getNullableFields.setUpperStringField(s.toUpperCase)
+    )
 
   val richTupGen = (specificRecordOf[TestRecord], specificRecordOf[TestRecord]).tupled
-    .amend2(specificRecordOf[RequiredNestedRecord])(_.setRequiredFields,
-      _.setRequiredFields)
+    .amend2(specificRecordOf[RequiredNestedRecord])(_.setRequiredFields, _.setRequiredFields)
 
-  property("support RichAvroGen") = forAll (richGen) { r =>
+  property("support RichAvroGen") = forAll(richGen) { r =>
     all(
       "Int" |:
         r.getNullableFields.getIntField >= 10 && r.getNullableFields.getIntField <= 20,
@@ -61,7 +62,7 @@ object AvroGeneratorTest extends Properties("AvroGenerator") {
     )
   }
 
-  property("support RichAvroTupGen") = forAll (richTupGen) { case (a, b) =>
+  property("support RichAvroTupGen") = forAll(richTupGen) { case (a, b) =>
     (a.getRequiredFields.getBooleanField == b.getRequiredFields.getBooleanField
       && a.getRequiredFields.getIntField == b.getRequiredFields.getIntField
       && a.getRequiredFields.getStringField.toString == b.getRequiredFields.getStringField.toString

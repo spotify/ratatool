@@ -19,8 +19,7 @@ package com.spotify.ratatool.scalacheck
 
 import com.spotify.ratatool.proto.Schemas.{OptionalNestedRecord, RequiredNestedRecord, TestRecord}
 import org.scalacheck.{Gen, Properties}
-import org.scalacheck.Prop.{propBoolean, all, forAll}
-
+import org.scalacheck.Prop.{all, forAll, propBoolean}
 
 object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
   property("round trip") = forAll(protoBufOf[TestRecord]) { m =>
@@ -37,18 +36,17 @@ object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
     .amend(Gen.const("hello"))(_.setStringField, m => s => m.setUpperStringField(s.toUpperCase))
     .map(_.build())
 
-
-  val richGen: Gen[TestRecord] = protoBufOf[TestRecord].map(_.toBuilder)
+  val richGen: Gen[TestRecord] = protoBufOf[TestRecord]
+    .map(_.toBuilder)
     .amend(optionalNestedRecordGen)(_.setOptionalFields)
     .map(_.build())
 
   val richTupGen =
     (protoBufOf[TestRecord].map(_.toBuilder), protoBufOf[TestRecord].map(_.toBuilder)).tupled
-    .amend2(protoBufOf[RequiredNestedRecord])(_.setRequiredFields, _.setRequiredFields)
-    .map{ case (a, b) => (a.build(), b.build()) }
+      .amend2(protoBufOf[RequiredNestedRecord])(_.setRequiredFields, _.setRequiredFields)
+      .map { case (a, b) => (a.build(), b.build()) }
 
-
-  property("support RichProtoGen") = forAll (richGen) { r =>
+  property("support RichProtoGen") = forAll(richGen) { r =>
     all(
       "Int" |:
         (r.getOptionalFields.getInt32Field >= 10 && r.getOptionalFields.getInt32Field <= 20),
@@ -64,7 +62,7 @@ object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
     )
   }
 
-  property("support RichProtoTupGen") = forAll (richTupGen) { case (a, b) =>
+  property("support RichProtoTupGen") = forAll(richTupGen) { case (a, b) =>
     (a.getRequiredFields.getBoolField == b.getRequiredFields.getBoolField
       && a.getRequiredFields.getInt32Field == b.getRequiredFields.getInt32Field
       && a.getRequiredFields.getFixed64Field == b.getRequiredFields.getFixed64Field

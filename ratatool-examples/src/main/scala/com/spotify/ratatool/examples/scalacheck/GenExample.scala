@@ -37,13 +37,11 @@ object ExampleAvroGen {
     v <- Arbitrary.arbInt.arbitrary
   } yield (k, v)
 
-  /**
-   * Generates a map of size 1-5
-   */
+  /** Generates a map of size 1-5 */
   private val sizedMapGen: Gen[util.Map[CharSequence, java.lang.Integer]] =
     Gen.mapOfN(5, kvGen).map { m =>
       val map = new util.HashMap[Utf8, java.lang.Integer]()
-      m.foreach{case (k, v) => map.put(k, v)}
+      m.foreach { case (k, v) => map.put(k, v) }
       map.asInstanceOf[util.Map[CharSequence, java.lang.Integer]]
     }
 
@@ -61,9 +59,7 @@ object ExampleAvroGen {
 
   private val stringGen: Gen[String] = Gen.oneOf(Gen.alphaNumStr, errorGen)
 
-  /**
-   * This and dependentEnumFunc are used to produce fields based on critera
-   */
+  /** This and dependentEnumFunc are used to produce fields based on critera */
   private def dependentIntFunc(i: Int): Int = {
     if (i == 0) {
       Int.MaxValue
@@ -93,15 +89,17 @@ object ExampleAvroGen {
       .amend(Gen.uuid.map(_.toString))(_.setRecordId)
 
       /**
-       * Set dependent fields based on Schema criteria. This is done in a single amend with
-       * a single gen to ensure values are consistent per record
+       * Set dependent fields based on Schema criteria. This is done in a single amend with a single
+       * gen to ensure values are consistent per record
        */
       .amend(intGen)(
         _.setIndependentIntField,
-        m => i => m.setDependentIntField(dependentIntFunc(i)))
+        m => i => m.setDependentIntField(dependentIntFunc(i))
+      )
       .amend(stringGen)(
         _.setIndependentStringField,
-        m => s => m.setDependentEnumField(dependentEnumFunc(s)))
+        m => s => m.setDependentEnumField(dependentEnumFunc(s))
+      )
 
   private val recordIdGen: Gen[String] = Gen.alphaUpperStr
 
@@ -109,19 +107,16 @@ object ExampleAvroGen {
     specificRecordOf[ExampleRecord]
 
   val exampleRecordAmend2Gen: Gen[(ExampleRecord, ExampleRecord)] =
-    (exampleRecordGen, exampleRecordGenDup)
-      .tupled
+    (exampleRecordGen, exampleRecordGenDup).tupled
       .amend2(recordIdGen)(_.setRecordId, _.setRecordId)
 
   val correlatedRecordGen: Gen[ExampleRecord] =
-    (exampleRecordGen, specificRecordOf[NestedExampleRecord])
-      .tupled
+    (exampleRecordGen, specificRecordOf[NestedExampleRecord]).tupled
       .amend2(recordIdGen)(_.setRecordId, _.setParentRecordId)
-      .map({
-        case (exampleRecord, nestedExampleRecord) =>
-          exampleRecord.setNestedRecordField(nestedExampleRecord)
-          exampleRecord
-      })
+      .map { case (exampleRecord, nestedExampleRecord) =>
+        exampleRecord.setNestedRecordField(nestedExampleRecord)
+        exampleRecord
+      }
 
 }
 
@@ -130,35 +125,38 @@ object ExampleTableRowGen {
     .parseAndClose(
       this.getClass.getResourceAsStream("/schema.json"),
       Charsets.UTF_8,
-      classOf[TableSchema])
+      classOf[TableSchema]
+    )
 
   private val childSchema = new JsonObjectParser(new JacksonFactory)
     .parseAndClose(
       this.getClass.getResourceAsStream("/child.json"),
       Charsets.UTF_8,
-      classOf[TableSchema])
+      classOf[TableSchema]
+    )
 
   private val freqGen: Gen[String] = Gen.frequency(
     (2, Gen.oneOf("Foo", "Bar")),
     (1, Gen.oneOf("Fizz", "Buzz"))
   )
 
-  private val intListGen: Gen[java.util.List[Int]] = Gen.listOfN(
-    3,
-    Arbitrary.arbInt.arbitrary
-  ).map(_.asJava)
+  private val intListGen: Gen[java.util.List[Int]] = Gen
+    .listOfN(
+      3,
+      Arbitrary.arbInt.arbitrary
+    )
+    .map(_.asJava)
 
   /**
    * Nested record Generator where one field depends on another (therefore have to have the same gen
    * and be set in the same fn)
    */
-  private val  rrGen: Gen[TableRow] = Arbitrary.arbString.arbitrary.map {
-    s =>
-      val bytes = s.getBytes(Charsets.UTF_8)
-      val t = new TableRow()
-      t.set("independent_string_field", s)
-      t.set("dependent_bytes_field", bytes)
-      t
+  private val rrGen: Gen[TableRow] = Arbitrary.arbString.arbitrary.map { s =>
+    val bytes = s.getBytes(Charsets.UTF_8)
+    val t = new TableRow()
+    t.set("independent_string_field", s)
+    t.set("dependent_bytes_field", bytes)
+    t
   }
 
   /**
@@ -171,8 +169,8 @@ object ExampleTableRowGen {
       .amend(rrGen)(_.set("required_record"))
 
       /**
-       * Since nullable_record may not exist, we use tryAmend so that it fails
-       * silently if it does not exist
+       * Since nullable_record may not exist, we use tryAmend so that it fails silently if it does
+       * not exist
        */
       .tryAmend(intListGen)(_.getRecord("nullable_record").set("repeated_int_field"))
       .tryAmend(freqGen)(_.getRecord("nullable_record").set("frequency_string_field"))
@@ -183,14 +181,12 @@ object ExampleTableRowGen {
     tableRowOf(tableSchema)
 
   val exampleRecordAmend2Gen: Gen[(TableRow, TableRow)] =
-    (tableRowGen, tableRowGenDup)
-      .tupled
+    (tableRowGen, tableRowGenDup).tupled
       .amend2(recordIdGen)(_.set("record_id"), _.set("record_id"))
 
   val correlatedRecordGen: Gen[TableRow] =
-    (tableRowGen, tableRowOf(childSchema))
-    .tupled
-    .amend2(recordIdGen)(_.set("record_id"), _.set("parent_record_id"))
-    .map({case (record, child) => record.set("parent_record_id", child.get("parent_record_id"))})
+    (tableRowGen, tableRowOf(childSchema)).tupled
+      .amend2(recordIdGen)(_.set("record_id"), _.set("parent_record_id"))
+      .map { case (record, child) => record.set("parent_record_id", child.get("parent_record_id")) }
 
 }

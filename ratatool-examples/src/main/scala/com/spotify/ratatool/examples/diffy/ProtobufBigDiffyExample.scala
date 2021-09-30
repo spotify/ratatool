@@ -22,17 +22,21 @@ import com.spotify.ratatool.examples.proto.Schemas.ExampleRecord
 import com.spotify.scio._
 
 object ProtobufBigDiffyExample {
-  def recordKeyFn(t: ExampleRecord): MultiKey = {
+  def recordKeyFn(t: ExampleRecord): MultiKey =
     MultiKey(t.getStringField)
-  }
 
   def main(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
     val (lhs, rhs, output, header, ignore, unordered) =
-        (args("lhs"), args("rhs"), args("output"),
-          args.boolean("with-header", false), args.list("ignore").toSet,
-          args.list("unordered").toSet)
+      (
+        args("lhs"),
+        args("rhs"),
+        args("output"),
+        args.boolean("with-header", false),
+        args.list("ignore").toSet,
+        args.list("unordered").toSet
+      )
 
     val diffy = new ProtoBufDiffy[ExampleRecord](ignore, unordered)
     val result = BigDiffy.diffProtoBuf[ExampleRecord](sc, lhs, rhs, recordKeyFn, diffy)

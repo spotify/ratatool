@@ -23,10 +23,12 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.util.Utils
 import com.google.api.services.bigquery.model.{Table, TableReference, TableRow, TableSchema}
 import com.google.api.services.bigquery.{Bigquery, BigqueryScopes}
-import org.apache.beam.sdk.io.gcp.bigquery.{BigQueryOptions,
-                                            PatchedBigQueryServicesImpl,
-                                            InsertRetryPolicy,
-                                            PatchedBigQueryTableRowIterator}
+import org.apache.beam.sdk.io.gcp.bigquery.{
+  BigQueryOptions,
+  InsertRetryPolicy,
+  PatchedBigQueryServicesImpl,
+  PatchedBigQueryTableRowIterator
+}
 import org.apache.beam.sdk.options.PipelineOptionsFactory
 import org.apache.beam.sdk.transforms.windowing.{GlobalWindow, PaneInfo}
 import org.apache.beam.sdk.values.ValueInSingleWindow
@@ -48,8 +50,7 @@ object BigQueryIO {
 
   /** BigQuery Java client. */
   val bigquery: Bigquery = {
-    val credential = GoogleCredential
-      .getApplicationDefault
+    val credential = GoogleCredential.getApplicationDefault
       .createScoped(List(BigqueryScopes.BIGQUERY).asJava)
     new Bigquery.Builder(Utils.getDefaultTransport, Utils.getDefaultJsonFactory, credential)
       .setApplicationName("ratatool")
@@ -69,7 +70,8 @@ object BigQueryIO {
     val ds = new PatchedBigQueryServicesImpl()
       .getDatasetService(PipelineOptionsFactory.create().as(classOf[BigQueryOptions]))
     val rows = data.map(e =>
-      ValueInSingleWindow.of(e, Instant.now(), GlobalWindow.INSTANCE, PaneInfo.NO_FIRING))
+      ValueInSingleWindow.of(e, Instant.now(), GlobalWindow.INSTANCE, PaneInfo.NO_FIRING)
+    )
     val failures = new java.util.ArrayList[ValueInSingleWindow[TableRow]]
     val tbl = new Table()
       .setTableReference(tableRef)
@@ -85,7 +87,7 @@ object BigQueryIO {
 }
 
 private class TableRowIterator(private val iter: PatchedBigQueryTableRowIterator)
-  extends Iterator[TableRow] {
+    extends Iterator[TableRow] {
   private var _isOpen = false
   private var _hasNext = false
 

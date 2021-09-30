@@ -60,7 +60,7 @@ object TableRowJsonIO {
     Files.asCharSink(file, Charsets.UTF_8).writeLines(toLines(data).asJava)
 
   /** Write records to a file. */
-  def writeToFile(data: Iterable[TableRow], name :String): Unit = writeToFile(data, new File(name))
+  def writeToFile(data: Iterable[TableRow], name: String): Unit = writeToFile(data, new File(name))
 
   /** Write records to an [[OutputStream]]. */
   def writeToOutputStream(data: Iterable[TableRow], os: OutputStream): Unit =

@@ -41,7 +41,7 @@ class AvroIOTest extends AnyFlatSpec with Matchers {
     AvroIO.writeToOutputStream(genericData, genericSchema, out)
     val in = new ByteArrayInputStream(out.toByteArray)
     val result = AvroIO.readFromInputStream[GenericRecord](in).toList
-    result should equal (genericData)
+    result should equal(genericData)
   }
 
   it should "work with generic record and file" in {
@@ -49,7 +49,7 @@ class AvroIOTest extends AnyFlatSpec with Matchers {
     file.deleteOnExit()
     AvroIO.writeToFile(genericData, genericSchema, file)
     val result = AvroIO.readFromFile[GenericRecord](file).toList
-    result should equal (genericData)
+    result should equal(genericData)
   }
 
   it should "work with specific record and stream" in {
@@ -57,7 +57,7 @@ class AvroIOTest extends AnyFlatSpec with Matchers {
     AvroIO.writeToOutputStream(specificData, specificSchema, out)
     val in = new ByteArrayInputStream(out.toByteArray)
     val result = AvroIO.readFromInputStream[TestRecord](in).toList
-    result.map(FixRandomData(_)) should equal (specificData.map(FixRandomData(_)))
+    result.map(FixRandomData(_)) should equal(specificData.map(FixRandomData(_)))
   }
 
   it should "work with specific record and file" in {
@@ -65,6 +65,6 @@ class AvroIOTest extends AnyFlatSpec with Matchers {
     file.deleteOnExit()
     AvroIO.writeToFile(specificData, specificSchema, file)
     val result = AvroIO.readFromFile[TestRecord](file).toList
-    result.map(FixRandomData(_)) should equal (specificData.map(FixRandomData(_)))
+    result.map(FixRandomData(_)) should equal(specificData.map(FixRandomData(_)))
   }
 }

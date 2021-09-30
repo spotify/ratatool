@@ -27,11 +27,9 @@ object SampleDistribution {
   def fromString(s: String): SampleDistribution = {
     if (s == "stratified") {
       StratifiedDistribution
-    }
-    else if (s == "uniform") {
+    } else if (s == "uniform") {
       UniformDistribution
-    }
-    else {
+    } else {
       throw new IllegalArgumentException(s"Invalid distribution $s")
     }
   }
@@ -72,16 +70,13 @@ case object Base64Encoding extends ByteEncoding
 
 object ByteEncoding {
   def fromString(s: String): ByteEncoding = {
-    if(s == "raw") {
+    if (s == "raw") {
       RawEncoding
-    }
-    else if(s == "hex") {
+    } else if (s == "hex") {
       HexEncoding
-    }
-    else if(s == "base64") {
+    } else if (s == "base64") {
       Base64Encoding
-    }
-    else {
+    } else {
       throw new IllegalArgumentException(s"Invalid byte encoding $s")
     }
   }
@@ -92,26 +87,23 @@ sealed trait HashAlgorithm {
 }
 
 case object MurmurHash extends HashAlgorithm {
-  def hashFn(seed:Option[Int]): Hasher = {
+  def hashFn(seed: Option[Int]): Hasher =
     Hashing.murmur3_128(seed.getOrElse(System.currentTimeMillis().toInt)).newHasher()
-  }
 }
 case object FarmHash extends HashAlgorithm {
   def hashFn(seed: Option[Int]): Hasher = seed match {
     case Some(s) => Hashing.farmHashFingerprint64().newHasher().putInt(s)
-    case _ => Hashing.farmHashFingerprint64().newHasher()
+    case _       => Hashing.farmHashFingerprint64().newHasher()
   }
 }
 
 object HashAlgorithm {
   def fromString(s: String): HashAlgorithm = {
-    if(s == "murmur") {
+    if (s == "murmur") {
       MurmurHash
-    }
-    else if(s == "farm") {
+    } else if (s == "farm") {
       FarmHash
-    }
-    else {
+    } else {
       throw new IllegalArgumentException(s"Invalid hashing function $s")
     }
   }

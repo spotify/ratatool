@@ -28,12 +28,15 @@ private[samplers] object BigSamplerProto {
   private val log = LoggerFactory.getLogger(BigSamplerProto.getClass)
 
   /**
-   * Builds a key function per record
-   * Sets do not have deterministic ordering so we return a sorted list
+   * Builds a key function per record Sets do not have deterministic ordering so we return a sorted
+   * list
    */
-  private[samplers] def buildKey(distributionFields: Seq[String])(m: AbstractMessage)
-  : List[String] = {
-    distributionFields.map(f => getProtobufField(m, f)).toSet
+  private[samplers] def buildKey(
+    distributionFields: Seq[String]
+  )(m: AbstractMessage): List[String] = {
+    distributionFields
+      .map(f => getProtobufField(m, f))
+      .toSet
       .map { x: Any =>
         // can't call toString on null
         if (x == null) {
@@ -41,34 +44,39 @@ private[samplers] object BigSamplerProto {
         } else {
           x.toString
         }
-      }.toList.sorted
+      }
+      .toList
+      .sorted
   }
 
   // scalastyle:off cyclomatic.complexity
-  private[samplers] def hashProtobufField[T <: AbstractMessage : ClassTag](m: T,
-                                                                           fieldStr: String,
-                                                                           hasher: Hasher)
-  : Hasher = {
+  private[samplers] def hashProtobufField[T <: AbstractMessage: ClassTag](
+    m: T,
+    fieldStr: String,
+    hasher: Hasher
+  ): Hasher = {
     val subfields = fieldStr.split(BigSampler.fieldSep)
     val field = Option(m.getDescriptorForType.findFieldByName(subfields.head)).getOrElse {
       throw new NoSuchElementException(s"Can't find field $fieldStr in protobuf schema")
     }
     val v = m.getField(field)
     if (v == null) {
-      log.debug(s"Field `${field.getFullName}` of type ${field.getType} is null - won't account" +
-        s" for hash")
+      log.debug(
+        s"Field `${field.getFullName}` of type ${field.getType} is null - won't account" +
+          s" for hash"
+      )
       hasher
     } else {
       field.getJavaType match {
-        case JavaType.MESSAGE => hashProtobufField(
-          v.asInstanceOf[AbstractMessage], subfields.tail.mkString("."), hasher)
-        case JavaType.INT => hasher.putLong(v.asInstanceOf[Int].toLong)
-        case JavaType.LONG => hasher.putLong(v.asInstanceOf[Long])
-        case JavaType.FLOAT => hasher.putFloat(v.asInstanceOf[Float])
-        case JavaType.DOUBLE => hasher.putDouble(v.asInstanceOf[Double])
+        case JavaType.MESSAGE =>
+          hashProtobufField(v.asInstanceOf[AbstractMessage], subfields.tail.mkString("."), hasher)
+        case JavaType.INT     => hasher.putLong(v.asInstanceOf[Int].toLong)
+        case JavaType.LONG    => hasher.putLong(v.asInstanceOf[Long])
+        case JavaType.FLOAT   => hasher.putFloat(v.asInstanceOf[Float])
+        case JavaType.DOUBLE  => hasher.putDouble(v.asInstanceOf[Double])
         case JavaType.BOOLEAN => hasher.putBoolean(v.asInstanceOf[Boolean])
-        case JavaType.STRING => hasher.putString(v.asInstanceOf[CharSequence],
-          BigSampler.utf8Charset)
+        case JavaType.STRING =>
+          hasher.putString(v.asInstanceOf[CharSequence], BigSampler.utf8Charset)
         case JavaType.BYTE_STRING => hasher.putBytes(v.asInstanceOf[ByteString].toByteArray)
         case JavaType.ENUM => hasher.putString(v.asInstanceOf[Enum[_]].name, BigSampler.utf8Charset)
         // Array, Union
@@ -78,20 +86,24 @@ private[samplers] object BigSamplerProto {
   // scalastyle:on cyclomatic.complexity
 
   // scalastyle:off cyclomatic.complexity
-  private[samplers] def getProtobufField[T <: AbstractMessage : ClassTag](m: T, fieldStr: String)
-  : Any = {
+  private[samplers] def getProtobufField[T <: AbstractMessage: ClassTag](
+    m: T,
+    fieldStr: String
+  ): Any = {
     val subfields = fieldStr.split(BigSampler.fieldSep)
     val field = Option(m.getDescriptorForType.findFieldByName(subfields.head)).getOrElse {
       throw new NoSuchElementException(s"Can't find field $fieldStr in protobuf schema")
     }
     val v = m.getField(field)
     if (v == null) {
-      log.debug(s"Field `${field.getFullName}` of type ${field.getType} is null - won't account" +
-        s" for key")
+      log.debug(
+        s"Field `${field.getFullName}` of type ${field.getType} is null - won't account" +
+          s" for key"
+      )
     } else {
       field.getJavaType match {
-        case JavaType.MESSAGE => getProtobufField(
-          v.asInstanceOf[AbstractMessage], subfields.tail.mkString("."))
+        case JavaType.MESSAGE =>
+          getProtobufField(v.asInstanceOf[AbstractMessage], subfields.tail.mkString("."))
         case _ => v
       }
     }

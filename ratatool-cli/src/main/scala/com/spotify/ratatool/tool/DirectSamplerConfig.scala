@@ -17,9 +17,11 @@
 
 package com.spotify.ratatool.tool
 
-case class DirectSamplerConfig(mode: String = "",
-                               in: String = "",
-                               out: String = "",
-                               tableOut: String = "",
-                               n: Long = 1,
-                               head: Boolean = false)
+case class DirectSamplerConfig(
+  mode: String = "",
+  in: String = "",
+  out: String = "",
+  tableOut: String = "",
+  n: Long = 1,
+  head: Boolean = false
+)

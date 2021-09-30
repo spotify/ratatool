@@ -27,19 +27,31 @@ object DataGenProto {
   def main(args: Array[String]): Unit = {
     val (sc, opts) = ContextAndArgs(args)
     sc.parallelize(1 to 1000)
-      .flatMap(_ => Gen.listOfN(1000, protoBufOf[TestRecord].map(_.toBuilder).amend(Gen.frequency(
-        (100, "US"),
-        (50, "SE"),
-        (25, "CA"),
-        (50, "UK"),
-        (5, "AU"),
-        (10, "BR")
-      ))(r => s =>
-        r.setRequiredFields(r.getRequiredFieldsBuilder.setStringField(s)))
-        .amend(Gen.oneOf(1 to 50000).map(_.toLong))(r => l =>
-          r.setRequiredFields(r.getRequiredFieldsBuilder.setInt64Field(l).build())).map(_.build()))
-        .sample.get)
-        .saveAsProtobufFile(opts("output"))
+      .flatMap(_ =>
+        Gen
+          .listOfN(
+            1000,
+            protoBufOf[TestRecord]
+              .map(_.toBuilder)
+              .amend(
+                Gen.frequency(
+                  (100, "US"),
+                  (50, "SE"),
+                  (25, "CA"),
+                  (50, "UK"),
+                  (5, "AU"),
+                  (10, "BR")
+                )
+              )(r => s => r.setRequiredFields(r.getRequiredFieldsBuilder.setStringField(s)))
+              .amend(Gen.oneOf(1 to 50000).map(_.toLong))(r =>
+                l => r.setRequiredFields(r.getRequiredFieldsBuilder.setInt64Field(l).build())
+              )
+              .map(_.build())
+          )
+          .sample
+          .get
+      )
+      .saveAsProtobufFile(opts("output"))
     sc.run()
   }
 }

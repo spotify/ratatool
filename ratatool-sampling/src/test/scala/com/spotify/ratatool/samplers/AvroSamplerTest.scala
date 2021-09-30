@@ -50,7 +50,7 @@ class AvroSamplerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAllCo
   "AvroSampler" should "support single file in head mode" in {
     val result = new AvroSampler(file1.getAbsolutePath).sample(10, head = true)
     result.size shouldBe 10
-    result should equal (data1.take(10))
+    result should equal(data1.take(10))
   }
 
   it should "support single file in random mode" in {
@@ -62,7 +62,7 @@ class AvroSamplerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAllCo
   it should "support multiple files in head mode" in {
     val result = new AvroSampler(dirWildcard.getAbsolutePath).sample(10, head = true)
     result.size shouldBe 10
-    result should equal (data1.take(10))
+    result should equal(data1.take(10))
   }
 
   it should "support multiple files in random mode" in {

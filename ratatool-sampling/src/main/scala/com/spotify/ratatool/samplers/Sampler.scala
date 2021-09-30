@@ -24,7 +24,7 @@ trait Sampler[T] {
   protected val seed: Option[Long]
   protected val random: Random = seed match {
     case Some(s) => new Random(s)
-    case None => new Random()
+    case None    => new Random()
   }
 
   protected def nextLong(n: Long): Long = {

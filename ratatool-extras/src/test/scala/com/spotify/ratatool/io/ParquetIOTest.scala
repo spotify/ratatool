@@ -42,7 +42,7 @@ class ParquetIOTest extends AnyFlatSpec with Matchers {
     ParquetIO.writeToOutputStream(genericData, genericSchema, out)
     val in = new ByteArrayInputStream(out.toByteArray)
     val result = ParquetIO.readFromInputStream(in).toList
-    result should equal (genericData)
+    result should equal(genericData)
   }
 
   it should "work with generic record and file" in {
@@ -50,7 +50,7 @@ class ParquetIOTest extends AnyFlatSpec with Matchers {
     val file = new File(dir.toString, "temp.parquet")
     ParquetIO.writeToFile(genericData, genericSchema, file)
     val result = ParquetIO.readFromFile(file).toList
-    result should equal (genericData)
+    result should equal(genericData)
     FileUtils.deleteDirectory(dir.toFile)
   }
 
@@ -59,7 +59,7 @@ class ParquetIOTest extends AnyFlatSpec with Matchers {
     ParquetIO.writeToOutputStream(specificData, specificSchema, out)
     val in = new ByteArrayInputStream(out.toByteArray)
     val result = ParquetIO.readFromInputStream[TestRecord](in).toList
-    result.map(FixRandomData(_)) should equal (specificData.map(FixRandomData(_)))
+    result.map(FixRandomData(_)) should equal(specificData.map(FixRandomData(_)))
   }
 
   it should "work with specific record and file" in {
@@ -67,7 +67,7 @@ class ParquetIOTest extends AnyFlatSpec with Matchers {
     val file = new File(dir.toString, "temp.parquet")
     ParquetIO.writeToFile(specificData, specificSchema, file)
     val result = ParquetIO.readFromFile[TestRecord](file).toList
-    result.map(FixRandomData(_)) should equal (specificData.map(FixRandomData(_)))
+    result.map(FixRandomData(_)) should equal(specificData.map(FixRandomData(_)))
     FileUtils.deleteDirectory(dir.toFile)
   }
 
