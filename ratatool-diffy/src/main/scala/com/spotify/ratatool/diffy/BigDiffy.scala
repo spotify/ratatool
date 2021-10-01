@@ -337,6 +337,26 @@ object BigDiffy extends Command with Serializable {
   ): BigDiffy[T] =
     diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
 
+  /** Get BigQuery table, handling possibly partitioned input. */
+  def getBqTable(
+                sc: ScioContext,
+                table: String
+                ): SCollection[TableRow] = {
+    // natively partitioned tables should be input as `project:dataset.table$<partition>`
+    val pattern = """\$[0-9]+$""".r
+    val isNativelyPartitioned = pattern.findFirstIn(table).isDefined
+
+    if(isNativelyPartitioned) {
+      val bqClient = BigQuery.defaultInstance()
+      val Array(tableClean, partitionValue) = table.split("""\$""")
+      val partitioningField = bqClient.tables.table(tableClean).getTimePartitioning.getField
+      val partitionFilter = s"$partitioningField = '$partitionValue'"
+      sc.bigQueryStorage(Table.Spec(tableClean), rowRestriction = partitionFilter)
+    } else {
+      sc.bigQueryTable(Table.Spec(table))
+    }
+  }
+
   /** Diff two TableRow data sets. */
   def diffTableRow(
     sc: ScioContext,
@@ -345,14 +365,15 @@ object BigDiffy extends Command with Serializable {
     keyFn: TableRow => MultiKey,
     diffy: TableRowDiffy,
     ignoreNan: Boolean = false
-  ): BigDiffy[TableRow] =
+  ): BigDiffy[TableRow] = {
     diff(
-      sc.bigQueryTable(Table.Spec(lhs)),
-      sc.bigQueryTable(Table.Spec(rhs)),
+      getBqTable(sc, lhs),
+      getBqTable(sc, rhs),
       diffy,
       keyFn,
       ignoreNan
     )
+  }
 
   /** Merge two BigQuery TableSchemas. */
   def mergeTableSchema(x: TableSchema, y: TableSchema): TableSchema = {
@@ -711,13 +732,17 @@ object BigDiffy extends Command with Serializable {
         BigDiffy
           .diff[GenericRecord](lhsSCollection, rhsSCollection, diffy, avroKeyFn(keys), ignoreNan)
       case "bigquery" =>
+        // remove quotation marks if table arguments were quoted
+        val lhsClean = lhs.replace(""""""", "")
+        val rhsClean = rhs.replace(""""""", "")
+
         // TODO: handle schema evolution
         val bq = BigQuery.defaultInstance()
-        val lSchema = bq.tables.schema(lhs)
-        val rSchema = bq.tables.schema(rhs)
+        val lSchema = bq.tables.schema(lhsClean.split("""\$""").head)
+        val rSchema = bq.tables.schema(rhsClean.split("""\$""").head)
         val schema = mergeTableSchema(lSchema, rSchema)
         val diffy = new TableRowDiffy(schema, ignore, unordered, unorderedKeys)
-        BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(keys), diffy, ignoreNan)
+        BigDiffy.diffTableRow(sc, lhsClean, rhsClean, tableRowKeyFn(keys), diffy, ignoreNan)
       case m =>
         throw new IllegalArgumentException(s"input mode $m not supported")
     }
