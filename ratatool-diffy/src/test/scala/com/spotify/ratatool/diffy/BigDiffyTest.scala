@@ -25,6 +25,7 @@ import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
 import com.spotify.ratatool.scalacheck._
 import com.spotify.scio.testing.PipelineSpec
 import com.google.api.services.bigquery.model.TableRow
+import com.spotify.ratatool.diffy.BigDiffy.isNativelyPartitioned
 import org.apache.beam.sdk.coders.shaded.ScioAvroCoder
 
 import scala.language.higherKinds
@@ -297,6 +298,39 @@ class BigDiffyTest extends PipelineSpec {
       "record.nested_record" -> "key",
       "record.other_nested_record" -> "other_key"
     )
+  }
+
+  "isNativelyPartitioned" should "return true for natively partitioned tables" in {
+    // time-partitioned tables
+    val dailyPartition = "project:dataset.table$20211007"
+    assert(isNativelyPartitioned(dailyPartition))
+
+    val monthlyPartition = "project:dataset.table$202110"
+    assert(isNativelyPartitioned(monthlyPartition))
+
+    val hourlyPartition = "project:dataset.table$2021100714"
+    assert(isNativelyPartitioned(hourlyPartition))
+
+    val yearlyPartition = "project:dataset.table$2021"
+    assert(isNativelyPartitioned(yearlyPartition))
+
+    // integer range-partitioned tables
+    val integerPartitionZero = "project:dataset.table$0"
+    assert(isNativelyPartitioned(integerPartitionZero))
+
+    val integerPartitionNeg = "project:dataset.table$-10"
+    assert(isNativelyPartitioned(integerPartitionNeg))
+
+    val integerPartitionPos = "project:dataset.table$10"
+    assert(isNativelyPartitioned(integerPartitionPos))
+  }
+
+  "isNativelyPartitioned" should "return false for non-partitioned tables" in {
+    val nonPartitioned = "project:dataset.table"
+    assert(!isNativelyPartitioned(nonPartitioned))
+
+    val suffixPartitioned = "project:dataset.table_20211007"
+    assert(!isNativelyPartitioned(suffixPartitioned))
   }
 
   it should "throw an exception when in GCS output mode and output is not gs://" in {

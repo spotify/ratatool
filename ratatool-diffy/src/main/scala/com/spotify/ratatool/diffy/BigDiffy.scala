@@ -337,23 +337,37 @@ object BigDiffy extends Command with Serializable {
   ): BigDiffy[T] =
     diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
 
+  def isNativelyPartitioned(table: String): Boolean = {
+    // natively partitioned tables should be input as `project:dataset.table$<partition>`
+    val pattern = """\$-?[0-9]+$""".r
+    pattern.findFirstIn(table).isDefined
+  }
+
   /** Get BigQuery table, handling possibly partitioned input. */
   def getBqTable(
-                sc: ScioContext,
-                table: String
+                  sc: ScioContext,
+                  tableStr: String
                 ): SCollection[TableRow] = {
-    // natively partitioned tables should be input as `project:dataset.table$<partition>`
-    val pattern = """\$[0-9]+$""".r
-    val isNativelyPartitioned = pattern.findFirstIn(table).isDefined
-
-    if(isNativelyPartitioned) {
+    if(isNativelyPartitioned(tableStr)) {
       val bqClient = BigQuery.defaultInstance()
-      val Array(tableClean, partitionValue) = table.split("""\$""")
-      val partitioningField = bqClient.tables.table(tableClean).getTimePartitioning.getField
-      val partitionFilter = s"$partitioningField = '$partitionValue'"
+      val Array(tableClean, partitionValue) = tableStr.split("""\$""")
+      val table = bqClient.tables.table(tableClean)
+
+      val partitionFilter = try {
+        val partitioningField = table.getTimePartitioning.getField
+        s"$partitioningField = '$partitionValue'"
+      } catch {
+        case _: NullPointerException =>
+          val rangePartitioning = table.getRangePartitioning
+          val partitioningField = rangePartitioning.getField
+          val partitioningInterval = rangePartitioning.getRange.getInterval
+          val intervalEnd = partitionValue.toLong + partitioningInterval - 1
+          s"$partitioningField between $partitionValue and $intervalEnd"
+      }
+
       sc.bigQueryStorage(Table.Spec(tableClean), rowRestriction = partitionFilter)
     } else {
-      sc.bigQueryTable(Table.Spec(table))
+      sc.bigQueryTable(Table.Spec(tableStr))
     }
   }
 
