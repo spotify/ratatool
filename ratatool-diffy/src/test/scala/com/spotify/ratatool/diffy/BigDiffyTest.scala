@@ -317,4 +317,23 @@ class BigDiffyTest extends PipelineSpec {
 
     exc.getMessage shouldBe "Output mode is GCS, but output abc is not a valid GCS location"
   }
+
+  it should "throw an exception when rowRestriction is specified for an avro input" in {
+    val exc = the[NotImplementedError] thrownBy {
+      val args = Array(
+        "--runner=DataflowRunner",
+        "--project=fake",
+        "--tempLocation=gs://tmp/tmp", // dataflow args
+        "--input-mode=avro",
+        "--key=tmp",
+        "--lhs=gs://tmp/lhs",
+        "--rhs=gs://tmp/rhs",
+        "--rowRestriction=true",
+        "--output=gs://abc"
+      )
+      BigDiffy.run(args)
+    }
+
+    exc.getMessage shouldBe "rowRestriction is not implemented for avro inputs"
+  }
 }
