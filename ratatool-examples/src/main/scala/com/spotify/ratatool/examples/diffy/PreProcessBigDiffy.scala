@@ -22,13 +22,13 @@ import com.spotify.ratatool.diffy.{AvroDiffy, BigDiffy, MultiKey}
 import com.spotify.scio.ContextAndArgs
 import org.apache.beam.sdk.util.CoderUtils
 import com.spotify.scio.avro._
-import org.apache.beam.sdk.coders.shaded.ScioAvroCoder
+import org.apache.beam.sdk.coders.AvroCoder
 
 object PreProcessBigDiffy {
   def recordKeyFn(r: ExampleRecord): MultiKey =
     MultiKey(r.getRecordId.toString)
 
-  def mapFn(coder: => ScioAvroCoder[ExampleRecord])(r: ExampleRecord): ExampleRecord = {
+  def mapFn(coder: => AvroCoder[ExampleRecord])(r: ExampleRecord): ExampleRecord = {
     val o = CoderUtils.clone(coder, r)
     if (o.getNullableIntField == null) {
       o.setNullableIntField(0)
@@ -37,7 +37,7 @@ object PreProcessBigDiffy {
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
-    @transient lazy val coder = ScioAvroCoder.of(classOf[ExampleRecord], true)
+    @transient lazy val coder = AvroCoder.of(classOf[ExampleRecord])
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
     val (lhsPath, rhsPath, output, header, ignore, unordered) =
