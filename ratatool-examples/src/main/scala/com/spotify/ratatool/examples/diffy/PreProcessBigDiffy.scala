@@ -37,7 +37,7 @@ object PreProcessBigDiffy {
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
-    @transient lazy val coder = AvroCoder.of(classOf[ExampleRecord], true)
+    @transient lazy val coder = AvroCoder.of(classOf[ExampleRecord])
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
     val (lhsPath, rhsPath, output, header, ignore, unordered) =

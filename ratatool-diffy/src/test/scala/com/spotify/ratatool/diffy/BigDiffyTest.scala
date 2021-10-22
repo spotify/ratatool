@@ -32,7 +32,7 @@ import scala.language.higherKinds
 class BigDiffyTest extends PipelineSpec {
 
   val keys = (1 to 1000).map(k => MultiKey("key" + k))
-  val coder = AvroCoder.of(classOf[TestRecord], true)
+  val coder = AvroCoder.of(classOf[TestRecord])
 
   /** Fixed to a small range so that Std. Dev. & Variance calculations are easier to predict */
   val rnr = specificRecordOf[RequiredNestedRecord]

@@ -33,7 +33,7 @@ class PreProcessBigDiffyJobTest extends PipelineSpec {
     r
   }
 
-  val rhs = lhs.map(CoderUtils.clone(AvroCoder.of(classOf[ExampleRecord], true), _)).map { r =>
+  val rhs = lhs.map(CoderUtils.clone(AvroCoder.of(classOf[ExampleRecord]), _)).map { r =>
     r.setNullableIntField(0)
     r
   }

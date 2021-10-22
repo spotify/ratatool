@@ -25,7 +25,7 @@ import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 
 object AvroGeneratorTest extends Properties("AvroGenerator") {
   property("round trips") = forAll(specificRecordOf[TestRecord]) { m =>
-    val coder = AvroCoder.of(classOf[TestRecord], true)
+    val coder = AvroCoder.of(classOf[TestRecord])
 
     val bytes = CoderUtils.encodeToByteArray(coder, m)
     val decoded = CoderUtils.decodeFromByteArray(coder, bytes)
