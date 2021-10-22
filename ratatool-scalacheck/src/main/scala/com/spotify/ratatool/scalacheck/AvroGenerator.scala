@@ -53,7 +53,7 @@ object AvroGeneratorOps extends AvroGeneratorOps
 trait AvroGeneratorOps {
   def specificRecordOf[A <: SpecificRecord: ClassTag]: Gen[A] = {
     val cls = implicitly[ClassTag[A]].runtimeClass.asInstanceOf[Class[A]]
-    val specificCoder = AvroCoder.of(cls, true)
+    val specificCoder = AvroCoder.of(cls)
     val genericCoder = AvroGenericCoder.of(specificCoder.getSchema)
 
     genericRecordOf(specificCoder.getSchema).map { generic =>
