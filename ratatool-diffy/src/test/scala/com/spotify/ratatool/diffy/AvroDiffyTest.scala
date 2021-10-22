@@ -48,7 +48,7 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
   }
 
   it should "support nested fields" in {
-    val coder = AvroCoder.of(classOf[TestRecord])
+    val coder = AvroCoder.of(classOf[TestRecord], true)
 
     val nnr = specificRecordOf[NullableNestedRecord].sample.get
     nnr.setIntField(10)
