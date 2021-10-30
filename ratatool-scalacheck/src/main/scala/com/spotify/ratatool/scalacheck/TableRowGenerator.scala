@@ -121,7 +121,7 @@ trait TableRowGeneratorOps {
     }
   }
 
-  //scalastyle:off cyclomatic.complexity
+  // scalastyle:off cyclomatic.complexity
   private def tableFieldValueOf(fieldSchema: TableFieldSchema): Gen[TableFieldValue] = {
     val n = fieldSchema.getName
     def genV(): Gen[TableFieldValue] = fieldSchema.getType match {
@@ -156,5 +156,5 @@ trait TableRowGeneratorOps {
       case m => throw new RuntimeException(s"Unknown mode: $m")
     }
   }
-  //scalastyle:on cyclomatic.complexity
+  // scalastyle:on cyclomatic.complexity
 }

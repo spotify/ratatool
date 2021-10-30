@@ -258,7 +258,7 @@ object BigDiffy extends Command with Serializable {
       }
   }
 
-  //scalastyle:off cyclomatic.complexity
+  // scalastyle:off cyclomatic.complexity
   private def computeGlobalAndFieldStats(
     deltas: DeltaSCollection,
     ignoreNan: Boolean
@@ -304,7 +304,7 @@ object BigDiffy extends Command with Serializable {
         (globalKeyStats, fieldStats)
       }
   }
-  //scalastyle:on cyclomatic.complexity
+  // scalastyle:on cyclomatic.complexity
 
   /** Diff two data sets. */
   def diff[T: ClassTag: Coder](
@@ -391,7 +391,7 @@ object BigDiffy extends Command with Serializable {
     kurtosis: Double
   )
 
-  //scalastyle:off method.length
+  // scalastyle:off method.length
   /** saves stats to either GCS as text, or BigQuery */
   def saveStats[T](
     bigDiffy: BigDiffy[T],
@@ -499,7 +499,7 @@ object BigDiffy extends Command with Serializable {
           .saveAsTypedBigQueryTable(Table.Spec(s"${output}_global"))
     }
   }
-  //scalastyle:on method.length
+  // scalastyle:on method.length
 
   private def mergeFields(
     x: Seq[TableFieldSchema],
@@ -637,7 +637,7 @@ object BigDiffy extends Command with Serializable {
   def main(cmdlineArgs: Array[String]): Unit = run(cmdlineArgs)
 
   /** Scio pipeline for BigDiffy. */
-  //scalastyle:off cyclomatic.complexity method.length
+  // scalastyle:off cyclomatic.complexity method.length
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
@@ -725,7 +725,7 @@ object BigDiffy extends Command with Serializable {
 
     sc.run().waitUntilDone()
   }
-  //scalastyle:on cyclomatic.complexity
-  //scalastyle:on method.length
+  // scalastyle:on cyclomatic.complexity
+  // scalastyle:on method.length
 
 }

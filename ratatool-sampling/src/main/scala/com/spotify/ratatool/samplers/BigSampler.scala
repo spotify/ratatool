@@ -82,7 +82,7 @@ object BigSampler extends Command {
    *   (0.0, 1.0]
    */
   private[samplers] def diceElement[T](e: T, hash: HashCode, sampleFraction: Double): Option[T] = {
-    //TODO: for now leave it up to jit/compiler to optimize
+    // TODO: for now leave it up to jit/compiler to optimize
     if (boundLong(hash.asLong) < sampleFraction) {
       Some(e)
     } else {
@@ -156,7 +156,7 @@ object BigSampler extends Command {
   ): Hasher =
     BigSamplerAvro.hashAvroField(avroSchema)(r, f, hasher)
 
-  //scalastyle:off method.length cyclomatic.complexity
+  // scalastyle:off method.length cyclomatic.complexity
   def singleInput(argv: Array[String]): ClosedTap[_] = {
     val (sc, args) = ContextAndArgs(argv)
     val (opts, _) = ScioContext.parseArguments[PipelineOptions](argv)
@@ -271,9 +271,9 @@ object BigSampler extends Command {
       throw new UnsupportedOperationException(s"Input `$input not supported.")
     }
   }
-  //scalastyle:on method.length cyclomatic.complexity
+  // scalastyle:on method.length cyclomatic.complexity
 
-  //scalastyle:off method.length cyclomatic.complexity parameter.number
+  // scalastyle:off method.length cyclomatic.complexity parameter.number
   /**
    * Sample wrapper function that manages sampling pipeline based on determinimism, precision, and
    * data type. Can be used to build sampling for data types not supported out of the box.
@@ -395,7 +395,7 @@ object BigSampler extends Command {
         throw new UnsupportedOperationException("This sampling mode is not currently supported")
     }
   }
-  //scalastyle:on method.length cyclomatic.complexity
+  // scalastyle:on method.length cyclomatic.complexity
 
   def run(argv: Array[String]): Unit =
     this.singleInput(argv)

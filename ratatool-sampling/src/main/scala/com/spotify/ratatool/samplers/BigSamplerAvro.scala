@@ -221,7 +221,7 @@ private[samplers] object BigSamplerAvro {
     }
   }
 
-  //scalastyle:off method.length cyclomatic.complexity parameter.number
+  // scalastyle:off method.length cyclomatic.complexity parameter.number
   private[samplers] def sample(
     sc: ScioContext,
     input: String,
@@ -267,5 +267,5 @@ private[samplers] object BigSamplerAvro {
       r
     }
   }
-  //scalastyle:on method.length cyclomatic.complexity parameter.number
+  // scalastyle:on method.length cyclomatic.complexity parameter.number
 }
