@@ -18,7 +18,7 @@
 import sbt.{Def, _}
 import Keys._
 
-val algebirdVersion = "0.13.8"
+val algebirdVersion = "0.13.9"
 val avroVersion = "1.8.2"
 val beamVersion = "2.33.0"
 val bigqueryVersion = "v2-rev20210410-1.31.0"
