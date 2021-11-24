@@ -319,7 +319,7 @@ class BigDiffyTest extends PipelineSpec {
   }
 
   it should "throw an exception when rowRestriction is specified for an avro input" in {
-    val exc = the[NotImplementedError] thrownBy {
+    val exc = the[IllegalArgumentException] thrownBy {
       val args = Array(
         "--runner=DataflowRunner",
         "--project=fake",
@@ -334,6 +334,6 @@ class BigDiffyTest extends PipelineSpec {
       BigDiffy.run(args)
     }
 
-    exc.getMessage shouldBe "rowRestriction is not implemented for avro inputs"
+    exc.getMessage shouldBe "rowRestriction cannot be passed for avro inputs"
   }
 }
