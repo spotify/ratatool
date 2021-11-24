@@ -708,7 +708,7 @@ object BigDiffy extends Command with Serializable {
     val result = inputMode match {
       case "avro" =>
         if(rowRestriction.isDefined) {
-          throw new NotImplementedError(s"rowRestriction is not implemented for avro inputs")
+          throw new IllegalArgumentException(s"rowRestriction cannot be passed for avro inputs")
         }
 
         val schema = new AvroSampler(rhs, conf = Some(sc.options))
