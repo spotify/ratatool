@@ -25,6 +25,7 @@ import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
 import com.spotify.ratatool.scalacheck._
 import com.spotify.scio.testing.PipelineSpec
 import com.google.api.services.bigquery.model.TableRow
+import com.spotify.ratatool.diffy.BigDiffy.stripQuoteWrap
 import org.apache.beam.sdk.coders.shaded.ScioAvroCoder
 
 import scala.language.higherKinds
@@ -265,6 +266,18 @@ class BigDiffyTest extends PipelineSpec {
       s"${record.getRequiredFields.getIntField}_${record.getRequiredFields.getDoubleField}"
 
     keyValues.toString shouldBe expectedKey
+  }
+
+  "stripQuoteWrap" should "strip matching start and end quotes" in {
+    stripQuoteWrap("\"abc\"") shouldEqual "abc"
+    stripQuoteWrap("`abc`") shouldEqual "abc"
+    stripQuoteWrap("'abc'") shouldEqual "abc"
+  }
+
+  "stripQuoteWrap" should "leave anything else" in {
+    stripQuoteWrap("date=\"2021-12-01\"") shouldEqual "date=\"2021-12-01\""
+    stripQuoteWrap("date='2021-12-01'") shouldEqual  "date='2021-12-01'"
+    stripQuoteWrap("abc") shouldEqual "abc"
   }
 
   "BigDiffy tableRowKeyFn" should "work with single key" in {

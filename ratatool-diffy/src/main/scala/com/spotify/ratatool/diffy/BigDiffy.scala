@@ -337,6 +337,19 @@ object BigDiffy extends Command with Serializable {
   ): BigDiffy[T] =
     diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
 
+  /** Remove quotes wrapping string argument. **/
+  def stripQuoteWrap(input: String): String = {
+    val startChar = input.charAt(0)
+    val endChar = input.charAt(input.length - 1)
+    val quoteChars = List('"', ''', '`')
+
+    if(quoteChars.contains(startChar) && startChar == endChar) {
+      input.slice(1, input.length - 1)
+    } else {
+      input
+    }
+  }
+
   /** Diff two TableRow data sets. */
   def diffTableRow(
     sc: ScioContext,
@@ -347,7 +360,8 @@ object BigDiffy extends Command with Serializable {
     diffy: TableRowDiffy,
     ignoreNan: Boolean = false
   ): BigDiffy[TableRow] = {
-    val restrictionCleaned = rowRestriction.map(_.replace('"', ' '))
+    // replace quotation marks at the beginning or end of the argument
+    val restrictionCleaned = rowRestriction.map(stripQuoteWrap)
 
     diff(
       sc.bigQueryStorage(Table.Spec(lhs), rowRestriction = restrictionCleaned.orNull),
