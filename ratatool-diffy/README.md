@@ -28,7 +28,7 @@ Usage: ratatool bigDiffy [dataflow_options] [options]
   --key=<key>                      '.' separated key field. Specify multiple --key params or multiple ',' separated key fields for multi key usage.
   --lhs=<path>                     LHS File path or BigQuery table
   --rhs=<path>                     RHS File path or BigQuery table
-  --rowRestriction=<filter>        SQL-style predicate to apply to BigQuery inputs (not available for avro inputs)
+  --rowRestriction=<filter>        SQL-style predicate to apply to BigQuery inputs (not available for avro inputs), e.g. "date_field=DATE '2022-01-01'"
   --output=<output>                File path prefix for output
   --ignore=<keys>                  ',' separated field list to ignore
   --unordered=<keys>               ',' separated field list to treat as unordered
