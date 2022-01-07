@@ -26,14 +26,14 @@ import com.spotify.ratatool.scalacheck._
 import com.spotify.scio.testing.PipelineSpec
 import com.google.api.services.bigquery.model.TableRow
 import com.spotify.ratatool.diffy.BigDiffy.stripQuoteWrap
-import org.apache.beam.sdk.coders.shaded.ScioAvroCoder
+import org.apache.beam.sdk.coders.AvroCoder
 
 import scala.language.higherKinds
 
 class BigDiffyTest extends PipelineSpec {
 
   val keys = (1 to 1000).map(k => MultiKey("key" + k))
-  val coder = ScioAvroCoder.of(classOf[TestRecord], true)
+  val coder = AvroCoder.of(classOf[TestRecord])
 
   /** Fixed to a small range so that Std. Dev. & Variance calculations are easier to predict */
   val rnr = specificRecordOf[RequiredNestedRecord]

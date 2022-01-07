@@ -24,7 +24,7 @@ import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific._
 import com.spotify.ratatool.scalacheck._
 import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder}
-import org.apache.beam.sdk.coders.shaded.ScioAvroCoder
+import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Arbitrary
 
@@ -48,7 +48,7 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
   }
 
   it should "support nested fields" in {
-    val coder = ScioAvroCoder.of(classOf[TestRecord], true)
+    val coder = AvroCoder.of(classOf[TestRecord])
 
     val nnr = specificRecordOf[NullableNestedRecord].sample.get
     nnr.setIntField(10)
@@ -83,7 +83,7 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
   }
 
   it should "support repeated fields" in {
-    val coder = ScioAvroCoder.of(classOf[TestRecord], true)
+    val coder = AvroCoder.of(classOf[TestRecord])
 
     val x = specificRecordOf[TestRecord].sample.get
     x.getRepeatedFields.setIntField(jl(10, 11))
@@ -125,7 +125,7 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
   }
 
   it should "support unordered" in {
-    val coder = ScioAvroCoder.of(classOf[TestRecord], true)
+    val coder = AvroCoder.of(classOf[TestRecord])
 
     val a = NullableNestedRecord.newBuilder().setIntField(10).setLongField(100L).build()
     val b = NullableNestedRecord.newBuilder().setIntField(20).setLongField(200L).build()
@@ -146,8 +146,8 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
   }
 
   it should "support unordered nested" in {
-    val drnrCoder = ScioAvroCoder.of(classOf[RepeatedRecord], true)
-    val drrCoder = ScioAvroCoder.of(classOf[DeeplyRepeatedRecord], true)
+    val drnrCoder = AvroCoder.of(classOf[RepeatedRecord])
+    val drrCoder = AvroCoder.of(classOf[DeeplyRepeatedRecord])
 
     val a = avroOf[RepeatedRecord].sample.get
     a.setNestedRepeatedField(jl(10, 20, 30))
@@ -176,8 +176,8 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
   }
 
   it should "support unordered nested of different lengths" in {
-    val drnrCoder = ScioAvroCoder.of(classOf[RepeatedRecord], true)
-    val drrCoder = ScioAvroCoder.of(classOf[DeeplyRepeatedRecord], true)
+    val drnrCoder = AvroCoder.of(classOf[RepeatedRecord])
+    val drrCoder = AvroCoder.of(classOf[DeeplyRepeatedRecord])
 
     val a = avroOf[RepeatedRecord].sample.get
     a.setNestedRepeatedField(jl(30, 20, 10))
