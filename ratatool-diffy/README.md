@@ -28,7 +28,8 @@ Usage: ratatool bigDiffy [dataflow_options] [options]
   --key=<key>                      '.' separated key field. Specify multiple --key params or multiple ',' separated key fields for multi key usage.
   --lhs=<path>                     LHS File path or BigQuery table
   --rhs=<path>                     RHS File path or BigQuery table
-  --rowRestriction=<filter>        SQL-style predicate to apply to BigQuery inputs (not available for avro inputs), e.g. "date_field=DATE '2022-01-01'"
+  [--rowRestriction=<filter>]      SQL text filtering statement to apply to BigQuery inputs (not available for avro inputs),
+                                   similar to a WHERE clause in a query. Aggregates are not supported. Defaults to None
   --output=<output>                File path prefix for output
   --ignore=<keys>                  ',' separated field list to ignore
   --unordered=<keys>               ',' separated field list to treat as unordered
@@ -72,3 +73,20 @@ If you are diffing two avro datasets, their schemas must be backwards compatible
 For BigQuery datasets, the diff is applied across the union of the two schemas.
 
 You can also add the new fields to the ignore list to prune them from the diff results.
+
+
+## Row Restriction
+
+The `rowRestriction` argument for BigQuery inputs is passed directly through to BigQuery's
+[Storage API](https://cloud.google.com/bigquery/docs/reference/storage/rpc/google.cloud.bigquery.storage.v1#tablereadoptions).
+Any SQL-style predicate should work, including:
+
+- Simple filters: `--rowRestriction=field_a=1`
+- Selecting partition of a natively partitioned table:
+  `--rowRestriction="date_field=DATE '2022-01-01'"` (note that date values need to be explicitly cast)
+- Compound filters: `--rowRestriction="field_a=1 AND field_b=3"`
+
+The `rowRestriction` arg can be wrapped in quotes to allow for spaces in the predicate text.
+
+`rowRestriction` is an optional argument. Not passing this argument will result in all rows being 
+read from the BigQuery inputs.
