@@ -25,6 +25,7 @@ import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
 import com.spotify.ratatool.scalacheck._
 import com.spotify.scio.testing.PipelineSpec
 import com.google.api.services.bigquery.model.TableRow
+import com.spotify.ratatool.diffy.BigDiffy.stripQuoteWrap
 import org.apache.beam.sdk.coders.AvroCoder
 
 import scala.language.higherKinds
@@ -267,6 +268,18 @@ class BigDiffyTest extends PipelineSpec {
     keyValues.toString shouldBe expectedKey
   }
 
+  "stripQuoteWrap" should "strip matching start and end quotes" in {
+    stripQuoteWrap("\"abc\"") shouldEqual "abc"
+    stripQuoteWrap("`abc`") shouldEqual "abc"
+    stripQuoteWrap("'abc'") shouldEqual "abc"
+  }
+
+  "stripQuoteWrap" should "leave anything else" in {
+    stripQuoteWrap("date=\"2021-12-01\"") shouldEqual "date=\"2021-12-01\""
+    stripQuoteWrap("date='2021-12-01'") shouldEqual  "date='2021-12-01'"
+    stripQuoteWrap("abc") shouldEqual "abc"
+  }
+
   "BigDiffy tableRowKeyFn" should "work with single key" in {
     val record = new TableRow()
     record.set("key", "foo")
@@ -316,5 +329,24 @@ class BigDiffyTest extends PipelineSpec {
     }
 
     exc.getMessage shouldBe "Output mode is GCS, but output abc is not a valid GCS location"
+  }
+
+  it should "throw an exception when rowRestriction is specified for an avro input" in {
+    val exc = the[IllegalArgumentException] thrownBy {
+      val args = Array(
+        "--runner=DataflowRunner",
+        "--project=fake",
+        "--tempLocation=gs://tmp/tmp", // dataflow args
+        "--input-mode=avro",
+        "--key=tmp",
+        "--lhs=gs://tmp/lhs",
+        "--rhs=gs://tmp/rhs",
+        "--rowRestriction=true",
+        "--output=gs://abc"
+      )
+      BigDiffy.run(args)
+    }
+
+    exc.getMessage shouldBe "rowRestriction cannot be passed for avro inputs"
   }
 }
