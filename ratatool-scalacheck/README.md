@@ -9,9 +9,7 @@ Ratatool-Scalacheck contains classes and functions which help with using Scalach
 import com.spotify.ratatool.scalacheck._
 import org.scalacheck.Gen
 
-
 val avroGen: Gen[MyRecord] = avroOf[MyRecord]
-val record: MyRecord = avroGen.sample.get
 ```
 
 Ratatool also provides `protobufOf[T]` and `tableRowOf(schema)` defined [here](https://github.com/spotify/ratatool/tree/master/ratatool-scalacheck/src/main/scala/com/spotify/ratatool/scalacheck).
@@ -39,7 +37,50 @@ Implicit Arbitrary instances are also available for Avro and Protobuf records. E
 
 ```scala
 val avroArb: Arbitrary[MyRecord] = implicitly[Arbitrary[MyRecord]]
+```
 
+Multiple `Gen` instances can be composed together with a for-comprehension. This will cause the data to be generated with the same seed.
+```scala
+val genData: Gen[(MyRecord, Int)] = for {
+ record <- avroGen
+ i <- Gen.choose(0, 10)
+} yield (record, i)
+
+// .sample gets a random seed
+val data: Option[(MyRecord, Int)] = genData.sample
+```
+
+Due to scalacheck internals generation can fail so the return type of `.sample` is `Option[A]`.
+In general, calling `.get` on an `Option` is an anti-pattern because this can produce `NoSuchElementException`.
+When used in conjunction with scalacheck, calling `.sample.get` can be the root cause of flaky tests.
+
+Repeatedly calling `.sample` is also an anti-pattern as each generated instance will be produced with a different random seed and tests will not be reproducible.
+Instead, use `withGen` as described below.
+
+## In tests
+
+When using `Gen` to create data in a test, use `withGen` to capture the random seed and print it on failure:
+```scala
+import com.spotify.ratatool.scalacheck.GenTestUtils
+
+class MyTest extends GenTestUtils {
+  // ...
+  val inputGen: Gen[List[Int]] = Gen.listOfN(10, Gen.choose(1, 10))
+  withGen(inputGen) { input =>
+    throw new RuntimeException("woops")
+  }
+  // will log:
+  // Failure at MyTest:3. Seed: m82pUlOaHUcyWDadIbOIdEOR7GW4ebmN1oR0a0vbLpG=
+  
+  // ...
+}
+```
+
+To reproduce a test failure, a static seed can be passed as either a base-64 string or an `org.scalacheck.rng.Seed`:
+```scala
+withGen(inputGen, "m82pUlOaHUcyWDadIbOIdEOR7GW4ebmN1oR0a0vbLpG=") { input =>
+  // ...
+}
 ```
 
 ## CaseClassGenerator 
