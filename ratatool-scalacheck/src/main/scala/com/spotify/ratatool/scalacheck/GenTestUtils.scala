@@ -62,7 +62,8 @@ trait GenTestUtils {
       case None =>
         logger.error(
           s"Failed to generate a valid value at ${name.value}:${line.value}. " +
-            s"Consider rewriting Gen instances to be less failure-prone. " +
+            s"This can occur when Gen instances are are not guaranteed to produce a value, " +
+            s"e.g. when candidate values are restricted with filter() or suchThat(). " +
             s"Seed: ${seed.toBase64}"
         )
         None
