@@ -39,22 +39,29 @@ Implicit Arbitrary instances are also available for Avro and Protobuf records. E
 val avroArb: Arbitrary[MyRecord] = implicitly[Arbitrary[MyRecord]]
 ```
 
-Multiple `Gen` instances can be composed together with a for-comprehension, which will cause the data to be generated with the same seed,
-which can aid in test reproducibility. See `withGen` below for a convenience function for capturing failing seeds.
+## Gen composition
+
+Multiple `Gen` instances can be composed together with a for-comprehension, which
+can aid in test reproducibility by causing the data to be generated with the same seed.
 
 ```scala
 val genData: Gen[(MyRecord, Int)] = for {
  record <- avroGen
  i <- Gen.choose(0, 10)
 } yield (record, i)
-
-// .sample gets a random seed
-val data: Option[(MyRecord, Int)] = genData.sample
 ```
 
 ## In tests
 
-When using `Gen` to create data in a test, `withGen` can be used to capture the random seed and print it on failure:
+The `.sample` function will use a random seed to generate data, but can return `None` if a generator is unable to produce a valid value.
+
+```scala
+val data: Option[(MyRecord, Int)] = genData.sample
+```
+
+When using `Gen` to create data in a test, `withGen` can be used to capture the random seed and print it on failure.
+`withGen` will also log the seed when a generator is unable to produce a valid value.
+
 ```scala
 import com.spotify.ratatool.scalacheck.GenTestUtils
 
@@ -62,6 +69,7 @@ class MyTest extends GenTestUtils {
   // ...
   val inputGen: Gen[List[Int]] = Gen.listOfN(10, Gen.choose(1, 10))
   withGen(inputGen) { input =>
+    // simulating failing test
     throw new RuntimeException("woops")
   }
   // will log:
