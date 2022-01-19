@@ -36,7 +36,6 @@ val scoptVersion = "4.0.1"
 val shapelessVersion = "2.3.7"
 val sourcecodeVersion = "0.2.7"
 val slf4jVersion = "1.7.32"
-val googleFloggerVersion = "0.7.4"
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
   scalaBinaryVersion.value == "2.13"
@@ -181,8 +180,7 @@ lazy val ratatoolSampling = project
       "com.twitter" %% "algebird-core" % algebirdVersion,
       "joda-time" % "joda-time" % jodaTimeVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-      "com.google.flogger" % "flogger-system-backend" % googleFloggerVersion
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
