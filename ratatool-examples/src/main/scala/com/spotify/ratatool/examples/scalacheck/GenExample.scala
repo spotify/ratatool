@@ -20,7 +20,7 @@ package com.spotify.ratatool.examples.scalacheck
 import java.util
 
 import com.google.api.client.json.JsonObjectParser
-import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.bigquery.model.{TableRow, TableSchema}
 import com.google.common.base.Charsets
 import com.spotify.ratatool.avro.specific.{EnumField, ExampleRecord, NestedExampleRecord}
@@ -121,14 +121,14 @@ object ExampleAvroGen {
 }
 
 object ExampleTableRowGen {
-  private val tableSchema = new JsonObjectParser(new JacksonFactory)
+  private val tableSchema = new JsonObjectParser(new GsonFactory)
     .parseAndClose(
       this.getClass.getResourceAsStream("/schema.json"),
       Charsets.UTF_8,
       classOf[TableSchema]
     )
 
-  private val childSchema = new JsonObjectParser(new JacksonFactory)
+  private val childSchema = new JsonObjectParser(new GsonFactory)
     .parseAndClose(
       this.getClass.getResourceAsStream("/child.json"),
       Charsets.UTF_8,

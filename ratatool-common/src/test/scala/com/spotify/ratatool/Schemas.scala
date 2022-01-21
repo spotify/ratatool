@@ -18,7 +18,7 @@
 package com.spotify.ratatool
 
 import com.google.api.client.json.JsonObjectParser
-import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.bigquery.model.TableSchema
 import com.google.common.base.Charsets
 import org.apache.avro.Schema
@@ -35,7 +35,7 @@ object Schemas {
   val simpleAvroByteFieldSchema: Schema =
     new Schema.Parser().parse(this.getClass.getResourceAsStream("/SimpleByteFieldRecord.avsc"))
 
-  val tableSchema: TableSchema = new JsonObjectParser(new JacksonFactory)
+  val tableSchema: TableSchema = new JsonObjectParser(new GsonFactory)
     .parseAndClose(
       this.getClass.getResourceAsStream("/schema.json"),
       Charsets.UTF_8,
