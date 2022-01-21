@@ -144,7 +144,7 @@ private[samplers] object BigSamplerBigQuery {
       .sorted
   }
 
-  //scalastyle:off method.length cyclomatic.complexity parameter.number
+  // scalastyle:off method.length cyclomatic.complexity parameter.number
   // TODO: investigate if possible to move this logic to BQ itself
   private[samplers] def sample(
     sc: ScioContext,
@@ -201,5 +201,5 @@ private[samplers] object BigSamplerBigQuery {
       r
     }
   }
-  //scalastyle:on method.length cyclomatic.complexity parameter.number
+  // scalastyle:on method.length cyclomatic.complexity parameter.number
 }

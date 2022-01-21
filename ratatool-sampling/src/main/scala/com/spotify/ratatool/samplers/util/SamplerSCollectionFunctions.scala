@@ -28,7 +28,7 @@ import scala.reflect.ClassTag
 import scala.math._
 
 object SamplerSCollectionFunctions {
-  //TODO: What is a good number for tolerance
+  // TODO: What is a good number for tolerance
   private val errorTolerance = 1e-2
 
   private[samplers] def logDistributionDiffs[U: ClassTag](
@@ -190,7 +190,7 @@ object SamplerSCollectionFunctions {
       .map { case (k, ((v, _), _)) => (k, v) }
   }
 
-  //scalastyle:off cyclomatic.complexity
+  // scalastyle:off cyclomatic.complexity
   private def stratifiedThresholdByKey[T: ClassTag: Coder, U: ClassTag: Coder](
     s: SCollection[(U, (T, Double))],
     prob: Double,
@@ -217,7 +217,7 @@ object SamplerSCollectionFunctions {
         d < getUpperBound(c, prob, delta) && d >= getLowerBound(c, prob, delta)
       }
       .map { case (k, (d, _)) => (k, d) }
-      //TODO: Clean up magic number
+      // TODO: Clean up magic number
       .topByKey(sizePerKey)(Ordering.by(identity[Double]).reverse)
       .hashJoin(boundCountsByKey)
       .hashJoin(boundsByKey)
@@ -233,9 +233,9 @@ object SamplerSCollectionFunctions {
         }
       }
   }
-  //scalastyle:on cyclomatic.complexity
+  // scalastyle:on cyclomatic.complexity
 
-  //scalastyle:off cyclomatic.complexity
+  // scalastyle:off cyclomatic.complexity
   private def uniformThresholdByKey[T: ClassTag: Coder, U: ClassTag: Coder](
     s: SCollection[(U, (T, Double))],
     probByKey: SCollection[(U, Double)],
@@ -259,7 +259,7 @@ object SamplerSCollectionFunctions {
       .hashJoin(boundsByKey)
       .filter { case (_, (d, (l, u))) => d >= l && d < u }
       .map { case (k, (d, _)) => (k, d) }
-      //TODO: Clean up magic number
+      // TODO: Clean up magic number
       .topByKey(sizePerKey)(Ordering.by(identity[Double]).reverse)
       .hashJoin(boundCountsByKey)
       .hashJoin(boundsByKey)
@@ -276,7 +276,7 @@ object SamplerSCollectionFunctions {
       }
       .toSCollection
   }
-  //scalastyle:on cyclomatic.complexity
+  // scalastyle:on cyclomatic.complexity
 
   implicit class RatatoolKVDSCollection[T: ClassTag, U: ClassTag](
     s: SCollection[(U, (T, Double))]
