@@ -21,7 +21,7 @@ import java.io.StringReader
 
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.google.api.client.json.JsonObjectParser
-import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 
 import scala.jdk.CollectionConverters._
@@ -46,7 +46,7 @@ class TableRowDiffy(
       .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
       .writeValueAsString(tableSchema)
   private lazy val schema: TableSchema =
-    new JsonObjectParser(new JacksonFactory)
+    new JsonObjectParser(new GsonFactory)
       .parseAndClose(new StringReader(schemaString), classOf[TableSchema])
 
   // scalastyle:off cyclomatic.complexity method.length
