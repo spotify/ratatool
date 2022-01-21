@@ -341,7 +341,7 @@ object BigDiffy extends Command with Serializable {
   def stripQuoteWrap(input: String): String = {
     val startChar = input.charAt(0)
     val endChar = input.charAt(input.length - 1)
-    val quoteChars = List('"', ''', '`')
+    val quoteChars = List('"', '\'', '`')
 
     if(quoteChars.contains(startChar) && startChar == endChar) {
       input.slice(1, input.length - 1)
