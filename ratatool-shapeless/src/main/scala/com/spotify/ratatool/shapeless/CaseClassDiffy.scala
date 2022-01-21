@@ -39,48 +39,54 @@ object MapEncoder {
     override def toMap(in: A): Map[String, Any] = func(in)
   }
 
-  implicit def stringEncoder[K <: Symbol](implicit witness: Witness.Aux[K]):
-  MapEncoder[FieldType[K, String]] = {
+  implicit def stringEncoder[K <: Symbol](implicit
+    witness: Witness.Aux[K]
+  ): MapEncoder[FieldType[K, String]] = {
     val name = witness.value.name
     createEncoder { v =>
       Map(name -> v.toString)
     }
   }
 
-  implicit def intEncoder[K <: Symbol](implicit witness: Witness.Aux[K]):
-  MapEncoder[FieldType[K, Int]] = {
+  implicit def intEncoder[K <: Symbol](implicit
+    witness: Witness.Aux[K]
+  ): MapEncoder[FieldType[K, Int]] = {
     val name = witness.value.name
     createEncoder { v =>
       Map(name -> v.self)
     }
   }
 
-  implicit def longEncoder[K <: Symbol](implicit witness: Witness.Aux[K]):
-  MapEncoder[FieldType[K, Long]] = {
+  implicit def longEncoder[K <: Symbol](implicit
+    witness: Witness.Aux[K]
+  ): MapEncoder[FieldType[K, Long]] = {
     val name = witness.value.name
     createEncoder { v =>
       Map(name -> v.self)
     }
   }
 
-  implicit def booleanEncoder[K <: Symbol](implicit witness: Witness.Aux[K]):
-  MapEncoder[FieldType[K, Boolean]] = {
+  implicit def booleanEncoder[K <: Symbol](implicit
+    witness: Witness.Aux[K]
+  ): MapEncoder[FieldType[K, Boolean]] = {
     val name = witness.value.name
     createEncoder { v =>
       Map(name -> v.self)
     }
   }
 
-  implicit def floatEncoder[K <: Symbol](implicit witness: Witness.Aux[K]):
-  MapEncoder[FieldType[K, Float]] = {
+  implicit def floatEncoder[K <: Symbol](implicit
+    witness: Witness.Aux[K]
+  ): MapEncoder[FieldType[K, Float]] = {
     val name = witness.value.name
     createEncoder { v =>
       Map(name -> v.self)
     }
   }
 
-  implicit def doubleEncoder[K <: Symbol](implicit witness: Witness.Aux[K]):
-  MapEncoder[FieldType[K, Double]] = {
+  implicit def doubleEncoder[K <: Symbol](implicit
+    witness: Witness.Aux[K]
+  ): MapEncoder[FieldType[K, Double]] = {
     val name = witness.value.name
     createEncoder { v =>
       Map(name -> v.self)
@@ -90,16 +96,18 @@ object MapEncoder {
   implicit val hnilEncoder: MapEncoder[HNil] =
     createEncoder[HNil](n => Map(HNil.toString -> HNil))
 
-  implicit def seqEncoder[K <: Symbol, V](implicit witness: Witness.Aux[K]):
-  MapEncoder[FieldType[K, Seq[V]]] = {
+  implicit def seqEncoder[K <: Symbol, V](implicit
+    witness: Witness.Aux[K]
+  ): MapEncoder[FieldType[K, Seq[V]]] = {
     val name = witness.value.name
     createEncoder { v =>
       Map(name -> v.toIndexedSeq)
     }
   }
 
-  implicit def listEncoder[K <: Symbol, V](implicit witness: Witness.Aux[K]):
-  MapEncoder[FieldType[K, List[V]]] = {
+  implicit def listEncoder[K <: Symbol, V](implicit
+    witness: Witness.Aux[K]
+  ): MapEncoder[FieldType[K, List[V]]] = {
     val name = witness.value.name
     createEncoder { v =>
       Map(name -> v.toIndexedSeq)
@@ -107,58 +115,61 @@ object MapEncoder {
   }
 
   /*
-  * null.asInstanceOf[V] derives the default value of primitive types
-  * null.asInstanceOf[Int] = 0
-  * null.asInstanceOf[Boolean] = false
-  * null.asInstanceOf[String] = null
-  * */
-  implicit def optionEncoder[K <: Symbol, V](implicit witness: Witness.Aux[K]):
-  MapEncoder[FieldType[K, Option[V]]] = {
+   * null.asInstanceOf[V] derives the default value of primitive types
+   * null.asInstanceOf[Int] = 0
+   * null.asInstanceOf[Boolean] = false
+   * null.asInstanceOf[String] = null
+   * */
+  implicit def optionEncoder[K <: Symbol, V](implicit
+    witness: Witness.Aux[K]
+  ): MapEncoder[FieldType[K, Option[V]]] = {
     val name = witness.value.name
     createEncoder { v =>
       Map(name -> v.getOrElse(null.asInstanceOf[V]))
     }
   }
 
-  implicit def hlistEncoder0[K <: Symbol, H, T <: HList](
-                    implicit hEncoder: Lazy[MapEncoder[FieldType[K, H]]],
-                    tEncoder: Lazy[MapEncoder[T]]): MapEncoder[FieldType[K, H] :: T] = {
+  implicit def hlistEncoder0[K <: Symbol, H, T <: HList](implicit
+    hEncoder: Lazy[MapEncoder[FieldType[K, H]]],
+    tEncoder: Lazy[MapEncoder[T]]
+  ): MapEncoder[FieldType[K, H] :: T] = {
     createEncoder[FieldType[K, H] :: T] { in =>
       hEncoder.value.toMap(in.head) ++ tEncoder.value.toMap(in.tail)
     }
   }
 
-  implicit def hListEncoder1[K <: Symbol, H, T <: HList, R <: HList](
-                    implicit wit: Witness.Aux[K],
-                    gen: LabelledGeneric.Aux[H, R],
-                    encoderH: Lazy[MapEncoder[R]],
-                    encoderT: Lazy[MapEncoder[T]]): MapEncoder[FieldType[K, H] :: T] =
+  implicit def hListEncoder1[K <: Symbol, H, T <: HList, R <: HList](implicit
+    wit: Witness.Aux[K],
+    gen: LabelledGeneric.Aux[H, R],
+    encoderH: Lazy[MapEncoder[R]],
+    encoderT: Lazy[MapEncoder[T]]
+  ): MapEncoder[FieldType[K, H] :: T] =
     createEncoder(in =>
-      encoderT.value.toMap(in.tail) ++ Map(wit.value.name -> encoderH.value.toMap(gen.to(in.head))))
+      encoderT.value.toMap(in.tail) ++ Map(wit.value.name -> encoderH.value.toMap(gen.to(in.head)))
+    )
 
-  implicit def genericEncoder[A, R](implicit gen: LabelledGeneric.Aux[A, R],
-                                    enc: MapEncoder[R]): MapEncoder[A] = {
+  implicit def genericEncoder[A, R](implicit
+    gen: LabelledGeneric.Aux[A, R],
+    enc: MapEncoder[R]
+  ): MapEncoder[A] =
     createEncoder(a => enc.toMap(gen.to(a)))
-  }
 }
 
-class CaseClassDiffy[T](ignore: Set[String] = Set.empty,
-                        unordered: Set[String] = Set.empty)(implicit diff: MapEncoder[T])
-  extends Diffy[T](ignore, unordered) {
+class CaseClassDiffy[T](ignore: Set[String] = Set.empty, unordered: Set[String] = Set.empty)(
+  implicit diff: MapEncoder[T]
+) extends Diffy[T](ignore, unordered) {
   import CaseClassDiffy._
 
-  override def apply(x: T, y: T): Seq[Delta] = {
+  override def apply(x: T, y: T): Seq[Delta] =
     diff(Some(asMap(x)), Some(asMap(y)))
       .filter(f => !hnilIgnore.exists(f.field.contains(_)))
-  }
 
   private def hnilIgnore = ignore ++ Set(HNil.toString)
 
   private def diff(left: Any, right: Any, pref: String = ""): Seq[Delta] = {
-    def diffMap(left: Map[String, Any], right: Map[String, Any], pref: String = pref) = {
+    def diffMap(left: Map[String, Any], right: Map[String, Any], pref: String = pref) =
       (left.keySet ++ right.keySet).toSeq
         .flatMap(k => diff(left.get(k), right.get(k), if (pref.isEmpty) k else s"$pref.$k"))
-    }
 
     (left, right) match {
       case (Some(l: Map[String, Any]), Some(r: Map[String, Any])) => diffMap(l, r, pref)
@@ -168,12 +179,14 @@ class CaseClassDiffy[T](ignore: Set[String] = Set.empty,
 }
 
 object CaseClassDiffy {
-  private def asMap[T](in : T)(implicit diff: MapEncoder[T]) = diff.toMap(in)
+  private def asMap[T](in: T)(implicit diff: MapEncoder[T]) = diff.toMap(in)
 
-  /** Diff two SCollection[T] **/
-  def diffCaseClass[T : ClassTag : MapEncoder : Coder](lhs: SCollection[T],
-                                               rhs: SCollection[T],
-                                               keyFn: T => MultiKey,
-                                               diffy: CaseClassDiffy[T]): BigDiffy[T] =
+  /** Diff two SCollection[T] * */
+  def diffCaseClass[T: ClassTag: MapEncoder: Coder](
+    lhs: SCollection[T],
+    rhs: SCollection[T],
+    keyFn: T => MultiKey,
+    diffy: CaseClassDiffy[T]
+  ): BigDiffy[T] =
     diff(lhs, rhs, diffy, keyFn)
 }

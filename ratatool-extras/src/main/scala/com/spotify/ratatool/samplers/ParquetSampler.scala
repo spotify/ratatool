@@ -26,11 +26,10 @@ import scala.collection.mutable.ListBuffer
 /**
  * Sampler for Parquet files.
  *
- * Records are represented as Avro [[GenericRecord]].
- * Only head mode is supported.
+ * Records are represented as Avro [[GenericRecord]]. Only head mode is supported.
  */
 class ParquetSampler(path: String, protected val seed: Option[Long] = None)
-  extends Sampler[GenericRecord] {
+    extends Sampler[GenericRecord] {
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[ParquetSampler])
 

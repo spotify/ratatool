@@ -36,7 +36,8 @@ object ParquetIO {
   /** Read records from a file. */
   def readFromFile[T](path: Path): Iterator[T] = {
     val conf = GcsConfiguration.get()
-    val reader = AvroParquetReader.builder[T](path)
+    val reader = AvroParquetReader
+      .builder[T](path)
       .withConf(conf)
       .build()
 
@@ -74,7 +75,8 @@ object ParquetIO {
   /** Write records to a file. */
   def writeToFile[T](data: Iterable[T], schema: Schema, path: Path): Unit = {
     val conf = GcsConfiguration.get()
-    val writer = AvroParquetWriter.builder[T](path)
+    val writer = AvroParquetWriter
+      .builder[T](path)
       .withConf(conf)
       .withSchema(schema)
       .build()

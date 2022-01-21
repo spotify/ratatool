@@ -28,9 +28,10 @@ import scala.util.Try
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
-package object scalacheck extends AvroGeneratorOps
-  with ProtoBufGeneratorOps
-  with TableRowGeneratorOps {
+package object scalacheck
+    extends AvroGeneratorOps
+    with ProtoBufGeneratorOps
+    with TableRowGeneratorOps {
 
   implicit class TupGen[A, B](tup: (Gen[A], Gen[B])) {
     def tupled: Gen[(A, B)] = {
@@ -41,14 +42,20 @@ package object scalacheck extends AvroGeneratorOps
 
   implicit class RichAvroGen[T <: SpecificRecord](gen: Gen[T]) {
     def amend[U](g: Gen[U])(fns: (T => (U => Unit))*): Gen[T] = {
-      for (r <- gen; v <- g) yield {
+      for {
+        r <- gen
+        v <- g
+      } yield {
         fns.foreach(f => f(r)(v))
         r
       }
     }
 
     def tryAmend[U](g: Gen[U])(f: T => (U => Unit)): Gen[T] = {
-      for (r <- gen; v <- g) yield {
+      for {
+        r <- gen
+        v <- g
+      } yield {
         Try(f(r)(v))
         r
       }
@@ -77,14 +84,20 @@ package object scalacheck extends AvroGeneratorOps
 
   implicit class RichTableRowGen(gen: Gen[TableRow]) {
     def amend[U](g: Gen[U])(fns: (TableRow => (AnyRef => Record))*): Gen[TableRow] = {
-      for (r <- gen; v <- g) yield {
+      for {
+        r <- gen
+        v <- g
+      } yield {
         fns.foreach(f => f(r)(v.asInstanceOf[AnyRef]))
         r
       }
     }
 
     def tryAmend[U](g: Gen[U])(f: TableRow => (AnyRef => Record)): Gen[TableRow] = {
-      for (r <- gen; v <- g) yield {
+      for {
+        r <- gen
+        v <- g
+      } yield {
         Try(f(r)(v.asInstanceOf[AnyRef]))
         r
       }
@@ -92,9 +105,8 @@ package object scalacheck extends AvroGeneratorOps
   }
 
   implicit class RichTableRow(r: Record) {
-    def getRecord(name: AnyRef): Record = {
+    def getRecord(name: AnyRef): Record =
       r.get(name).asInstanceOf[Record]
-    }
     def set(fieldName: String): AnyRef => Record = { v =>
       r.put(fieldName, v)
       r
@@ -103,13 +115,19 @@ package object scalacheck extends AvroGeneratorOps
 
   implicit class RichProtobufBuilder[T <: Message.Builder](gen: Gen[T]) {
     def amend[U](g: Gen[U])(fns: (T => (U => T))*): Gen[T] = {
-      for (r <- gen; v <- g) yield {
+      for {
+        r <- gen
+        v <- g
+      } yield {
         fns.foldLeft(r)((r, f) => f(r)(v))
       }
     }
 
     def tryAmend[U](g: Gen[U])(f: T => (U => T)): Gen[T] = {
-      for (r <- gen; v <- g) yield {
+      for {
+        r <- gen
+        v <- g
+      } yield {
         Try(f(r)(v)).getOrElse(r)
       }
     }
@@ -117,7 +135,10 @@ package object scalacheck extends AvroGeneratorOps
 
   implicit class RichAvroTupGen[A <: SpecificRecord, B <: SpecificRecord](gen: Gen[(A, B)]) {
     def amend2[U](a: Gen[U])(f: A => (U => Unit), g: B => (U => Unit)): Gen[(A, B)] = {
-      for ((r1, r2) <- gen; v <- a) yield {
+      for {
+        (r1, r2) <- gen
+        v <- a
+      } yield {
         f(r1)(v)
         g(r2)(v)
         (r1, r2)
@@ -125,7 +146,10 @@ package object scalacheck extends AvroGeneratorOps
     }
 
     def tryAmend2[U](a: Gen[U])(f: A => (U => Unit), g: B => (U => Unit)): Gen[(A, B)] = {
-      for ((r1, r2) <- gen; v <- a) yield {
+      for {
+        (r1, r2) <- gen
+        v <- a
+      } yield {
         Try(f(r1)(v))
         Try(g(r2)(v))
         (r1, r2)
@@ -134,18 +158,28 @@ package object scalacheck extends AvroGeneratorOps
   }
 
   implicit class RichTableRowTupGen(gen: Gen[(TableRow, TableRow)]) {
-    def amend2[U](a: Gen[U])(f: TableRow => (AnyRef => Record),
-                             g: TableRow => (AnyRef => Record)): Gen[(TableRow, TableRow)] = {
-      for ((r1, r2) <- gen; v <- a) yield {
+    def amend2[U](a: Gen[U])(
+      f: TableRow => (AnyRef => Record),
+      g: TableRow => (AnyRef => Record)
+    ): Gen[(TableRow, TableRow)] = {
+      for {
+        (r1, r2) <- gen
+        v <- a
+      } yield {
         f(r1)(v.asInstanceOf[AnyRef])
         g(r2)(v.asInstanceOf[AnyRef])
         (r1, r2)
       }
     }
 
-    def tryAmend2[U](a: Gen[U])(f: TableRow => (AnyRef => Record),
-                                g: TableRow => (AnyRef => Record)): Gen[(TableRow, TableRow)] = {
-      for ((r1, r2) <- gen; v <- a) yield {
+    def tryAmend2[U](a: Gen[U])(
+      f: TableRow => (AnyRef => Record),
+      g: TableRow => (AnyRef => Record)
+    ): Gen[(TableRow, TableRow)] = {
+      for {
+        (r1, r2) <- gen
+        v <- a
+      } yield {
         Try(f(r1)(v.asInstanceOf[AnyRef]))
         Try(g(r2)(v.asInstanceOf[AnyRef]))
         (r1, r2)
@@ -153,34 +187,37 @@ package object scalacheck extends AvroGeneratorOps
     }
   }
 
-  implicit class RichProtobufBuilderTup[A <: Message.Builder, B <: Message.Builder]
-  (gen: Gen[(A, B)]) {
+  implicit class RichProtobufBuilderTup[A <: Message.Builder, B <: Message.Builder](
+    gen: Gen[(A, B)]
+  ) {
     def amend2[U](a: Gen[U])(f: A => (U => A), g: B => (U => B)): Gen[(A, B)] = {
-      for ((r1, r2) <- gen; v <- a) yield {
+      for {
+        (r1, r2) <- gen
+        v <- a
+      } yield {
         (f(r1)(v), g(r2)(v))
       }
     }
 
     def tryAmend2[U](a: Gen[U])(f: A => (U => A), g: B => (U => B)): Gen[(A, B)] = {
-      for ((r1, r2) <- gen; v <- a) yield {
+      for {
+        (r1, r2) <- gen
+        v <- a
+      } yield {
         (Try(f(r1)(v)).getOrElse(r1), Try(g(r2)(v)).getOrElse(r2))
       }
     }
   }
 
-  implicit def arbSpecificRec[T <: SpecificRecord : ClassTag]: Arbitrary[T] = {
+  implicit def arbSpecificRec[T <: SpecificRecord: ClassTag]: Arbitrary[T] =
     Arbitrary(specificRecordOf[T])
-  }
 
-  implicit def arbProtobuf[T <: AbstractMessage : ClassTag]: Arbitrary[T] = {
+  implicit def arbProtobuf[T <: AbstractMessage: ClassTag]: Arbitrary[T] =
     Arbitrary(protoBufOf[T])
-  }
 
-  def arbTableRow(schema: TableSchema): Arbitrary[TableRow] = {
+  def arbTableRow(schema: TableSchema): Arbitrary[TableRow] =
     Arbitrary(tableRowOf(schema))
-  }
 
-  def arbGenericRecord(schema: Schema): Arbitrary[GenericRecord] = {
+  def arbGenericRecord(schema: Schema): Arbitrary[GenericRecord] =
     Arbitrary(genericRecordOf(schema))
-  }
 }

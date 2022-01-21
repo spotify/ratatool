@@ -50,30 +50,36 @@ object BigSampler extends Command {
   private[samplers] val fieldSep = '.'
 
   /**
-    * @param hashAlgorithm either MurmurHash (for backwards compatibility) or FarmHash
-    * @param seed optional start value to ensure the same result every time if same seed passed in
-    * @return a hasher to use when sampling
-    */
-  private[samplers] def hashFun(hashAlgorithm: HashAlgorithm = FarmHash,
-                                seed: Option[Int] = None): Hasher = {
+   * @param hashAlgorithm
+   *   either MurmurHash (for backwards compatibility) or FarmHash
+   * @param seed
+   *   optional start value to ensure the same result every time if same seed passed in
+   * @return
+   *   a hasher to use when sampling
+   */
+  private[samplers] def hashFun(
+    hashAlgorithm: HashAlgorithm = FarmHash,
+    seed: Option[Int] = None
+  ): Hasher =
     hashAlgorithm.hashFn(seed)
-  }
 
   /**
-    * Maps a long value to a double in [0, 1] such that Long.MinValue -> 0.0 and
-    * Long.MaxValue -> 1.0.
-    *
-    * @param a A long value.
-    * @return The [0, 1] bounded double.
-    */
-  private[samplers] def boundLong(a: Long): Double = {
+   * Maps a long value to a double in [0, 1] such that Long.MinValue -> 0.0 and Long.MaxValue ->
+   * 1.0.
+   *
+   * @param a
+   *   A long value.
+   * @return
+   *   The [0, 1] bounded double.
+   */
+  private[samplers] def boundLong(a: Long): Double =
     (a.toDouble - Long.MinValue.toDouble) / (Long.MaxValue.toDouble - Long.MinValue.toDouble)
-  }
 
   /**
    * Internal element dicing method.
    *
-   * @param sampleFraction (0.0, 1.0]
+   * @param sampleFraction
+   *   (0.0, 1.0]
    */
   private[samplers] def diceElement[T](e: T, hash: HashCode, sampleFraction: Double): Option[T] = {
     //TODO: for now leave it up to jit/compiler to optimize
@@ -84,19 +90,16 @@ object BigSampler extends Command {
     }
   }
 
-  private def parseAsBigQueryTable(tblRef: String): Option[TableReference] = {
+  private def parseAsBigQueryTable(tblRef: String): Option[TableReference] =
     Try(BigQueryHelpers.parseTableSpec(tblRef)).toOption
-  }
 
-  private def parseAsURI(uri: String): Option[URI] = {
+  private def parseAsURI(uri: String): Option[URI] =
     Try(new URI(uri)).toOption
-  }
 
   private def usage(): Unit = {
     // scalastyle:off regex line.size.limit
     // TODO: Rename --exact to something better
-    println(
-      s"""BigSampler - a tool for big data sampling
+    println(s"""BigSampler - a tool for big data sampling
         |Usage: ratatool $command [dataflow_options] [options]
         |
         |  --sample=<percentage>                      Percentage of records to take in sample, a decimal between 0.0 and 1.0
@@ -129,23 +132,28 @@ object BigSampler extends Command {
     sys.exit(1)
   }
 
-
-  private[samplers] def hashTableRow(r: TableRow,
-                                     f: String,
-                                     tblSchemaFields: Seq[TableFieldSchema],
-                                     hasher: Hasher): Hasher =
+  private[samplers] def hashTableRow(
+    r: TableRow,
+    f: String,
+    tblSchemaFields: Seq[TableFieldSchema],
+    hasher: Hasher
+  ): Hasher =
     BigSamplerBigQuery.hashTableRow(tblSchemaFields)(r, f, hasher)
 
-  private[samplers] def hashAvroField(r: TestRecord,
-                                      f: String,
-                                      avroSchema: Schema,
-                                      hasher: Hasher): Hasher =
+  private[samplers] def hashAvroField(
+    r: TestRecord,
+    f: String,
+    avroSchema: Schema,
+    hasher: Hasher
+  ): Hasher =
     BigSamplerAvro.hashAvroField(avroSchema)(r, f, hasher)
 
-  private[samplers] def hashAvroField(r: GenericRecord,
-                                      f: String,
-                                      avroSchema: Schema,
-                                      hasher: Hasher): Hasher =
+  private[samplers] def hashAvroField(
+    r: GenericRecord,
+    f: String,
+    avroSchema: Schema,
+    hasher: Hasher
+  ): Hasher =
     BigSamplerAvro.hashAvroField(avroSchema)(r, f, hasher)
 
   //scalastyle:off method.length cyclomatic.complexity
@@ -154,39 +162,46 @@ object BigSampler extends Command {
     val (opts, _) = ScioContext.parseArguments[PipelineOptions](argv)
     // Determines how large our heap should be for topByKey
     val sizePerKey =
-      if (Try(opts.asInstanceOf[DataflowPipelineWorkerPoolOptions].getWorkerMachineType)
-          .map(_.split("-").last.toInt).getOrElse(4) > 8){
+      if (
+        Try(opts.asInstanceOf[DataflowPipelineWorkerPoolOptions].getWorkerMachineType)
+          .map(_.split("-").last.toInt)
+          .getOrElse(4) > 8
+      ) {
         1e9.toInt
       } else {
         1e6.toInt
       }
 
-    val (samplePct,
-    input,
-    output,
-    fields,
-    seed,
-    hashAlgorithm,
-    distribution,
-    distributionFields,
-    exact) = try {
-      val pct = args("sample").toFloat
-      require(pct > 0.0F && pct <= 1.0F)
-      (pct,
-        args("input"),
-        args("output"),
-        args.list("fields"),
-        args.optional("seed"),
-        args.optional("hashAlgorithm").map(HashAlgorithm.fromString).getOrElse(FarmHash),
-        args.optional("distribution").map(SampleDistribution.fromString),
-        args.list("distributionFields"),
-        Precision.fromBoolean(args.boolean("exact", default = false))
-      )
-    } catch {
-      case e: Throwable =>
-        usage()
-        throw e
-    }
+    val (
+      samplePct,
+      input,
+      output,
+      fields,
+      seed,
+      hashAlgorithm,
+      distribution,
+      distributionFields,
+      exact
+    ) =
+      try {
+        val pct = args("sample").toFloat
+        require(pct > 0.0f && pct <= 1.0f)
+        (
+          pct,
+          args("input"),
+          args("output"),
+          args.list("fields"),
+          args.optional("seed"),
+          args.optional("hashAlgorithm").map(HashAlgorithm.fromString).getOrElse(FarmHash),
+          args.optional("distribution").map(SampleDistribution.fromString),
+          args.list("distributionFields"),
+          Precision.fromBoolean(args.boolean("exact", default = false))
+        )
+      } catch {
+        case e: Throwable =>
+          usage()
+          throw e
+      }
 
     val byteEncoding = ByteEncoding.fromString(args.getOrElse("byteEncoding", "raw"))
 
@@ -204,13 +219,16 @@ object BigSampler extends Command {
 
     if (distribution.isDefined && distributionFields.isEmpty) {
       throw new IllegalArgumentException(
-        "distributionFields must be specified if a distribution is given")
+        "distributionFields must be specified if a distribution is given"
+      )
     }
 
     if (parseAsBigQueryTable(input).isDefined) {
-      require(parseAsBigQueryTable(output).isDefined,
+      require(
+        parseAsBigQueryTable(output).isDefined,
         s"Input is a BigQuery table `$input`, output should be a BigQuery table too," +
-          s"but instead it's `$output`.")
+          s"but instead it's `$output`."
+      )
       val inputTbl = parseAsBigQueryTable(input).get
       val outputTbl = parseAsBigQueryTable(output).get
       BigSamplerBigQuery.sample(
@@ -229,8 +247,10 @@ object BigSampler extends Command {
       )
     } else if (parseAsURI(input).isDefined) {
       // right now only support for avro
-      require(parseAsURI(output).isDefined,
-        s"Input is a URI: `$input`, output should be a URI too, but instead it's `$output`.")
+      require(
+        parseAsURI(output).isDefined,
+        s"Input is a URI: `$input`, output should be a URI too, but instead it's `$output`."
+      )
       // Prompts FileSystems to load service classes, otherwise fetching schema from non-local fails
       FileSystems.setDefaultPipelineOptions(opts)
       BigSamplerAvro.sample(
@@ -255,41 +275,58 @@ object BigSampler extends Command {
 
   //scalastyle:off method.length cyclomatic.complexity parameter.number
   /**
-   * Sample wrapper function that manages sampling pipeline based on determinimism, precision,
-   *  and data type. Can be used to build sampling for data types not supported out of the box.
-   * @param s The input SCollection to be sampled
-   * @param fraction The sample rate
-   * @param fields Fields to construct hash over for determinism
-   * @param seed Seed used to salt the deterministic hash
-   * @param hashAlgorithm Hash algorithm, either MurmurHash or FarmHash
-   * @param distribution Desired output sample distribution
-   * @param distributionFields Fields to construct distribution over (strata = set of unique fields)
-   * @param precision Approximate or Exact precision
-   * @param hashFn Function to construct a hash given a record, field, and hasher
-   * @param keyFn Function to extract a value that's safe to serialize and key on, given a record
-   * @param maxKeySize Maximum allowed size per key (can be tweaked for very large data sets)
-   * @param byteEncoding Determines how bytes are encoded prior to hashing.
-   * @tparam T Record Type
-   * @tparam U Key Type, usually we use Set[String]
-   * @return SCollection containing Sample population
+   * Sample wrapper function that manages sampling pipeline based on determinimism, precision, and
+   * data type. Can be used to build sampling for data types not supported out of the box.
+   * @param s
+   *   The input SCollection to be sampled
+   * @param fraction
+   *   The sample rate
+   * @param fields
+   *   Fields to construct hash over for determinism
+   * @param seed
+   *   Seed used to salt the deterministic hash
+   * @param hashAlgorithm
+   *   Hash algorithm, either MurmurHash or FarmHash
+   * @param distribution
+   *   Desired output sample distribution
+   * @param distributionFields
+   *   Fields to construct distribution over (strata = set of unique fields)
+   * @param precision
+   *   Approximate or Exact precision
+   * @param hashFn
+   *   Function to construct a hash given a record, field, and hasher
+   * @param keyFn
+   *   Function to extract a value that's safe to serialize and key on, given a record
+   * @param maxKeySize
+   *   Maximum allowed size per key (can be tweaked for very large data sets)
+   * @param byteEncoding
+   *   Determines how bytes are encoded prior to hashing.
+   * @tparam T
+   *   Record Type
+   * @tparam U
+   *   Key Type, usually we use Set[String]
+   * @return
+   *   SCollection containing Sample population
    */
-  def sample[T: ClassTag : Coder, U: ClassTag : Coder](s: SCollection[T],
-                                        fraction: Double,
-                                        fields: Seq[String],
-                                        seed: Option[Int],
-                                        hashAlgorithm: HashAlgorithm,
-                                        distribution: Option[SampleDistribution],
-                                        distributionFields: Seq[String],
-                                        precision: Precision,
-                                        hashFn: (T, String, Hasher) => Hasher,
-                                        keyFn: T => U,
-                                        maxKeySize: Int = 1e6.toInt,
-                                        byteEncoding: ByteEncoding = RawEncoding)
-  : SCollection[T] = {
-    def assignHashRoll(s: SCollection[T],
-                       seed: Option[Int],
-                       fields: Seq[String])
-    : SCollection[(U, (T, Double))] = {
+  def sample[T: ClassTag: Coder, U: ClassTag: Coder](
+    s: SCollection[T],
+    fraction: Double,
+    fields: Seq[String],
+    seed: Option[Int],
+    hashAlgorithm: HashAlgorithm,
+    distribution: Option[SampleDistribution],
+    distributionFields: Seq[String],
+    precision: Precision,
+    hashFn: (T, String, Hasher) => Hasher,
+    keyFn: T => U,
+    maxKeySize: Int = 1e6.toInt,
+    byteEncoding: ByteEncoding = RawEncoding
+  ): SCollection[T] = {
+    def assignHashRoll(
+      s: SCollection[T],
+      seed: Option[Int],
+      fields: Seq[String]
+    ): SCollection[(U, (T, Double))] = {
       s.map { v =>
         val hasher =
           ByteHasher.wrap(BigSampler.hashFun(hashAlgorithm, seed), byteEncoding, utf8Charset)
@@ -316,15 +353,14 @@ object BigSampler extends Command {
         }
 
       case (Deterministic, Some(StratifiedDistribution), Approximate) =>
-        val sampled = s.flatMap { v =>
-          val hasher =
-            ByteHasher.wrap(
-              BigSampler.hashFun(hashAlgorithm, seed),
-              byteEncoding,
-              utf8Charset)
-          val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
-          BigSampler.diceElement(v, hash, fraction)
-        }.keyBy(keyFn(_))
+        val sampled = s
+          .flatMap { v =>
+            val hasher =
+              ByteHasher.wrap(BigSampler.hashFun(hashAlgorithm, seed), byteEncoding, utf8Charset)
+            val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
+            BigSampler.diceElement(v, hash, fraction)
+          }
+          .keyBy(keyFn(_))
 
         val sampledDiffs = buildStratifiedDiffs(s, sampled, keyFn, fraction)
         logDistributionDiffs(sampledDiffs, logSerDe)
@@ -332,13 +368,15 @@ object BigSampler extends Command {
 
       case (Deterministic, Some(UniformDistribution), Approximate) =>
         val (popPerKey, probPerKey) = uniformParams(s, keyFn, fraction)
-        val sampled = s.keyBy(keyFn(_))
-          .hashJoin(probPerKey).flatMap { case (k, (v, prob)) =>
-          val hasher =
-            ByteHasher.wrap(BigSampler.hashFun(hashAlgorithm, seed), byteEncoding, utf8Charset)
-          val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
-          BigSampler.diceElement(v, hash, prob).map(e => (k, e))
-        }
+        val sampled = s
+          .keyBy(keyFn(_))
+          .hashJoin(probPerKey)
+          .flatMap { case (k, (v, prob)) =>
+            val hasher =
+              ByteHasher.wrap(BigSampler.hashFun(hashAlgorithm, seed), byteEncoding, utf8Charset)
+            val hash = fields.foldLeft(hasher)((h, f) => hashFn(v, f, h)).hash
+            BigSampler.diceElement(v, hash, prob).map(e => (k, e))
+          }
 
         val sampledDiffs =
           buildUniformDiffs(s, sampled, keyFn, fraction, popPerKey)
@@ -359,9 +397,6 @@ object BigSampler extends Command {
   }
   //scalastyle:on method.length cyclomatic.complexity
 
-  def run(argv: Array[String]): Unit = {
+  def run(argv: Array[String]): Unit =
     this.singleInput(argv)
-  }
 }
-
-

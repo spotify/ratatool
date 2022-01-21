@@ -20,20 +20,21 @@ import Keys._
 
 val algebirdVersion = "0.13.8"
 val avroVersion = "1.8.2"
-val beamVersion = "2.32.0"
+val beamVersion = "2.33.0"
 val bigqueryVersion = "v2-rev20210410-1.31.0"
 val gcsVersion = "2.1.3"
 val guavaVersion = "30.1-jre" // make sure this stays compatible with scio + beam
 val hadoopVersion = "2.10.1"
 val jodaTimeVersion = "2.10.10"
 val parquetVersion = "1.12.0"
-val protoBufVersion = "3.17.3"
+val protoBufVersion = "3.18.1"
 val scalaTestVersion = "3.2.10"
 val scalaCheckVersion = "1.15.4"
 val scalaCollectionCompatVersion = "2.5.0"
-val scioVersion = "0.11.0"
+val scioVersion = "0.11.1"
 val scoptVersion = "4.0.1"
 val shapelessVersion = "2.3.7"
+val sourcecodeVersion = "0.2.7"
 val slf4jVersion = "1.7.32"
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
@@ -48,10 +49,10 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   crossScalaVersions := Seq("2.12.10", "2.13.6"),
   resolvers += "confluent" at "https://packages.confluent.io/maven/",
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
-  scalacOptions in (Compile,doc) ++= {
+  scalacOptions in (Compile, doc) ++= {
     scalaBinaryVersion.value match {
       case "2.12" => "-no-java-comments" :: Nil
-      case _ => Nil
+      case _      => Nil
     }
   },
   scalacOptions ++= {
@@ -83,7 +84,7 @@ lazy val protoBufSettings = Seq(
   version in ProtobufConfig := protoBufVersion,
   protobufRunProtoc in ProtobufConfig := (args =>
     com.github.os72.protocjar.Protoc.runProtoc("-v330" +: args.toArray)
-    )
+  )
 )
 
 lazy val noPublishSettings = Seq(
@@ -93,26 +94,55 @@ lazy val noPublishSettings = Seq(
 )
 
 lazy val releaseSettings = Seq(
-  releaseCrossBuild             := true,
+  releaseCrossBuild := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-  publishMavenStyle             := true,
-  publishArtifact in Test       := false,
-  publishTo := Some(if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging),
-  sonatypeProfileName           := "com.spotify",
-
+  publishMavenStyle := true,
+  publishArtifact in Test := false,
+  publishTo := Some(
+    if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging
+  ),
+  sonatypeProfileName := "com.spotify",
   licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://github.com/spotify/ratatool")),
-  scmInfo := Some(ScmInfo(
-    url("https://github.com/spotify/ratatool.git"),
-    "scm:git:git@github.com:spotify/ratatool.git")),
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/spotify/ratatool.git"),
+      "scm:git:git@github.com:spotify/ratatool.git"
+    )
+  ),
   developers := List(
     // current maintainers
-    Developer(id="anne-decusatis", name="Anne DeCusatis", email="anned@spotify.com", url=url("https://twitter.com/precisememory")),
-    Developer(id="catherinejelder", name="Catherine Elder", email="siege@spotify.com", url=url("https://twitter.com/siegeelder")),
-    Developer(id="idreeskhan", name="Idrees Khan", email="me@idreeskhan.com", url=url("https://twitter.com/idreesxkhan")),
+    Developer(
+      id = "anne-decusatis",
+      name = "Anne DeCusatis",
+      email = "anned@spotify.com",
+      url = url("https://twitter.com/precisememory")
+    ),
+    Developer(
+      id = "catherinejelder",
+      name = "Catherine Elder",
+      email = "siege@spotify.com",
+      url = url("https://twitter.com/siegeelder")
+    ),
+    Developer(
+      id = "idreeskhan",
+      name = "Idrees Khan",
+      email = "me@idreeskhan.com",
+      url = url("https://twitter.com/idreesxkhan")
+    ),
     // past contributors
-    Developer(id="sinisa_lyh", name="Neville Li", email="neville.lyh@gmail.com", url=url("https://twitter.com/sinisa_lyh")),
-    Developer(id="ravwojdyla", name="Rafal Wojdyla", email="ravwojdyla@gmail.com", url=url("https://twitter.com/ravwojdyla"))
+    Developer(
+      id = "sinisa_lyh",
+      name = "Neville Li",
+      email = "neville.lyh@gmail.com",
+      url = url("https://twitter.com/sinisa_lyh")
+    ),
+    Developer(
+      id = "ravwojdyla",
+      name = "Rafal Wojdyla",
+      email = "ravwojdyla@gmail.com",
+      url = url("https://twitter.com/ravwojdyla")
+    )
   )
 )
 
@@ -123,8 +153,8 @@ lazy val ratatoolCommon = project
     name := "ratatool-common",
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion,
-      "org.apache.avro" % "avro" % avroVersion classifier("tests"),
-      "org.apache.avro" % "avro-mapred" % avroVersion classifier("hadoop2"),
+      "org.apache.avro" % "avro" % avroVersion classifier "tests",
+      "org.apache.avro" % "avro-mapred" % avroVersion classifier "hadoop2",
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "com.google.guava" % "guava" % guavaVersion
@@ -229,7 +259,7 @@ lazy val ratatoolExtras = project
       "com.google.cloud.bigdataoss" % "gcs-connector" % s"hadoop2-$gcsVersion",
       "com.google.cloud.bigdataoss" % "util" % gcsVersion,
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
-),
+    ),
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
   .dependsOn(
@@ -268,7 +298,8 @@ lazy val ratatoolScalacheck = project
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+      "com.lihaoyi" %% "sourcecode" % sourcecodeVersion
     )
   )
   .enablePlugins(ProtobufPlugin)
@@ -293,7 +324,8 @@ lazy val ratatoolExamples = project
   )
   .settings(protoBufSettings)
 
-val root = project.in(file("."))
+val root = project
+  .in(file("."))
   .settings(commonSettings ++ noPublishSettings)
   .aggregate(
     ratatoolCommon,

@@ -89,9 +89,11 @@ object AvroIO {
     writeToFile(data, schema, new File(name))
 
   /** Write records to an [[OutputStream]]. */
-  def writeToOutputStream[T: ClassTag](data: Iterable[T],
-                                       schema: Schema,
-                                       os: OutputStream): Unit = {
+  def writeToOutputStream[T: ClassTag](
+    data: Iterable[T],
+    schema: Schema,
+    os: OutputStream
+  ): Unit = {
     val fileWriter = new DataFileWriter(createDatumWriter[T]).create(schema, os)
     data.foreach(fileWriter.append)
     fileWriter.close()

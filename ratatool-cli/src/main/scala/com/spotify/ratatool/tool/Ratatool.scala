@@ -36,10 +36,9 @@ object Ratatool {
     if (args.isEmpty || !commands.contains(args.head)) {
       print(usage)
       sys.exit(1)
-    }
-    else {
+    } else {
       args.head match {
-        case BigDiffy.command => BigDiffy.run(args.tail)
+        case BigDiffy.command   => BigDiffy.run(args.tail)
         case BigSampler.command => BigSampler.run(args.tail)
         case DirectSamplerParser.command =>
           val opts = DirectSamplerParser.parse(args.tail)
@@ -63,8 +62,7 @@ object Ratatool {
                 BigQueryIO.writeToTable(data, sampler.schema, table)
               }
             case "parquet" =>
-              throw new NotImplementedError(
-                """We have moved ParquetSampler to the ratatool-extras
+              throw new NotImplementedError("""We have moved ParquetSampler to the ratatool-extras
                   | project. If this causes any problems for you please open an issue
                   | on github and let us know.""".stripMargin)
             case _ =>

@@ -37,15 +37,17 @@ object DirectSamplerParser extends Command {
         opt[String]("out")
           .required()
           .action((x, c) => c.copy(out = x))
-          .text("Avro output file"))
+          .text("Avro output file")
+      )
 
-    note("")  // empty line
+    note("") // empty line
 
     cmd("bigquery")
       .action((_, c) => c.copy(mode = "bigquery"))
       .text("Sample from BigQuery (DEPRECATED: Should use BigSampler with DirectRunner instead)")
       .children(
-        opt[String]("in").required()
+        opt[String]("in")
+          .required()
           .action((x, c) => c.copy(in = x))
           .text("BigQuery input table"),
         opt[String]("out")
@@ -54,7 +56,7 @@ object DirectSamplerParser extends Command {
         opt[String]("tableOut")
           .action((x, c) => c.copy(tableOut = x))
           .text("BigQuery output table"),
-        checkConfig( c =>
+        checkConfig(c =>
           if (c.mode == "bigquery") {
             if (c.out.isEmpty && c.tableOut.isEmpty)
               failure("Missing output option")
@@ -65,9 +67,10 @@ object DirectSamplerParser extends Command {
           } else {
             success
           }
-        ))
+        )
+      )
 
-    note("")  // empty line
+    note("") // empty line
 
     note("Common options")
     opt[Long]('n', "numSamples")
@@ -79,10 +82,11 @@ object DirectSamplerParser extends Command {
       .action((_, c) => c.copy(head = true))
       .text("read from head instead of random sample")
 
-    checkConfig( c =>
+    checkConfig(c =>
       if (c.n <= 0) failure("n must be > 0")
       else if (c.mode.isEmpty) failure("Missing command")
-      else success)
+      else success
+    )
   }
   // scalastyle:on if.brace
 

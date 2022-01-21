@@ -34,9 +34,11 @@ import scala.util.Random
 import scala.jdk.CollectionConverters._
 
 /** Sampler for Avro files. */
-class AvroSampler(path: String, protected val seed: Option[Long] = None,
-                  protected val conf: Option[PipelineOptions] = None)
-  extends Sampler[GenericRecord] {
+class AvroSampler(
+  path: String,
+  protected val seed: Option[Long] = None,
+  protected val conf: Option[PipelineOptions] = None
+) extends Sampler[GenericRecord] {
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[AvroSampler])
 
@@ -51,7 +53,8 @@ class AvroSampler(path: String, protected val seed: Option[Long] = None,
       new AvroFileSampler(resource, seed).sample(n, head)
     } else {
       if (head) {
-        val resources = matches.map(_.resourceId())
+        val resources = matches
+          .map(_.resourceId())
           .sortBy(_.toString)
         // read from the start
         val result = ListBuffer.empty[GenericRecord]
@@ -63,14 +66,18 @@ class AvroSampler(path: String, protected val seed: Option[Long] = None,
       } else {
         val tups = matches
           .map(md => (md.resourceId(), md.sizeBytes()))
-          .sortBy(_._1.toString).toArray
+          .sortBy(_._1.toString)
+          .toArray
         // randomly sample from shards
         val sizes = tups.map(_._2)
         val resources = tups.map(_._1)
         val samples = scaleWeights(sizes, n)
-        val futures = resources.zip(samples).map { case (r, s) =>
-          Future(new AvroFileSampler(r).sample(s, head))
-        }.toSeq
+        val futures = resources
+          .zip(samples)
+          .map { case (r, s) =>
+            Future(new AvroFileSampler(r).sample(s, head))
+          }
+          .toSeq
         Await.result(Future.sequence(futures), Duration.Inf).flatten
       }
     }
@@ -82,13 +89,13 @@ class AvroSampler(path: String, protected val seed: Option[Long] = None,
     require(sum > n, "sum of weights must be > n")
     val result = weights.map(x => (x.toDouble / sum * n).toLong)
 
-    val delta = n - result.sum  // delta due to rounding error
+    val delta = n - result.sum // delta due to rounding error
     var i = 0
     val dim = weights.length
     while (i < delta) {
       // randomly distribute delta
       result(Random.nextInt(dim)) += 1
-      i+= 1
+      i += 1
     }
     result
   }
@@ -96,7 +103,7 @@ class AvroSampler(path: String, protected val seed: Option[Long] = None,
 }
 
 private class AvroFileSampler(r: ResourceId, protected val seed: Option[Long] = None)
-  extends Sampler[GenericRecord] {
+    extends Sampler[GenericRecord] {
 
   private val logger: Logger = LoggerFactory.getLogger(classOf[AvroFileSampler])
 

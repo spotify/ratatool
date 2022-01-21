@@ -27,15 +27,26 @@ object DataGenAvro {
   def main(args: Array[String]): Unit = {
     val (sc, opts) = ContextAndArgs(args)
     sc.parallelize(1 to 1000)
-      .flatMap(_ => Gen.listOfN(1000, avroOf[TestRecord].amend(Gen.frequency(
-        (100, "US"),
-        (50, "SE"),
-        (25, "CA"),
-        (50, "UK"),
-        (5, "AU"),
-        (10, "BR")
-      ))((r: TestRecord) => (s: String) => r.getRequiredFields.setStringField(s))
-        .amend(Gen.oneOf((1 to 50000).map(_.toLong)))(_.getRequiredFields.setLongField)).sample.get)
+      .flatMap(_ =>
+        Gen
+          .listOfN(
+            1000,
+            avroOf[TestRecord]
+              .amend(
+                Gen.frequency(
+                  (100, "US"),
+                  (50, "SE"),
+                  (25, "CA"),
+                  (50, "UK"),
+                  (5, "AU"),
+                  (10, "BR")
+                )
+              )((r: TestRecord) => (s: String) => r.getRequiredFields.setStringField(s))
+              .amend(Gen.oneOf((1 to 50000).map(_.toLong)))(_.getRequiredFields.setLongField)
+          )
+          .sample
+          .get
+      )
       .saveAsAvroFile(opts("output"), 0)
     sc.run()
   }

@@ -23,10 +23,9 @@ import scala.util.Try
 /**
  * Delta type of a single node between two records.
  *
- * UNKNOWN - unknown type, no numeric delta is computed.
- * NUMERIC - numeric type, e.g. Long, Double, default delta is numeric difference.
- * STRING - string type, default delta is Levenshtein edit distance.
- * VECTOR - repeated numeric type, default delta is 1.0 - cosine similarity.
+ * UNKNOWN - unknown type, no numeric delta is computed. NUMERIC - numeric type, e.g. Long, Double,
+ * default delta is numeric difference. STRING - string type, default delta is Levenshtein edit
+ * distance. VECTOR - repeated numeric type, default delta is 1.0 - cosine similarity.
  */
 object DeltaType extends Enumeration {
   val NUMERIC, STRING, VECTOR = Value
@@ -61,10 +60,14 @@ object VectorDelta {
 /**
  * Delta of a single field between two records.
  *
- * @param field "." separated field identifier
- * @param left  Option(left hand side value), None if null
- * @param right Option(right hand side value), None if null
- * @param delta delta of numerical values
+ * @param field
+ *   "." separated field identifier
+ * @param left
+ *   Option(left hand side value), None if null
+ * @param right
+ *   Option(right hand side value), None if null
+ * @param delta
+ *   delta of numerical values
  */
 case class Delta(field: String, left: Option[Any], right: Option[Any], delta: DeltaValue) {
   override def toString: String = s"$field\t$delta\t" +
@@ -74,15 +77,19 @@ case class Delta(field: String, left: Option[Any], right: Option[Any], delta: De
 /**
  * Field level diff tool.
  *
- * @param ignore specify set of fields to ignore during comparison.
- * @param unordered a list of fields to be treated as unordered, i.e. sort before comparison.
- * @param unorderedFieldKeys a map of record field names to fields names that can be keyed by when
- *                           comparing nested repeated records
- *                           (currently not support in CLI)
+ * @param ignore
+ *   specify set of fields to ignore during comparison.
+ * @param unordered
+ *   a list of fields to be treated as unordered, i.e. sort before comparison.
+ * @param unorderedFieldKeys
+ *   a map of record field names to fields names that can be keyed by when comparing nested repeated
+ *   records (currently not support in CLI)
  */
-abstract class Diffy[T](val ignore: Set[String],
-                        val unordered: Set[String],
-                        val unorderedFieldKeys: Map[String, String] = Map()) extends Serializable {
+abstract class Diffy[T](
+  val ignore: Set[String],
+  val unordered: Set[String],
+  val unorderedFieldKeys: Map[String, String] = Map()
+) extends Serializable {
 
   def apply(x: T, y: T): Seq[Delta]
 
@@ -142,7 +149,10 @@ object Levenshtein {
     val dist = Array.tabulate(s2.length + 1, s1.length + 1) { (j, i) =>
       if (j == 0) i else if (i == 0) j else 0
     }
-    for (j <- 1 to s2.length; i <- 1 to s1.length) {
+    for {
+      j <- 1 to s2.length
+      i <- 1 to s1.length
+    } {
       dist(j)(i) = if (s2(j - 1) == s1(i - 1)) {
         dist(j - 1)(i - 1)
       } else {
@@ -154,9 +164,7 @@ object Levenshtein {
   private def minimum(i1: Int, i2: Int, i3: Int): Int = math.min(math.min(i1, i2), i3)
 }
 
-/**
- * Compute cosine distance between two vectors.
- */
+/** Compute cosine distance between two vectors. */
 object CosineDistance {
   def distance(x: Seq[Double], y: Seq[Double]): Double = 1.0 - sim(x, y)
   private def sim(x: Seq[Double], y: Seq[Double]): Double = {

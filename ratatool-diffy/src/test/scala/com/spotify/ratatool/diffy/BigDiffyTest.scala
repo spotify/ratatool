@@ -25,22 +25,25 @@ import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
 import com.spotify.ratatool.scalacheck._
 import com.spotify.scio.testing.PipelineSpec
 import com.google.api.services.bigquery.model.TableRow
-import org.apache.beam.sdk.coders.shaded.ScioAvroCoder
+import com.spotify.ratatool.diffy.BigDiffy.stripQuoteWrap
+import org.apache.beam.sdk.coders.AvroCoder
 
 import scala.language.higherKinds
 
 class BigDiffyTest extends PipelineSpec {
 
   val keys = (1 to 1000).map(k => MultiKey("key" + k))
-  val coder = ScioAvroCoder.of(classOf[TestRecord], true)
+  val coder = AvroCoder.of(classOf[TestRecord])
 
   /** Fixed to a small range so that Std. Dev. & Variance calculations are easier to predict */
   val rnr = specificRecordOf[RequiredNestedRecord]
     .amend(Gen.choose[Double](0.0, 1.0))(_.setDoubleField)
   val specificGen = specificRecordOf[TestRecord]
     .amend(rnr)(_.setRequiredFields)
-  val lhs = Gen.listOfN(1000, specificGen)
-    .pureApply(Gen.Parameters.default.withSize(10), Seed.random()).zip(1 to 1000)
+  val lhs = Gen
+    .listOfN(1000, specificGen)
+    .pureApply(Gen.Parameters.default.withSize(10), Seed.random())
+    .zip(1 to 1000)
     .map { case (r, i) =>
       r.getRequiredFields.setIntField(i)
       r.getRequiredFields.setStringField(new Utf8("key" + i))
@@ -52,11 +55,14 @@ class BigDiffyTest extends PipelineSpec {
     runWithContext { sc =>
       val rhs = lhs.map(CoderUtils.clone(coder, _))
       val result = BigDiffy.diff[TestRecord](
-        sc.parallelize(lhs), sc.parallelize(rhs),
-        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString))
-      result.globalStats should containSingleValue (GlobalStats(1000L, 1000L, 0L, 0L, 0L))
+        sc.parallelize(lhs),
+        sc.parallelize(rhs),
+        new AvroDiffy[TestRecord](),
+        x => MultiKey(x.getRequiredFields.getStringField.toString)
+      )
+      result.globalStats should containSingleValue(GlobalStats(1000L, 1000L, 0L, 0L, 0L))
       result.deltas should beEmpty
-      result.keyStats should containInAnyOrder (keys.map(KeyStats(_, DiffType.SAME, None)))
+      result.keyStats should containInAnyOrder(keys.map(KeyStats(_, DiffType.SAME, None)))
       result.fieldStats should beEmpty
     }
   }
@@ -71,21 +77,35 @@ class BigDiffyTest extends PipelineSpec {
         r
       }
       val result = BigDiffy.diff[TestRecord](
-        sc.parallelize(lhs), sc.parallelize(rhs),
-        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString))
-      result.globalStats should containSingleValue (GlobalStats(1000L, 0L, 1000L, 0L, 0L))
-      result.deltas.map(d => (d._1, d._2)) should containInAnyOrder (
-        keys.map((_, field)))
-      result.keyStats should containInAnyOrder (keyedDoubles.map { case (k, d) =>
-        KeyStats(k, DiffType.DIFFERENT, Option(Delta("required_fields.double_field", Option(d),
-          Option(d + 10.0), TypedDelta(DeltaType.NUMERIC, 10.0))))})
-      result.fieldStats.map(f => (f.field, f.count, f.fraction)) should containSingleValue (
-        (field, 1000L, 1.0))
+        sc.parallelize(lhs),
+        sc.parallelize(rhs),
+        new AvroDiffy[TestRecord](),
+        x => MultiKey(x.getRequiredFields.getStringField.toString)
+      )
+      result.globalStats should containSingleValue(GlobalStats(1000L, 0L, 1000L, 0L, 0L))
+      result.deltas.map(d => (d._1, d._2)) should containInAnyOrder(keys.map((_, field)))
+      result.keyStats should containInAnyOrder(keyedDoubles.map { case (k, d) =>
+        KeyStats(
+          k,
+          DiffType.DIFFERENT,
+          Option(
+            Delta(
+              "required_fields.double_field",
+              Option(d),
+              Option(d + 10.0),
+              TypedDelta(DeltaType.NUMERIC, 10.0)
+            )
+          )
+        )
+      })
+      result.fieldStats.map(f => (f.field, f.count, f.fraction)) should containSingleValue(
+        (field, 1000L, 1.0)
+      )
       // Double.NaN comparison is always false
       val deltaStats = result.fieldStats
         .flatMap(_.deltaStats)
         .map(d => (d.deltaType, d.min, d.max, d.count, d.mean, d.variance, d.stddev))
-      deltaStats should containSingleValue ((DeltaType.NUMERIC, 10.0, 10.0, 1000L, 10.0, 0.0, 0.0))
+      deltaStats should containSingleValue((DeltaType.NUMERIC, 10.0, 10.0, 1000L, 10.0, 0.0, 0.0))
     }
   }
 
@@ -94,13 +114,17 @@ class BigDiffyTest extends PipelineSpec {
       val lhs2 = lhs.filter(_.getRequiredFields.getIntField <= 500)
       val rhs = lhs.map(CoderUtils.clone(coder, _))
       val result = BigDiffy.diff[TestRecord](
-        sc.parallelize(lhs2), sc.parallelize(rhs),
-        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString))
-      result.globalStats should containSingleValue (GlobalStats(1000L, 500L, 0L, 500L, 0L))
+        sc.parallelize(lhs2),
+        sc.parallelize(rhs),
+        new AvroDiffy[TestRecord](),
+        x => MultiKey(x.getRequiredFields.getStringField.toString)
+      )
+      result.globalStats should containSingleValue(GlobalStats(1000L, 500L, 0L, 500L, 0L))
       result.deltas should beEmpty
-      result.keyStats should containInAnyOrder (
+      result.keyStats should containInAnyOrder(
         (1 to 500).map(i => KeyStats(MultiKey("key" + i), DiffType.SAME, None)) ++
-          (501 to 1000).map(i => KeyStats(MultiKey("key" + i), DiffType.MISSING_LHS, None)))
+          (501 to 1000).map(i => KeyStats(MultiKey("key" + i), DiffType.MISSING_LHS, None))
+      )
       result.fieldStats should beEmpty
     }
   }
@@ -109,87 +133,112 @@ class BigDiffyTest extends PipelineSpec {
     runWithContext { sc =>
       val rhs = lhs.filter(_.getRequiredFields.getIntField <= 500).map(CoderUtils.clone(coder, _))
       val result = BigDiffy.diff[TestRecord](
-        sc.parallelize(lhs), sc.parallelize(rhs),
-        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString))
-      result.globalStats should containSingleValue (GlobalStats(1000L, 500L, 0L, 0L, 500L))
+        sc.parallelize(lhs),
+        sc.parallelize(rhs),
+        new AvroDiffy[TestRecord](),
+        x => MultiKey(x.getRequiredFields.getStringField.toString)
+      )
+      result.globalStats should containSingleValue(GlobalStats(1000L, 500L, 0L, 0L, 500L))
       result.deltas should beEmpty
-      result.keyStats should containInAnyOrder (
+      result.keyStats should containInAnyOrder(
         (1 to 500).map(i => KeyStats(MultiKey("key" + i), DiffType.SAME, None)) ++
-          (501 to 1000).map(i => KeyStats(MultiKey("key" + i), DiffType.MISSING_RHS, None)))
+          (501 to 1000).map(i => KeyStats(MultiKey("key" + i), DiffType.MISSING_RHS, None))
+      )
       result.fieldStats should beEmpty
     }
   }
 
   it should "ignore NaNs for field stats when ignoreNan flag is on" in {
     runWithContext { sc =>
-      val rhs = lhs.map(CoderUtils.clone(coder, _)).map(r => {
-        val intField = r.getRequiredFields.getIntField
-        if (intField > 900 && intField <= 950) {
-          r.getRequiredFields.setDoubleField(r.getRequiredFields.getDoubleField + 10.0)
-        } else if(intField > 950) {
-          r.getRequiredFields.setDoubleField(Double.NaN)
+      val rhs = lhs
+        .map(CoderUtils.clone(coder, _))
+        .map { r =>
+          val intField = r.getRequiredFields.getIntField
+          if (intField > 900 && intField <= 950) {
+            r.getRequiredFields.setDoubleField(r.getRequiredFields.getDoubleField + 10.0)
+          } else if (intField > 950) {
+            r.getRequiredFields.setDoubleField(Double.NaN)
+          }
+          r
         }
-       r
-      })
       val ignoreNan = true
       val result = BigDiffy.diff[TestRecord](
-        sc.parallelize(lhs), sc.parallelize(rhs),
-        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString),
-        ignoreNan)
+        sc.parallelize(lhs),
+        sc.parallelize(rhs),
+        new AvroDiffy[TestRecord](),
+        x => MultiKey(x.getRequiredFields.getStringField.toString),
+        ignoreNan
+      )
       result.globalStats should containSingleValue(GlobalStats(1000L, 900L, 100L, 0L, 0L))
-      result.deltas.map(d => (d._1, d._2)) should containInAnyOrder (
-        (901 to 1000).map(k => MultiKey("key" + k)).map((_, field)))
+      result.deltas.map(d => (d._1, d._2)) should containInAnyOrder(
+        (901 to 1000).map(k => MultiKey("key" + k)).map((_, field))
+      )
       val deltaStats = result.fieldStats
         .flatMap(_.deltaStats)
         .map(d => (d.deltaType, d.min, d.max, d.count, d.mean, d.variance, d.stddev))
-      deltaStats should containSingleValue ((DeltaType.NUMERIC, 10.0, 10.0, 50L, 10.0, 0.0, 0.0))
+      deltaStats should containSingleValue((DeltaType.NUMERIC, 10.0, 10.0, 50L, 10.0, 0.0, 0.0))
     }
   }
 
   it should "return NaN for field stats when ignoreNan flag is off" in {
     runWithContext { sc =>
-      val rhs = lhs.map(CoderUtils.clone(coder, _)).map(r => {
-        val intField = r.getRequiredFields.getIntField
-        if (intField > 900 && intField <= 950) {
-          r.getRequiredFields.setDoubleField(r.getRequiredFields.getDoubleField + 10.0)
-        } else if(intField > 950) {
-          r.getRequiredFields.setDoubleField(Double.NaN)
+      val rhs = lhs
+        .map(CoderUtils.clone(coder, _))
+        .map { r =>
+          val intField = r.getRequiredFields.getIntField
+          if (intField > 900 && intField <= 950) {
+            r.getRequiredFields.setDoubleField(r.getRequiredFields.getDoubleField + 10.0)
+          } else if (intField > 950) {
+            r.getRequiredFields.setDoubleField(Double.NaN)
+          }
+          r
         }
-        r
-      })
       val result = BigDiffy.diff[TestRecord](
-        sc.parallelize(lhs), sc.parallelize(rhs),
-        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString))
+        sc.parallelize(lhs),
+        sc.parallelize(rhs),
+        new AvroDiffy[TestRecord](),
+        x => MultiKey(x.getRequiredFields.getStringField.toString)
+      )
       result.globalStats should containSingleValue(GlobalStats(1000L, 900L, 100L, 0L, 0L))
-      result.deltas.map(d => (d._1, d._2)) should containInAnyOrder (
-        (901 to 1000).map(k => MultiKey("key" + k)).map((_, field)))
+      result.deltas.map(d => (d._1, d._2)) should containInAnyOrder(
+        (901 to 1000).map(k => MultiKey("key" + k)).map((_, field))
+      )
       val deltaStats = result.fieldStats
         .flatMap(_.deltaStats)
         // checking d.min.isNaN and d.max.isNaN will result in flaky tests since
         // Min(2.0) + Min(1.0) + Min(Double.NaN) = Min(1.0) while
         // Min(Double.NaN) + Min(2.0) + Min(1.0) = Min(NaN) in algebird.
         .map(d => (d.deltaType, d.count, d.mean.isNaN, d.variance.isNaN, d.stddev.isNaN))
-      deltaStats should containSingleValue ((DeltaType.NUMERIC, 100L, true, true, true))
+      deltaStats should containSingleValue((DeltaType.NUMERIC, 100L, true, true, true))
     }
   }
 
   a[RuntimeException] shouldBe thrownBy {
     runWithContext { sc =>
-      val lhsDuplicate = Gen.listOfN(2, specificGen).sample.get
-        .map(r => {
+      val lhsDuplicate = Gen
+        .listOfN(2, specificGen)
+        .sample
+        .get
+        .map { r =>
           r.getRequiredFields.setIntField(10)
           r.getRequiredFields.setStringField("key")
           r
-        })
-      val rhs = Gen.listOfN(1, specificGen).sample.get
-        .map(r => {
+        }
+      val rhs = Gen
+        .listOfN(1, specificGen)
+        .sample
+        .get
+        .map { r =>
           r.getRequiredFields.setIntField(10)
           r.getRequiredFields.setStringField("key")
           r
-        })
+        }
       val result = BigDiffy.diff[TestRecord](
-        sc.parallelize(lhsDuplicate), sc.parallelize(rhs),
-        new AvroDiffy[TestRecord](), x => MultiKey(x.getRequiredFields.getStringField.toString))
+        sc.parallelize(lhsDuplicate),
+        sc.parallelize(rhs),
+        new AvroDiffy[TestRecord](),
+        x => MultiKey(x.getRequiredFields.getStringField.toString)
+      )
       val res = result.deltas.map(_._1)
     }
   }
@@ -219,6 +268,18 @@ class BigDiffyTest extends PipelineSpec {
     keyValues.toString shouldBe expectedKey
   }
 
+  "stripQuoteWrap" should "strip matching start and end quotes" in {
+    stripQuoteWrap("\"abc\"") shouldEqual "abc"
+    stripQuoteWrap("`abc`") shouldEqual "abc"
+    stripQuoteWrap("'abc'") shouldEqual "abc"
+  }
+
+  "stripQuoteWrap" should "leave anything else" in {
+    stripQuoteWrap("date=\"2021-12-01\"") shouldEqual "date=\"2021-12-01\""
+    stripQuoteWrap("date='2021-12-01'") shouldEqual  "date='2021-12-01'"
+    stripQuoteWrap("abc") shouldEqual "abc"
+  }
+
   "BigDiffy tableRowKeyFn" should "work with single key" in {
     val record = new TableRow()
     record.set("key", "foo")
@@ -245,21 +306,47 @@ class BigDiffyTest extends PipelineSpec {
     val unorderedKeys = BigDiffy.unorderedKeysMap(keyMappings)
 
     unorderedKeys.isSuccess shouldBe true
-    unorderedKeys.get shouldBe Map("record.nested_record" -> "key",
-      "record.other_nested_record" -> "other_key")
+    unorderedKeys.get shouldBe Map(
+      "record.nested_record" -> "key",
+      "record.other_nested_record" -> "other_key"
+    )
   }
 
   it should "throw an exception when in GCS output mode and output is not gs://" in {
     val exc = the[Exception] thrownBy {
       val args = Array(
-        "--runner=DataflowRunner", "--project=fake", "--tempLocation=gs://tmp/tmp", // dataflow args
-        "--input-mode=avro", "--key=tmp", "--lhs=gs://tmp/lhs", "--rhs=gs://tmp/rhs",
+        "--runner=DataflowRunner",
+        "--project=fake",
+        "--tempLocation=gs://tmp/tmp", // dataflow args
+        "--input-mode=avro",
+        "--key=tmp",
+        "--lhs=gs://tmp/lhs",
+        "--rhs=gs://tmp/rhs",
         "--output=abc" // no gs:// prefix
         // if no output-mode. defaults to GCS
-         )
+      )
       BigDiffy.run(args)
     }
 
     exc.getMessage shouldBe "Output mode is GCS, but output abc is not a valid GCS location"
+  }
+
+  it should "throw an exception when rowRestriction is specified for an avro input" in {
+    val exc = the[IllegalArgumentException] thrownBy {
+      val args = Array(
+        "--runner=DataflowRunner",
+        "--project=fake",
+        "--tempLocation=gs://tmp/tmp", // dataflow args
+        "--input-mode=avro",
+        "--key=tmp",
+        "--lhs=gs://tmp/lhs",
+        "--rhs=gs://tmp/rhs",
+        "--rowRestriction=true",
+        "--output=gs://abc"
+      )
+      BigDiffy.run(args)
+    }
+
+    exc.getMessage shouldBe "rowRestriction cannot be passed for avro inputs"
   }
 }
