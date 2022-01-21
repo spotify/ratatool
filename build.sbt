@@ -181,8 +181,7 @@ lazy val ratatoolSampling = project
       "com.twitter" %% "algebird-core" % algebirdVersion,
       "joda-time" % "joda-time" % jodaTimeVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-      "com.google.flogger" % "flogger-system-backend" % floggerVersion % "test"
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     ),
     // In case of scalacheck failures print more info
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
@@ -260,7 +259,8 @@ lazy val ratatoolExtras = project
       "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
       "com.google.cloud.bigdataoss" % "gcs-connector" % s"hadoop2-$gcsVersion",
       "com.google.cloud.bigdataoss" % "util" % gcsVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+      "com.google.flogger" % "flogger-system-backend" % floggerVersion % "test"
     ),
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
