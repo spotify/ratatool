@@ -18,7 +18,7 @@
 import sbt.{Def, _}
 import Keys._
 
-val algebirdVersion = "0.13.8"
+val algebirdVersion = "0.13.9"
 val avroVersion = "1.8.2"
 val beamVersion = "2.35.0"
 val bigqueryVersion = "v2-rev20211017-1.32.1"
@@ -27,15 +27,15 @@ val guavaVersion = "30.1-jre" // make sure this stays compatible with scio + bea
 val hadoopVersion = "2.10.1"
 val jodaTimeVersion = "2.10.13"
 val parquetVersion = "1.12.2"
-val protoBufVersion = "3.18.1"
+val protoBufVersion = "3.18.2"
 val scalaTestVersion = "3.2.10"
 val scalaCheckVersion = "1.15.4"
-val scalaCollectionCompatVersion = "2.5.0"
+val scalaCollectionCompatVersion = "2.6.0"
 val scioVersion = "0.11.4"
 val scoptVersion = "4.0.1"
 val shapelessVersion = "2.3.7"
 val sourcecodeVersion = "0.2.7"
-val slf4jVersion = "1.7.32"
+val slf4jVersion = "1.7.33"
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
   scalaBinaryVersion.value == "2.13"
@@ -46,7 +46,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   name := "ratatool",
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.12.10",
-  crossScalaVersions := Seq("2.12.10", "2.13.6"),
+  crossScalaVersions := Seq("2.12.10", "2.13.8"),
   resolvers += "confluent" at "https://packages.confluent.io/maven/",
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions in (Compile, doc) ++= {
