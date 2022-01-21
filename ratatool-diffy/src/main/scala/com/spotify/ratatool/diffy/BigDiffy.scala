@@ -337,22 +337,40 @@ object BigDiffy extends Command with Serializable {
   ): BigDiffy[T] =
     diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
 
+  /** Remove quotes wrapping string argument. **/
+  def stripQuoteWrap(input: String): String = {
+    val startChar = input.charAt(0)
+    val endChar = input.charAt(input.length - 1)
+    val quoteChars = List('"', ''', '`')
+
+    if(quoteChars.contains(startChar) && startChar == endChar) {
+      input.slice(1, input.length - 1)
+    } else {
+      input
+    }
+  }
+
   /** Diff two TableRow data sets. */
   def diffTableRow(
     sc: ScioContext,
     lhs: String,
     rhs: String,
+    rowRestriction: Option[String],
     keyFn: TableRow => MultiKey,
     diffy: TableRowDiffy,
     ignoreNan: Boolean = false
-  ): BigDiffy[TableRow] =
+  ): BigDiffy[TableRow] = {
+    // replace quotation marks at the beginning or end of the argument
+    val restrictionCleaned = rowRestriction.map(stripQuoteWrap)
+
     diff(
-      sc.bigQueryTable(Table.Spec(lhs)),
-      sc.bigQueryTable(Table.Spec(rhs)),
+      sc.bigQueryStorage(Table.Spec(lhs), rowRestriction = restrictionCleaned.orNull),
+      sc.bigQueryStorage(Table.Spec(rhs), rowRestriction = restrictionCleaned.orNull),
       diffy,
       keyFn,
       ignoreNan
     )
+  }
 
   /** Merge two BigQuery TableSchemas. */
   def mergeTableSchema(x: TableSchema, y: TableSchema): TableSchema = {
@@ -538,6 +556,8 @@ object BigDiffy extends Command with Serializable {
         |  --key=<key>                      '.' separated key field. Specify multiple --key params or multiple ',' separated key fields for multi key usage.
         |  --lhs=<path>                     LHS File path or BigQuery table
         |  --rhs=<path>                     RHS File path or BigQuery table
+        |  [--rowRestriction=<filter>]      SQL text filtering statement to apply to BigQuery inputs (not available for avro inputs),
+        |                                   similar to a WHERE clause in a query. Aggregates are not supported. Defaults to None
         |  --output=<output>                File path prefix for output
         |  --ignore=<keys>                  ',' separated field list to ignore
         |  --unordered=<keys>               ',' separated field list to treat as unordered
@@ -646,6 +666,7 @@ object BigDiffy extends Command with Serializable {
       keys,
       lhs,
       rhs,
+      rowRestriction,
       output,
       header,
       ignore,
@@ -660,6 +681,7 @@ object BigDiffy extends Command with Serializable {
           args.list("key"),
           args("lhs"),
           args("rhs"),
+          args.optional("rowRestriction"),
           args("output"),
           args.boolean("with-header", false),
           args.list("ignore").toSet,
@@ -700,6 +722,10 @@ object BigDiffy extends Command with Serializable {
     // validity checks passed, ok to run the diff
     val result = inputMode match {
       case "avro" =>
+        if(rowRestriction.isDefined) {
+          throw new IllegalArgumentException(s"rowRestriction cannot be passed for avro inputs")
+        }
+
         val schema = new AvroSampler(rhs, conf = Some(sc.options))
           .sample(1, head = true)
           .head
@@ -717,7 +743,7 @@ object BigDiffy extends Command with Serializable {
         val rSchema = bq.tables.schema(rhs)
         val schema = mergeTableSchema(lSchema, rSchema)
         val diffy = new TableRowDiffy(schema, ignore, unordered, unorderedKeys)
-        BigDiffy.diffTableRow(sc, lhs, rhs, tableRowKeyFn(keys), diffy, ignoreNan)
+        BigDiffy.diffTableRow(sc, lhs, rhs, rowRestriction, tableRowKeyFn(keys), diffy, ignoreNan)
       case m =>
         throw new IllegalArgumentException(s"input mode $m not supported")
     }

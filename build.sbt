@@ -25,15 +25,16 @@ val bigqueryVersion = "v2-rev20210410-1.31.0"
 val gcsVersion = "2.1.3"
 val guavaVersion = "30.1-jre" // make sure this stays compatible with scio + beam
 val hadoopVersion = "2.10.1"
-val jodaTimeVersion = "2.10.10"
-val parquetVersion = "1.12.0"
-val protoBufVersion = "3.18.2"
+val jodaTimeVersion = "2.10.13"
+val parquetVersion = "1.12.2"
+val protoBufVersion = "3.18.1"
 val scalaTestVersion = "3.2.10"
 val scalaCheckVersion = "1.15.4"
 val scalaCollectionCompatVersion = "2.5.0"
 val scioVersion = "0.11.1"
 val scoptVersion = "4.0.1"
 val shapelessVersion = "2.3.7"
+val sourcecodeVersion = "0.2.7"
 val slf4jVersion = "1.7.32"
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
@@ -297,7 +298,8 @@ lazy val ratatoolScalacheck = project
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+      "com.lihaoyi" %% "sourcecode" % sourcecodeVersion
     )
   )
   .enablePlugins(ProtobufPlugin)
