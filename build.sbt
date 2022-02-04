@@ -35,7 +35,8 @@ val scioVersion = "0.11.4"
 val scoptVersion = "4.0.1"
 val shapelessVersion = "2.3.7"
 val sourcecodeVersion = "0.2.7"
-val slf4jVersion = "1.7.35"
+val slf4jVersion = "1.7.33"
+val floggerVersion = "0.7.4"
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
   scalaBinaryVersion.value == "2.13"
@@ -258,7 +259,8 @@ lazy val ratatoolExtras = project
       "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
       "com.google.cloud.bigdataoss" % "gcs-connector" % s"hadoop2-$gcsVersion",
       "com.google.cloud.bigdataoss" % "util" % gcsVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+      "com.google.flogger" % "flogger-system-backend" % floggerVersion % "test"
     ),
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
