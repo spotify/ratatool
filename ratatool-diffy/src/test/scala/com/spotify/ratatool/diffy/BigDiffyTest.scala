@@ -27,6 +27,7 @@ import com.spotify.scio.testing.PipelineSpec
 import com.google.api.services.bigquery.model.TableRow
 import com.spotify.ratatool.diffy.BigDiffy.stripQuoteWrap
 import org.apache.beam.sdk.coders.AvroCoder
+import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 
 import scala.language.higherKinds
 
@@ -310,6 +311,22 @@ class BigDiffyTest extends PipelineSpec {
       "record.nested_record" -> "key",
       "record.other_nested_record" -> "other_key"
     )
+  }
+
+  it should "encode and decode a TableRow when there is a NaN value" in {
+    val testFieldName = "test_field"
+    val numFieldName = "num"
+    val tblRow = new TableRow()
+      .set(testFieldName, "a")
+      .set(numFieldName, Double.NaN)
+
+    val coder = TableRowJsonCoder.of()
+    val encoded = CoderUtils.encodeToByteArray(coder, tblRow)
+    new String(encoded) shouldBe "{\"test_field\":\"a\",\"num\":\"NaN\"}"
+
+    val decoded = CoderUtils.decodeFromByteArray(coder, encoded)
+    decoded.get(testFieldName) shouldBe "a"
+    decoded.get(numFieldName).toString shouldBe "NaN"
   }
 
   it should "throw an exception when in GCS output mode and output is not gs://" in {
