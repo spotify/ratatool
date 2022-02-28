@@ -36,6 +36,7 @@ import com.twitter.algebird._
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecordBase
 import org.apache.beam.sdk.io.TextIO
+import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
@@ -359,7 +360,7 @@ object BigDiffy extends Command with Serializable {
     keyFn: TableRow => MultiKey,
     diffy: TableRowDiffy,
     ignoreNan: Boolean = false
-  ): BigDiffy[TableRow] = {
+  )(implicit coder: Coder[TableRow]): BigDiffy[TableRow] = {
     // replace quotation marks at the beginning or end of the argument
     val restrictionCleaned = rowRestriction.map(stripQuoteWrap)
 
@@ -743,7 +744,8 @@ object BigDiffy extends Command with Serializable {
         val rSchema = bq.tables.schema(rhs)
         val schema = mergeTableSchema(lSchema, rSchema)
         val diffy = new TableRowDiffy(schema, ignore, unordered, unorderedKeys)
-        BigDiffy.diffTableRow(sc, lhs, rhs, rowRestriction, tableRowKeyFn(keys), diffy, ignoreNan)
+        BigDiffy.diffTableRow(sc, lhs, rhs, rowRestriction,
+          tableRowKeyFn(keys), diffy, ignoreNan)(Coder.beam(TableRowJsonCoder.of()))
       case m =>
         throw new IllegalArgumentException(s"input mode $m not supported")
     }
