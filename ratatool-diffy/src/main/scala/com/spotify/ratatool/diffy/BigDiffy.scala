@@ -36,6 +36,7 @@ import com.twitter.algebird._
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecordBase
 import org.apache.beam.sdk.io.TextIO
+import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
@@ -362,6 +363,7 @@ object BigDiffy extends Command with Serializable {
   ): BigDiffy[TableRow] = {
     // replace quotation marks at the beginning or end of the argument
     val restrictionCleaned = rowRestriction.map(stripQuoteWrap)
+    implicit val trCoder = Coder.beam(TableRowJsonCoder.of())
 
     diff(
       sc.bigQueryStorage(Table.Spec(lhs), rowRestriction = restrictionCleaned.orNull),
