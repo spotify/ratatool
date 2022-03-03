@@ -360,9 +360,10 @@ object BigDiffy extends Command with Serializable {
     keyFn: TableRow => MultiKey,
     diffy: TableRowDiffy,
     ignoreNan: Boolean = false
-  )(implicit coder: Coder[TableRow]): BigDiffy[TableRow] = {
+  ): BigDiffy[TableRow] = {
     // replace quotation marks at the beginning or end of the argument
     val restrictionCleaned = rowRestriction.map(stripQuoteWrap)
+    implicit val trCoder = Coder.beam(TableRowJsonCoder.of())
 
     diff(
       sc.bigQueryStorage(Table.Spec(lhs), rowRestriction = restrictionCleaned.orNull),
@@ -744,8 +745,7 @@ object BigDiffy extends Command with Serializable {
         val rSchema = bq.tables.schema(rhs)
         val schema = mergeTableSchema(lSchema, rSchema)
         val diffy = new TableRowDiffy(schema, ignore, unordered, unorderedKeys)
-        BigDiffy.diffTableRow(sc, lhs, rhs, rowRestriction,
-          tableRowKeyFn(keys), diffy, ignoreNan)(Coder.beam(TableRowJsonCoder.of()))
+        BigDiffy.diffTableRow(sc, lhs, rhs, rowRestriction, tableRowKeyFn(keys), diffy, ignoreNan)
       case m =>
         throw new IllegalArgumentException(s"input mode $m not supported")
     }
