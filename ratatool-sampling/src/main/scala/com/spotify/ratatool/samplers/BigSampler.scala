@@ -253,20 +253,40 @@ object BigSampler extends Command {
       )
       // Prompts FileSystems to load service classes, otherwise fetching schema from non-local fails
       FileSystems.setDefaultPipelineOptions(opts)
-      BigSamplerAvro.sample(
-        sc,
-        input,
-        output,
-        fields,
-        samplePct,
-        seed.map(_.toInt),
-        hashAlgorithm,
-        distribution,
-        distributionFields,
-        exact,
-        sizePerKey,
-        byteEncoding
-      )
+      input match {
+        case avroPath if input.endsWith("avro") =>
+          BigSamplerAvro.sample(
+            sc,
+            avroPath,
+            output,
+            fields,
+            samplePct,
+            seed.map(_.toInt),
+            hashAlgorithm,
+            distribution,
+            distributionFields,
+            exact,
+            sizePerKey,
+            byteEncoding
+          )
+        case parquetPath if input.endsWith("parquet") =>
+          BigSamplerParquet.sample(
+            sc,
+            parquetPath,
+            output,
+            fields,
+            samplePct,
+            seed.map(_.toInt),
+            hashAlgorithm,
+            distribution,
+            distributionFields,
+            exact,
+            sizePerKey,
+            byteEncoding
+          )
+        case _ =>
+          throw new UnsupportedOperationException(s"File $input must be an Avro or Parquet file")
+      }
     } else {
       throw new UnsupportedOperationException(s"Input `$input not supported.")
     }

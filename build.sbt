@@ -174,6 +174,7 @@ lazy val ratatoolSampling = project
     libraryDependencies ++= Seq(
       "com.spotify" %% "scio-core" % scioVersion,
       "com.spotify" %% "scio-avro" % scioVersion,
+      "com.spotify" %% "scio-parquet" % scioVersion,
       "com.spotify" %% "scio-google-cloud-platform" % scioVersion,
       "com.spotify" %% "scio-test" % scioVersion % "test",
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
@@ -201,6 +202,7 @@ lazy val ratatoolDiffy = project
     name := "ratatool-diffy",
     libraryDependencies ++= Seq(
       "com.spotify" %% "scio-core" % scioVersion,
+      "com.spotify" %% "scio-parquet" % scioVersion,
       "com.spotify" %% "scio-test" % scioVersion % "test",
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,

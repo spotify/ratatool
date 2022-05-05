@@ -18,21 +18,22 @@
 package com.spotify.ratatool.diffy
 
 import java.nio.ByteBuffer
-
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
 import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.Command
-import com.spotify.ratatool.samplers.AvroSampler
+import com.spotify.ratatool.samplers.{AvroSampler, ParquetSampler}
 import com.spotify.scio._
 import com.spotify.scio.avro._
 import com.spotify.scio.bigquery._
+import com.spotify.scio.parquet.avro._
 import com.spotify.scio.bigquery.client.BigQuery
 import com.spotify.scio.bigquery.types.BigQueryType
 import com.spotify.scio.coders.Coder
 import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
+import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecordBase
 import org.apache.beam.sdk.io.TextIO
@@ -337,6 +338,19 @@ object BigDiffy extends Command with Serializable {
     diffy: ProtoBufDiffy[T]
   ): BigDiffy[T] =
     diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
+
+  /** Diff two Parquet data sets. The data sets must be written using an Avro schema. */
+  def diffParquet[T <: GenericRecord: ClassTag: Coder](
+    sc: ScioContext,
+    lhs: String,
+    rhs: String,
+    keyFn: T => MultiKey,
+    diffy: AvroDiffy[T]
+  ): BigDiffy[T] =
+    diff(
+      sc.parquetAvroFile[T](lhs).map(identity),
+      sc.parquetAvroFile[T](rhs).map(identity), diffy, keyFn
+    )
 
   /** Remove quotes wrapping string argument. **/
   def stripQuoteWrap(input: String): String = {
@@ -727,17 +741,31 @@ object BigDiffy extends Command with Serializable {
         if(rowRestriction.isDefined) {
           throw new IllegalArgumentException(s"rowRestriction cannot be passed for avro inputs")
         }
-
         val schema = new AvroSampler(rhs, conf = Some(sc.options))
           .sample(1, head = true)
           .head
           .getSchema
+
         implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)
         val lhsSCollection = sc.avroFile(lhs, schema)
         val rhsSCollection = sc.avroFile(rhs, schema)
         BigDiffy
           .diff[GenericRecord](lhsSCollection, rhsSCollection, diffy, avroKeyFn(keys), ignoreNan)
+      case "parquet" =>
+        if (rowRestriction.isDefined) {
+          throw new IllegalArgumentException(s"rowRestriction cannot be passed for Parquet inputs")
+        }
+        val schema = new ParquetSampler(rhs, conf = Some(sc.options))
+          .sample(1, head = true)
+          .head
+          .getSchema
+        implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
+        val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)
+        val lhsSCollection = sc.parquetAvroFile[GenericRecord](lhs, schema).map(identity)
+        val rhsSCollection = sc.parquetAvroFile[GenericRecord](rhs, schema).map(identity)
+        BigDiffy
+        .diff[GenericRecord](lhsSCollection, rhsSCollection, diffy, avroKeyFn(keys), ignoreNan)
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQuery.defaultInstance()
