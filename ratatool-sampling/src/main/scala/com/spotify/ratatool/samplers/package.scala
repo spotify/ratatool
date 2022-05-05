@@ -204,4 +204,5 @@ package object samplers {
     )
   }
   // scalastyle:on parameter.number
+
 }

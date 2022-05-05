@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Spotify AB.
+ * Copyright 2022 Spotify AB.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,20 +18,15 @@
 package com.spotify.ratatool.samplers
 
 import com.spotify.ratatool.io.ParquetIO
-import com.spotify.scio.parquet.{BeamInputFile, GcsConnectorUtil}
-import com.spotify.scio.util.ScioUtil
+import com.spotify.scio.parquet.BeamInputFile
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.{Schema => AvroSchema}
 import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.io.fs.ResourceId
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapreduce.Job
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
-import org.apache.parquet.avro.{AvroParquetInputFormat, AvroParquetReader, AvroSchemaConverter}
-import org.apache.parquet.hadoop.ParquetFileReader
-import org.apache.parquet.hadoop.util.HadoopInputFile
+import org.apache.parquet.avro.{AvroParquetInputFormat, AvroParquetReader}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}

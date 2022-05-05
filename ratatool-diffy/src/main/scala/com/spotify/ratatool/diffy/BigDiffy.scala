@@ -339,18 +339,20 @@ object BigDiffy extends Command with Serializable {
   ): BigDiffy[T] =
     diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
 
-  /** Diff two Parquet data sets. The data sets must be written using an Avro schema. */
-  def diffParquet[T <: GenericRecord: ClassTag: Coder](
+  /** Diff two Parquet data sets. */
+  def diffParquet(
     sc: ScioContext,
     lhs: String,
     rhs: String,
-    keyFn: T => MultiKey,
-    diffy: AvroDiffy[T]
-  ): BigDiffy[T] =
+    keyFn: GenericRecord => MultiKey,
+    diffy: AvroDiffy[GenericRecord]
+  ): BigDiffy[GenericRecord] = {
+    // @Todo infer schema here and set implicit GR coder
     diff(
-      sc.parquetAvroFile[T](lhs).map(identity),
-      sc.parquetAvroFile[T](rhs).map(identity), diffy, keyFn
+      sc.parquetAvroFile[GenericRecord](lhs).map(identity),
+      sc.parquetAvroFile[GenericRecord](rhs).map(identity), diffy, keyFn
     )
+  }
 
   /** Remove quotes wrapping string argument. **/
   def stripQuoteWrap(input: String): String = {
@@ -741,11 +743,11 @@ object BigDiffy extends Command with Serializable {
         if(rowRestriction.isDefined) {
           throw new IllegalArgumentException(s"rowRestriction cannot be passed for avro inputs")
         }
+
         val schema = new AvroSampler(rhs, conf = Some(sc.options))
           .sample(1, head = true)
           .head
           .getSchema
-
         implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)
         val lhsSCollection = sc.avroFile(lhs, schema)
