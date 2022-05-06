@@ -55,7 +55,7 @@ private[samplers] object BigSamplerParquet {
       log.info(s"Will sample from: $input, output will be $output")
       implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
 
-      val coll = sc.parquetAvroFile(input, schema).map(identity)
+      val coll = sc.parquetAvroFile[GenericRecord](input, schema).map(identity)
 
       val sampledCollection = sampleAvro[GenericRecord](
         coll,

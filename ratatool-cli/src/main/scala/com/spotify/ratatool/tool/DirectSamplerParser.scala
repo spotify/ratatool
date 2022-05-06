@@ -70,6 +70,20 @@ object DirectSamplerParser extends Command {
         )
       )
 
+    cmd("parquet")
+      .action((_, c) => c.copy(mode = "parquet"))
+      .text("Sample from Parquet")
+      .children(
+        opt[String]("in")
+          .required()
+          .action((x, c) => c.copy(in = x))
+          .text("Parquet input path"),
+        opt[String]("out")
+          .required()
+          .action((x, c) => c.copy(out = x))
+          .text("Parquet output file")
+      )
+
     note("") // empty line
 
     note("Common options")

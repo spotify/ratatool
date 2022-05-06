@@ -113,7 +113,7 @@ private class ParquetFileSampler(r: ResourceId, protected val seed: Option[Long]
     val avroSchema = ParquetIO.getAvroSchemaFromFile(r.toString)
     logger.debug("Converted Avro schema: {}", avroSchema)
 
-    val jobConfig = ParquetIO.avroReadConfig(avroSchema)
+    val jobConfig = ParquetIO.genericRecordConfig(avroSchema)
     val reader = AvroParquetReader
       .builder[GenericRecord](BeamInputFile.of(r))
       .withConf(jobConfig)
