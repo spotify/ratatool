@@ -250,28 +250,6 @@ lazy val ratatoolShapeless = project
     ratatoolSampling
   )
 
-lazy val ratatoolExtras = project
-  .in(file("ratatool-extras"))
-  .settings(commonSettings)
-  .settings(
-    name := "ratatool-extras",
-    libraryDependencies ++= Seq(
-      "org.apache.parquet" % "parquet-avro" % parquetVersion,
-      "org.apache.avro" % "avro" % avroVersion,
-      "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
-      "com.google.cloud.bigdataoss" % "gcs-connector" % s"hadoop2-$gcsVersion",
-      "com.google.cloud.bigdataoss" % "util" % gcsVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-      "com.google.flogger" % "flogger-system-backend" % floggerVersion % "test"
-    ),
-    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
-  )
-  .dependsOn(
-    ratatoolSampling % "compile->compile;test->test",
-    ratatoolCommon % "test->test",
-    ratatoolScalacheck % "test"
-  )
-
 lazy val ratatoolCli = project
   .in(file("ratatool-cli"))
   .settings(commonSettings ++ noPublishSettings)
@@ -337,7 +315,6 @@ val root = project
     ratatoolDiffy,
     ratatoolSampling,
     ratatoolShapeless,
-    ratatoolExtras,
     ratatoolCli,
     ratatoolExamples
   )

@@ -20,7 +20,6 @@ package com.spotify.ratatool.samplers
 import com.spotify.ratatool.io.{FileStorage, ParquetIO}
 import com.spotify.ratatool.samplers.util._
 import com.spotify.scio.ScioContext
-import com.spotify.scio.avro._
 import com.spotify.scio.coders.Coder
 import com.spotify.scio.io.{ClosedTap, MaterializeTap}
 import com.spotify.scio.parquet.avro._
@@ -72,7 +71,7 @@ private[samplers] object BigSamplerParquet {
         byteEncoding
       )
 
-      val r = sampledCollection.saveAsAvroFile(output, schema = schema)
+      val r = sampledCollection.saveAsParquetAvroFile(output, schema = schema)
       sc.run().waitUntilDone()
       r
     }

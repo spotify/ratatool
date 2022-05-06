@@ -21,94 +21,99 @@ import com.spotify.scio.parquet.avro._
 import com.spotify.scio.parquet.types._
 import com.spotify.scio.ScioContext
 import org.apache.avro.Schema
-import org.apache.avro.Schema.Field
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.File
 import java.nio.file.Files
-import scala.jdk.CollectionConverters._
 
 class ParquetSamplerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
-  import TestData._
+  private lazy val (typedOut, avroOut) = (
+    ParquetTestData.createTempDir("typed"),
+    ParquetTestData.createTempDir("avro"))
 
   override protected def beforeAll(): Unit = {
-    TestData.writeTestData()
+    ParquetTestData.writeTestData(avroPath = avroOut, typedPath = typedOut, numShards = 2)
   }
+
+  private val BeBetween0And100 = (be < 100 and be >= 0)
+  private val GetId: GenericRecord => Int = _.get("id").asInstanceOf[Int]
 
   "ParquetSampler" should "sample typed parquet records from wildcard pattern" in {
     val sampledHead = new ParquetSampler(s"$typedOut/*.parquet").sample(10, head = true)
     sampledHead should have size 10
-    all(sampledHead.map(_.get("id").toString.toInt)) should (be < 100 and be >= 0)
+    all(sampledHead.map(GetId)) should BeBetween0And100
 
-    val sampledNotHead = new ParquetSampler(s"$typedOut/*.parquet").sample(10, head = false)
-    sampledNotHead should have size 10
-    all(sampledHead.map(_.get("id").toString.toInt)) should (be < 100 and be >= 0)
+    val sampledRandom = new ParquetSampler(s"$typedOut/*.parquet").sample(10, head = false)
+    sampledRandom should have size 10
+    all(sampledHead.map(GetId)) should BeBetween0And100
   }
 
   it should "sample typed parquet records from non-wildcard pattern" in {
     val sampled =
       new ParquetSampler(s"$typedOut/part-00000-of-00002.parquet").sample(10, head = true)
     sampled should have size 10
-    all(sampled.map(_.get("id").toString.toInt)) should (be < 100 and be >= 0)
+    all(sampled.map(GetId)) should BeBetween0And100
   }
 
-  it should "sample parquet-avro records as GenericRecords from wildcard pattern" in {
+  it should "sample parquet-avro records from wildcard pattern" in {
     val sampledHead = new ParquetSampler(s"$avroOut/*.parquet").sample(10, head = true)
     sampledHead should have size 10
-    all(sampledHead.map(_.get("id").toString.toInt)) should (be < 100 and be >= 0)
+    all(sampledHead.map(GetId)) should BeBetween0And100
 
-    val sampledNotHead = new ParquetSampler(s"$avroOut/*.parquet").sample(10, head = false)
-    sampledNotHead should have size 10
-    all(sampledNotHead.map(_.get("id").toString.toInt)) should (be < 100 and be >= 0)
+    val sampledRandom = new ParquetSampler(s"$avroOut/*.parquet").sample(10, head = false)
+    sampledRandom should have size 10
+    all(sampledRandom.map(GetId)) should BeBetween0And100
   }
 
   it should "sample parquet-avro records from non-wildcard pattern" in {
     val sampled =
       new ParquetSampler(s"$avroOut/part-00000-of-00002.parquet").sample(10, head = true)
     sampled should have size 10
-    all(sampled.map(_.get("id").toString.toInt)) should (be < 100 and be >= 0)
+    all(sampled.map(GetId)) should BeBetween0And100
   }
 }
 
-object TestData extends Serializable {
-  case class ParquetTyped(id: Int)
+object ParquetTestData extends Serializable {
+  case class ParquetClass(id: Int)
 
-  lazy val (typedOut, avroOut) = {
-    val typed = Files.createTempDirectory("typedOut")
-    val avro = Files.createTempDirectory("avroOut")
-
-    List(typed, avro).foreach { dir =>
-      dir.resolve("part-00000-of-00002.parquet").toFile.deleteOnExit()
-      dir.resolve("part-00001-of-00002.parquet").toFile.deleteOnExit()
-      dir.toFile.deleteOnExit()
-    }
-
-    (typed.toString, avro.toString)
+  def createTempDir(prefix: String): String = {
+    val dir = Files.createTempDirectory(prefix)
+    dir.toFile.deleteOnExit()
+    dir.toString
   }
 
+  lazy val ParquetAvroData: Seq[GenericRecord] = (0 until 100).map { id =>
+    val gr = new GenericData.Record(avroSchema)
+    gr.put("id", id)
+    gr
+  }
 
-  def avroSchema: Schema = Schema.createRecord("ParquetAvro", "com.spotify", "", false,
-    List(new Field("id", Schema.create(Schema.Type.INT), "", -1)).asJava)
+  lazy val ParquetTypedData: Seq[ParquetClass] = (0 until 100).map(ParquetClass)
 
-  def writeTestData(): Unit = {
-    def createGr(id: Int): GenericRecord = {
-      val gr = new GenericData.Record(avroSchema)
-      gr.put("id", id)
-      gr.asInstanceOf[GenericRecord]
-    }
+  def avroSchema: Schema = new Schema.Parser().parse("""
+      |{"type":"record",
+      |"name":"ParquetClass",
+      |"namespace":"com.spotify.ratatool.samplers.ParquetTestData",
+      |"fields":[{"name":"id","type":"int"}]}""".stripMargin)
 
+  def writeTestData(avroPath: String, typedPath: String, numShards: Int = 1): Unit = {
     val sc = ScioContext()
 
     // Write typed Parquet records
-    sc.parallelize(0 until 100).map(ParquetTyped)
-      .saveAsTypedParquetFile(typedOut, numShards = 2)
+    sc.parallelize(ParquetTypedData)
+      .saveAsTypedParquetFile(typedPath, numShards = numShards)
 
     // Write avro Parquet records
-    sc.parallelize(0 until 100).map(createGr)
-      .saveAsParquetAvroFile(avroOut, avroSchema, numShards = 2)
+    sc.parallelize(ParquetAvroData)
+      .saveAsParquetAvroFile(avroPath, avroSchema, numShards = numShards)
 
     sc.run()
+
+    List(avroPath, typedPath).foreach { p =>
+      new File(p).listFiles().foreach(_.deleteOnExit())
+    }
   }
 }

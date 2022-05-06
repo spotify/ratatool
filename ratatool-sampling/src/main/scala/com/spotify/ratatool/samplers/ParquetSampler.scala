@@ -20,13 +20,10 @@ package com.spotify.ratatool.samplers
 import com.spotify.ratatool.io.ParquetIO
 import com.spotify.scio.parquet.BeamInputFile
 import org.apache.avro.generic.GenericRecord
-import org.apache.avro.{Schema => AvroSchema}
 import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.io.fs.ResourceId
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.mapreduce.Job
-import org.apache.parquet.avro.{AvroParquetInputFormat, AvroParquetReader}
+import org.apache.parquet.avro.AvroParquetReader
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -116,7 +113,7 @@ private class ParquetFileSampler(r: ResourceId, protected val seed: Option[Long]
     val avroSchema = ParquetIO.getAvroSchemaFromFile(r.toString)
     logger.debug("Converted Avro schema: {}", avroSchema)
 
-    val jobConfig = createConfig(avroSchema)
+    val jobConfig = ParquetIO.avroReadConfig(avroSchema)
     val reader = AvroParquetReader
       .builder[GenericRecord](BeamInputFile.of(r))
       .withConf(jobConfig)
@@ -151,18 +148,4 @@ private class ParquetFileSampler(r: ResourceId, protected val seed: Option[Long]
     reader.close()
     result.toList
   }
-
-  private def createConfig(schema: AvroSchema): Configuration = {
-    val job = Job.getInstance(new Configuration())
-    job.setInputFormatClass(classOf[AvroParquetInputFormat[GenericRecord]])
-    job.getConfiguration.setBoolean("parquet.avro.compatible", true)
-    job.getConfiguration.set(
-      "parquet.avro.data.supplier",
-      "org.apache.parquet.avro.GenericDataSupplier"
-    )
-
-    AvroParquetInputFormat.setAvroReadSchema(job, schema)
-    job.getConfiguration
-  }
-
 }

@@ -17,17 +17,24 @@
 
 package com.spotify.ratatool.io
 
+import com.spotify.ratatool.samplers.util.GcsConnectorUtil
 import org.apache.avro.Schema
+import org.apache.avro.generic.GenericRecord
+import org.apache.beam.sdk.io.FileSystems
+import org.apache.beam.sdk.io.fs.ResourceId
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import org.apache.parquet.avro.AvroSchemaConverter
+import org.apache.hadoop.mapreduce.Job
+import org.apache.parquet.avro._
 import org.apache.parquet.hadoop.ParquetFileReader
 import org.apache.parquet.hadoop.util.HadoopInputFile
+
+import java.io.File
 
 /** Utilities for Parquet IO. */
 object ParquetIO {
 
-  def getAvroSchemaFromFile(file: String): Schema = {
+  private[ratatool] def getAvroSchemaFromFile(file: String): Schema = {
     val conf = new Configuration()
 
     val parquetFileMetadata = ParquetFileReader.open(
@@ -40,4 +47,43 @@ object ParquetIO {
         .map(new Schema.Parser().parse(_))
         .getOrElse(new AvroSchemaConverter(conf).convert(parquetFileMetadata.getSchema))
   }
+
+  private[ratatool] def avroReadConfig(schema: Schema): Configuration = {
+    val job = Job.getInstance(new Configuration())
+
+    job.getConfiguration.setBoolean(AvroReadSupport.AVRO_COMPATIBILITY, true)
+    job.getConfiguration.setClass(
+      AvroReadSupport.AVRO_DATA_SUPPLIER, classOf[GenericDataSupplier], classOf[AvroDataSupplier]
+    )
+
+    AvroParquetInputFormat.setAvroReadSchema(job, schema)
+    GcsConnectorUtil.setCredentials(job)
+    job.getConfiguration
+  }
+
+  /** Read Parquet records from a file into GenericRecords. */
+  def readFromFile(path: Path): Iterator[GenericRecord] = {
+    val schema = getAvroSchemaFromFile(path.toString)
+    val conf = avroReadConfig(schema)
+    val reader = AvroParquetReader
+      .builder[GenericRecord](path)
+      .withConf(conf)
+      .build()
+
+    new Iterator[GenericRecord] {
+      private var item = reader.read()
+      override def hasNext: Boolean = item != null
+      override def next(): GenericRecord = {
+        val r = item
+        item = reader.read()
+        r
+      }
+    }
+  }
+
+  /** Read Parquet records from a file into GenericRecords. */
+  def readFromFile(path: String): Iterator[GenericRecord] = readFromFile(new Path(path))
+
+  /** Read Parquet records from a file into GenericRecords. */
+  def readFromFile(file: File): Iterator[GenericRecord] = readFromFile(file.getAbsolutePath)
 }
