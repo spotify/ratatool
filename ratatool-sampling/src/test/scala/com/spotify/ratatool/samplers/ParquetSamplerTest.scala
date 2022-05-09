@@ -42,36 +42,30 @@ class ParquetSamplerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAl
   private val BeBetween0And100 = (be < 100 and be >= 0)
   private val GetId: GenericRecord => Int = _.get("id").asInstanceOf[Int]
 
-  "ParquetSampler" should "sample typed parquet records from wildcard pattern" in {
-    val sampledHead = new ParquetSampler(s"$typedOut/*.parquet").sample(10, head = true)
-    sampledHead should have size 10
-    all(sampledHead.map(GetId)) should BeBetween0And100
+  "ParquetSampler" should "sample typed parquet records" in {
+    // Wildcard pattern
+    testSampler(new ParquetSampler(s"$typedOut/*.parquet"), head = false)
 
-    val sampledRandom = new ParquetSampler(s"$typedOut/*.parquet").sample(10, head = false)
-    sampledRandom should have size 10
-    all(sampledHead.map(GetId)) should BeBetween0And100
+    // Non-wildcard pattern
+    testSampler(new ParquetSampler(s"$typedOut/part-00000-of-00002.parquet"), head = false)
+
+    // Head=true
+    testSampler(new ParquetSampler(s"$typedOut/part-00000-of-00002.parquet"), head = true)
   }
 
-  it should "sample typed parquet records from non-wildcard pattern" in {
-    val sampled =
-      new ParquetSampler(s"$typedOut/part-00000-of-00002.parquet").sample(10, head = true)
-    sampled should have size 10
-    all(sampled.map(GetId)) should BeBetween0And100
+  it should "sample parquet-avro records" in {
+    // Wildcard pattern
+    testSampler(new ParquetSampler(s"$avroOut/*.parquet"), head = false)
+
+    // Non-wildcard pattern
+    testSampler(new ParquetSampler(s"$avroOut/part-00000-of-00002.parquet"), head = false)
+
+    // Head=true
+    testSampler(new ParquetSampler(s"$avroOut/part-00000-of-00002.parquet"), head = true)
   }
 
-  it should "sample parquet-avro records from wildcard pattern" in {
-    val sampledHead = new ParquetSampler(s"$avroOut/*.parquet").sample(10, head = true)
-    sampledHead should have size 10
-    all(sampledHead.map(GetId)) should BeBetween0And100
-
-    val sampledRandom = new ParquetSampler(s"$avroOut/*.parquet").sample(10, head = false)
-    sampledRandom should have size 10
-    all(sampledRandom.map(GetId)) should BeBetween0And100
-  }
-
-  it should "sample parquet-avro records from non-wildcard pattern" in {
-    val sampled =
-      new ParquetSampler(s"$avroOut/part-00000-of-00002.parquet").sample(10, head = true)
+  private def testSampler(parquetSampler: ParquetSampler, head: Boolean): Unit = {
+    val sampled = parquetSampler.sample(10, head = head)
     sampled should have size 10
     all(sampled.map(GetId)) should BeBetween0And100
   }
