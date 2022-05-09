@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Spotify AB.
+ * Copyright 2022 Spotify AB.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,15 +28,13 @@ import java.util.Locale
 import scala.util.{Success, Try}
 
 
-// scalastyle:off line.size.limit
 /**
  * Utility for setting Parquet credential properties.
  *
  * Ported from
- * https://github.com/spotify/scio/blob/main/scio-parquet/src/main/scala/com/spotify/scio/parquet/GcsConnectorUtil.scala
+ * https://github.com/spotify/scio/blob/main/scio-parquet/src/main/scala/com/spotify/
+ * scio/parquet/GcsConnectorUtil.scala
  **/
-// scalastyle:on line.size.limit
-
 private[ratatool] object ParquetGcsConnectorUtil {
 
   /**
@@ -66,13 +64,6 @@ private[ratatool] object ParquetGcsConnectorUtil {
         job.getConfiguration.setBoolean("fs.gs.auth.service.account.enable", false)
         job.getConfiguration.setBoolean("fs.gs.auth.null.enable", true)
     }
-  }
-
-  def unsetCredentials(job: Job): Unit = {
-    job.getConfiguration.unset("fs.gs.auth.service.account.json.keyfile")
-    job.getConfiguration.unset("fs.gs.auth.access.token.provider.impl")
-    job.getConfiguration.unset("fs.gs.auth.null.enable")
-    job.getConfiguration.unset("fs.gs.auth.service.account.enable")
   }
 
   def setInputPaths(job: Job, path: String): Unit = {

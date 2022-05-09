@@ -340,7 +340,10 @@ object BigDiffy extends Command with Serializable {
   ): BigDiffy[T] =
     diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
 
-  /** Diff two Parquet data sets. */
+  /**
+   * Diff two Parquet data sets.
+   * Note that both typed-parquet and avro-parquet inputs are supported. However, in either case
+   * the diff will be written in Parquet format as Avro GenericRecords. */
   def diffParquet(
     sc: ScioContext,
     lhs: String,
@@ -348,7 +351,6 @@ object BigDiffy extends Command with Serializable {
     keyFn: GenericRecord => MultiKey,
     diffy: AvroDiffy[GenericRecord]
   ): BigDiffy[GenericRecord] = {
-    // @Todo infer schema here and set implicit GR coder
     val schemaLhs = ParquetIO.getAvroSchemaFromFile(lhs)
     val schemaRhs = ParquetIO.getAvroSchemaFromFile(rhs)
     assert(
