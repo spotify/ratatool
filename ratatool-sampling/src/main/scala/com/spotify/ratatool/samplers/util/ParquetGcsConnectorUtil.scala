@@ -37,7 +37,7 @@ import scala.util.{Success, Try}
  **/
 // scalastyle:on line.size.limit
 
-private[ratatool] object GcsConnectorUtil {
+private[ratatool] object ParquetGcsConnectorUtil {
 
   /**
    * Attempts to set Hadoop credential configuration when running locally. This is needed since
@@ -73,6 +73,14 @@ private[ratatool] object GcsConnectorUtil {
     job.getConfiguration.unset("fs.gs.auth.access.token.provider.impl")
     job.getConfiguration.unset("fs.gs.auth.null.enable")
     job.getConfiguration.unset("fs.gs.auth.service.account.enable")
+  }
+
+  def setInputPaths(job: Job, path: String): Unit = {
+    // This is needed since `FileInputFormat.setInputPaths` validates paths locally and requires
+    // the user's GCP credentials.
+    ParquetGcsConnectorUtil.setCredentials(job)
+
+    FileInputFormat.setInputPaths(job, path)
   }
 
   // Adapted from com.google.auth.oauth2.DefaultCredentialsProvider

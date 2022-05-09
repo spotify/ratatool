@@ -17,20 +17,18 @@
 
 package com.spotify.ratatool.io
 
-import com.spotify.ratatool.samplers.util.GcsConnectorUtil
+import com.spotify.ratatool.samplers.util.ParquetGcsConnectorUtil
 import com.spotify.scio.parquet.{BeamInputFile, BeamOutputFile}
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.io.FileSystems
-import org.apache.beam.sdk.io.fs.ResourceId
-import org.apache.commons.io.FileUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapreduce.Job
 import org.apache.parquet.avro._
 import org.apache.parquet.hadoop.ParquetFileReader
 import org.apache.parquet.hadoop.util.HadoopInputFile
-import org.apache.parquet.io.{InputFile, OutputFile}
+import org.apache.parquet.io.OutputFile
 
 import java.io.{File, OutputStream}
 import java.nio.channels.Channels
@@ -60,7 +58,7 @@ object ParquetIO {
         .getOrElse(new AvroSchemaConverter(conf).convert(parquetFileMetadata.getSchema))
   }
 
-  private[ratatool] def genericRecordConfig(schema: Schema): Configuration = {
+  private[ratatool] def genericRecordReadConfig(schema: Schema, path: String): Configuration = {
     val job = Job.getInstance(new Configuration())
 
     job.getConfiguration.setBoolean(AvroReadSupport.AVRO_COMPATIBILITY, true)
@@ -69,15 +67,16 @@ object ParquetIO {
     )
 
     AvroParquetInputFormat.setAvroReadSchema(job, schema)
-    GcsConnectorUtil.setCredentials(job)
+    ParquetGcsConnectorUtil.setInputPaths(job, path)
     job.getConfiguration
   }
 
   /** Read Parquet records from a file into GenericRecords. */
-  private[ratatool] def readFromFile(path: InputFile, schema: Schema): Iterator[GenericRecord] = {
-    val conf = genericRecordConfig(schema)
+  private[ratatool] def readFromFile(path: String): Iterator[GenericRecord] = {
+    val conf = genericRecordReadConfig(getAvroSchemaFromFile(path), path)
+
     val reader = AvroParquetReader
-      .builder[GenericRecord](path)
+      .builder[GenericRecord](BeamInputFile.of(path))
       .withConf(conf)
       .build()
 
@@ -93,18 +92,13 @@ object ParquetIO {
   }
 
   /** Read Parquet records from a file into GenericRecords. */
-  def readFromFile(path: String): Iterator[GenericRecord] =
-    readFromFile(BeamInputFile.of(path), getAvroSchemaFromFile(path))
-
-  /** Read Parquet records from a file into GenericRecords. */
   def readFromFile(file: File): Iterator[GenericRecord] = readFromFile(file.getAbsolutePath)
 
   /** Write records to a file. */
   def writeToFile(data: Iterable[GenericRecord], schema: Schema, output: OutputFile): Unit = {
-    val conf = genericRecordConfig(schema)
     val writer = AvroParquetWriter
       .builder[GenericRecord](output)
-      .withConf(conf)
+      .withConf(new Configuration())
       .withSchema(schema)
       .build()
     data.foreach(writer.write)

@@ -18,6 +18,11 @@
 package com.spotify.ratatool.io
 
 import com.spotify.ratatool.samplers.ParquetTestData
+import org.apache.avro.Schema
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
+import org.apache.parquet.hadoop.ParquetFileReader
+import org.apache.parquet.hadoop.util.HadoopInputFile
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -50,6 +55,24 @@ class ParquetIOTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   it should "get Avro schema for a wildcard Parquet file glob" in {
     ParquetIO.getAvroSchemaFromFile(
       typedOut + "/part-*"
+    ) shouldEqual ParquetTestData.avroSchema
+  }
+
+  it should "write parquet-avro as GenericRecords to file" in {
+    val writePath = ParquetTestData.createTempDir("avro-write") + "/out.parquet"
+
+    ParquetIO.writeToFile(ParquetTestData.ParquetAvroData, ParquetTestData.avroSchema, writePath)
+
+    val readElements = ParquetIO.readFromFile(writePath)
+    readElements.toSeq should contain theSameElementsAs ParquetTestData.ParquetAvroData
+
+    // Test that avro schema is written in metadata
+    val parquetFileMetadata = ParquetFileReader.open(
+      HadoopInputFile.fromPath(new Path(writePath), new Configuration()))
+      .getFileMetaData
+
+    new Schema.Parser().parse(
+      parquetFileMetadata.getKeyValueMetaData.get("parquet.avro.schema")
     ) shouldEqual ParquetTestData.avroSchema
   }
 }
