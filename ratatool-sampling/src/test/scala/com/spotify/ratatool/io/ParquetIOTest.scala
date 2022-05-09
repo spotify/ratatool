@@ -40,4 +40,16 @@ class ParquetIOTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     ParquetIO.readFromFile(typedOut + "/part-00000-of-00001.parquet")
       .toList should contain theSameElementsAs ParquetTestData.ParquetAvroData
   }
+
+  it should "get Avro schema for a non-wildcard Parquet file" in {
+    ParquetIO.getAvroSchemaFromFile(
+      typedOut + "/part-00000-of-00001.parquet"
+    ) shouldEqual ParquetTestData.avroSchema
+  }
+
+  it should "get Avro schema for a wildcard Parquet file glob" in {
+    ParquetIO.getAvroSchemaFromFile(
+      typedOut + "/part-*"
+    ) shouldEqual ParquetTestData.avroSchema
+  }
 }

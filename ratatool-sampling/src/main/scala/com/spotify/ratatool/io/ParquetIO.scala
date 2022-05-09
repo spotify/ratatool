@@ -74,8 +74,7 @@ object ParquetIO {
   }
 
   /** Read Parquet records from a file into GenericRecords. */
-  def readFromFile(path: InputFile): Iterator[GenericRecord] = {
-    val schema = getAvroSchemaFromFile(path.toString)
+  private[ratatool] def readFromFile(path: InputFile, schema: Schema): Iterator[GenericRecord] = {
     val conf = genericRecordConfig(schema)
     val reader = AvroParquetReader
       .builder[GenericRecord](path)
@@ -94,7 +93,8 @@ object ParquetIO {
   }
 
   /** Read Parquet records from a file into GenericRecords. */
-  def readFromFile(path: String): Iterator[GenericRecord] = readFromFile(BeamInputFile.of(path))
+  def readFromFile(path: String): Iterator[GenericRecord] =
+    readFromFile(BeamInputFile.of(path), getAvroSchemaFromFile(path))
 
   /** Read Parquet records from a file into GenericRecords. */
   def readFromFile(file: File): Iterator[GenericRecord] = readFromFile(file.getAbsolutePath)

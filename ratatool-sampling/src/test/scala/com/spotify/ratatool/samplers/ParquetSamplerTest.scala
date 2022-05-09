@@ -20,6 +20,7 @@ package com.spotify.ratatool.samplers
 import com.spotify.scio.parquet.avro._
 import com.spotify.scio.parquet.types._
 import com.spotify.scio.ScioContext
+import com.spotify.scio.coders.Coder
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.scalatest._
@@ -100,6 +101,8 @@ object ParquetTestData extends Serializable {
       |"fields":[{"name":"id","type":"int"}]}""".stripMargin)
 
   def writeTestData(avroPath: String, typedPath: String, numShards: Int = 1): Unit = {
+    implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(avroSchema)
+
     val sc = ScioContext()
 
     // Write typed Parquet records
