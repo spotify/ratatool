@@ -22,6 +22,7 @@ import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, Table
 import com.google.common.io.BaseEncoding
 import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.Command
+import com.spotify.ratatool.io.ParquetIO
 import com.spotify.ratatool.samplers.{AvroSampler, ParquetSampler}
 import com.spotify.scio._
 import com.spotify.scio.avro._
@@ -348,6 +349,14 @@ object BigDiffy extends Command with Serializable {
     diffy: AvroDiffy[GenericRecord]
   ): BigDiffy[GenericRecord] = {
     // @Todo infer schema here and set implicit GR coder
+    val schemaLhs = ParquetIO.getAvroSchemaFromFile(lhs)
+    val schemaRhs = ParquetIO.getAvroSchemaFromFile(rhs)
+    assert(
+      schemaLhs.getFields.equals(schemaRhs.getFields),
+      s"LHS input $lhs had a different schema than input $rhs: " +
+        s"${schemaLhs.getFields} != ${schemaRhs.getFields}")
+    implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schemaLhs)
+
     diff(
       sc.parquetAvroFile[GenericRecord](lhs).map(identity),
       sc.parquetAvroFile[GenericRecord](rhs).map(identity), diffy, keyFn
