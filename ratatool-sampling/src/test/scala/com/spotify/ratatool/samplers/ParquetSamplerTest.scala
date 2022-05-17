@@ -26,6 +26,7 @@ import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.io.File
 import java.nio.file.Files
@@ -42,31 +43,38 @@ class ParquetSamplerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAl
   private val BeBetween0And100 = (be < 100 and be >= 0)
   private val GetId: GenericRecord => Int = _.get("id").asInstanceOf[Int]
 
-  "ParquetSampler" should "sample typed parquet records" in {
-    // Wildcard pattern
+  "ParquetSampler" should "sample typed parquet records from wildcard pattern" in {
+    testSampler(new ParquetSampler(s"$typedOut/*.parquet"), head = true)
     testSampler(new ParquetSampler(s"$typedOut/*.parquet"), head = false)
+  }
 
-    // Non-wildcard pattern
+  it should "sample typed parquet records from non-wildcard pattern" in {
     testSampler(new ParquetSampler(s"$typedOut/part-00000-of-00002.parquet"), head = false)
-
-    // Head=true
     testSampler(new ParquetSampler(s"$typedOut/part-00000-of-00002.parquet"), head = true)
   }
 
-  it should "sample parquet-avro records" in {
-    // Wildcard pattern
+  it should "sample parquet-avro records from wildcard pattern" in {
+    testSampler(new ParquetSampler(s"$avroOut/*.parquet"), head = true)
     testSampler(new ParquetSampler(s"$avroOut/*.parquet"), head = false)
+  }
 
-    // Non-wildcard pattern
+  it should "sample parquet-avro records from non-wildcard pattern" in {
     testSampler(new ParquetSampler(s"$avroOut/part-00000-of-00002.parquet"), head = false)
-
-    // Head=true
     testSampler(new ParquetSampler(s"$avroOut/part-00000-of-00002.parquet"), head = true)
   }
+
+  private val logger: Logger = LoggerFactory.getLogger(classOf[ParquetSamplerTest])
 
   private def testSampler(parquetSampler: ParquetSampler, head: Boolean): Unit = {
     val sampled = parquetSampler.sample(10, head = head)
     sampled should have size 10
+    if (sampled.contains(null)) {
+      logger.error(s"Null sample found in list ${sampled.toList}")
+    }
+
+    if (sampled.exists(gr => Option(gr).map(_.get("id")).isEmpty)) {
+      logger.error(s"Sample without ID found in list ${sampled.toList}")
+    }
     all(sampled.map(GetId)) should BeBetween0And100
   }
 }

@@ -60,7 +60,9 @@ class ParquetSampler(
         val result = ListBuffer.empty[GenericRecord]
         val iter = resources.toIterator
         while (result.size < n && iter.hasNext) {
-          result.appendAll(new ParquetFileSampler(iter.next()).sample(n, head))
+          val next = iter.next()
+          logger.error(s"Wildcard head: Reading from file $next")
+          result.appendAll(new ParquetFileSampler(next).sample(n, head))
         }
         result.toList
       } else {
@@ -75,6 +77,7 @@ class ParquetSampler(
         val futures = resources
           .zip(samples)
           .map { case (r, s) =>
+            logger.error(s"Wildcard non-head: Reading from file $r")
             Future(new ParquetFileSampler(r).sample(s, head))
           }
           .toSeq
@@ -138,11 +141,11 @@ private class ParquetFileSampler(r: ResourceId, protected val seed: Option[Long]
       // Then randomly select from all other elements in the stream
       var index = n
       while (next != null) {
-        next = reader.read()
         val loc = nextLong(index + 1)
         if (loc < n) {
           result(loc.toInt) = next
         }
+        next = reader.read()
         index += 1
       }
     }
