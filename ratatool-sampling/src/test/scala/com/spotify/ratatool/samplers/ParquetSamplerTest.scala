@@ -17,16 +17,15 @@
 
 package com.spotify.ratatool.samplers
 
-import com.spotify.scio.parquet.avro._
-import com.spotify.scio.parquet.types._
 import com.spotify.scio.ScioContext
 import com.spotify.scio.coders.Coder
+import com.spotify.scio.parquet.avro._
+import com.spotify.scio.parquet.types._
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.slf4j.{Logger, LoggerFactory}
 
 import java.io.File
 import java.nio.file.Files
@@ -63,18 +62,9 @@ class ParquetSamplerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAl
     testSampler(new ParquetSampler(s"$avroOut/part-00000-of-00002.parquet"), head = true)
   }
 
-  private val logger: Logger = LoggerFactory.getLogger(classOf[ParquetSamplerTest])
-
   private def testSampler(parquetSampler: ParquetSampler, head: Boolean): Unit = {
     val sampled = parquetSampler.sample(10, head = head)
     sampled should have size 10
-    if (sampled.contains(null)) {
-      logger.error(s"Null sample found in list ${sampled.toList}")
-    }
-
-    if (sampled.exists(gr => Option(gr).map(_.get("id")).isEmpty)) {
-      logger.error(s"Sample without ID found in list ${sampled.toList}")
-    }
     all(sampled.map(GetId)) should BeBetween0And100
   }
 }
