@@ -17,18 +17,11 @@
 
 package com.spotify.ratatool.samplers
 
-import com.spotify.scio.ScioContext
-import com.spotify.scio.coders.Coder
-import com.spotify.scio.parquet.avro._
-import com.spotify.scio.parquet.types._
-import org.apache.avro.Schema
-import org.apache.avro.generic.{GenericData, GenericRecord}
+import com.spotify.ratatool.io.ParquetTestData
+import org.apache.avro.generic.GenericRecord
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
-import java.io.File
-import java.nio.file.Files
 
 class ParquetSamplerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   private lazy val (typedOut, avroOut) = (
@@ -66,49 +59,5 @@ class ParquetSamplerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAl
     val sampled = parquetSampler.sample(10, head = head)
     sampled should have size 10
     all(sampled.map(GetId)) should BeBetween0And100
-  }
-}
-
-object ParquetTestData extends Serializable {
-  case class ParquetClass(id: Int)
-
-  def createTempDir(prefix: String): String = {
-    val dir = Files.createTempDirectory(prefix)
-    dir.toFile.deleteOnExit()
-    dir.toString
-  }
-
-  lazy val ParquetAvroData: Seq[GenericRecord] = (0 until 100).map { id =>
-    val gr = new GenericData.Record(avroSchema)
-    gr.put("id", id)
-    gr
-  }
-
-  lazy val ParquetTypedData: Seq[ParquetClass] = (0 until 100).map(ParquetClass)
-
-  def avroSchema: Schema = new Schema.Parser().parse("""
-      |{"type":"record",
-      |"name":"ParquetClass",
-      |"namespace":"com.spotify.ratatool.samplers.ParquetTestData",
-      |"fields":[{"name":"id","type":"int"}]}""".stripMargin)
-
-  def writeTestData(avroPath: String, typedPath: String, numShards: Int = 1): Unit = {
-    implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(avroSchema)
-
-    val sc = ScioContext()
-
-    // Write typed Parquet records
-    sc.parallelize(ParquetTypedData)
-      .saveAsTypedParquetFile(typedPath, numShards = numShards)
-
-    // Write avro Parquet records
-    sc.parallelize(ParquetAvroData)
-      .saveAsParquetAvroFile(avroPath, avroSchema, numShards = numShards)
-
-    sc.run()
-
-    List(avroPath, typedPath).foreach { p =>
-      new File(p).listFiles().foreach(_.deleteOnExit())
-    }
   }
 }

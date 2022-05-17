@@ -226,7 +226,7 @@ lazy val ratatoolDiffy = project
   .enablePlugins(ProtobufPlugin)
   .dependsOn(
     ratatoolCommon % "compile->compile;test->test",
-    ratatoolSampling,
+    ratatoolSampling % "compile->compile;test->test",
     ratatoolScalacheck % "test"
   )
   .settings(protoBufSettings)

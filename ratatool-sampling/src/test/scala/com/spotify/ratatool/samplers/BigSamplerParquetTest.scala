@@ -17,7 +17,7 @@
 
 package com.spotify.ratatool.samplers
 
-import com.spotify.ratatool.io.ParquetIO
+import com.spotify.ratatool.io.{ParquetIO, ParquetTestData}
 import com.spotify.ratatool.samplers.util.{Approximate, MurmurHash, StratifiedDistribution}
 import com.spotify.scio.ScioContext
 import com.spotify.scio.testing.PipelineSpec

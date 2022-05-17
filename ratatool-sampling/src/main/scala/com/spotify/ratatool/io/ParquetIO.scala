@@ -19,19 +19,17 @@ package com.spotify.ratatool.io
 
 import com.spotify.ratatool.samplers.util.ParquetGcsConnectorUtil
 import com.spotify.scio.parquet.{BeamInputFile, BeamOutputFile}
-import org.apache.avro.Schema
+import org.apache.avro.{Schema, SchemaCompatibility}
+import org.apache.avro.SchemaCompatibility.SchemaCompatibilityType
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.io.FileSystems
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapreduce.Job
 import org.apache.parquet.avro._
 import org.apache.parquet.hadoop.ParquetFileReader
-import org.apache.parquet.hadoop.util.HadoopInputFile
 import org.apache.parquet.io.OutputFile
 
-import java.io.{File, OutputStream}
-import java.nio.channels.Channels
+import java.io.File
 import scala.jdk.CollectionConverters._
 
 /** Utilities for Parquet IO. */
@@ -47,8 +45,7 @@ object ParquetIO {
 
     val conf = new Configuration()
 
-    val parquetFileMetadata = ParquetFileReader.open(
-      HadoopInputFile.fromPath(new Path(file), conf))
+    val parquetFileMetadata = ParquetFileReader.open(BeamInputFile.of(file))
       .getFileMetaData
 
     // We know Parquet files will either have the parquet.avro.schema key, or have a raw Parquet
@@ -56,6 +53,24 @@ object ParquetIO {
     Option(parquetFileMetadata.getKeyValueMetaData.get("parquet.avro.schema"))
         .map(new Schema.Parser().parse(_))
         .getOrElse(new AvroSchemaConverter(conf).convert(parquetFileMetadata.getSchema))
+  }
+
+  private[ratatool] def getCompatibleSchemaForFiles(path1: String, path2: String): Schema = {
+    val schemaLhs = getAvroSchemaFromFile(path1)
+    val schemaRhs = getAvroSchemaFromFile(path2)
+    def isReadCompatible(s1: Schema, s2: Schema): Boolean = {
+      SchemaCompatibility.checkReaderWriterCompatibility(s1, s2)
+        .getType == SchemaCompatibilityType.COMPATIBLE
+    }
+
+    if (isReadCompatible(schemaLhs, schemaRhs)) {
+      schemaLhs
+    } else if (isReadCompatible(schemaRhs, schemaLhs)) {
+      schemaRhs
+    } else {
+      throw new IllegalStateException(s"input $path1 had an incompatible schema to input " +
+        s"$path2: $schemaLhs not compatible with $schemaRhs")
+    }
   }
 
   private[ratatool] def genericRecordReadConfig(schema: Schema, path: String): Configuration = {
@@ -112,9 +127,4 @@ object ParquetIO {
   /** Write records to a file. */
   def writeToFile(data: Iterable[GenericRecord], schema: Schema, file: File): Unit =
     writeToFile(data, schema, file.getAbsolutePath)
-
-  /** Write records to an [[OutputStream]]. */
-  def writeToOutputStream(data: Iterable[GenericRecord], schema: Schema, os: OutputStream): Unit = {
-    writeToFile(data, schema, BeamOutputFile.of(Channels.newChannel(os)))
-  }
 }

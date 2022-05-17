@@ -34,7 +34,8 @@ import com.spotify.scio.coders.Coder
 import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
-import org.apache.avro.Schema
+import org.apache.avro.SchemaCompatibility.SchemaCompatibilityType
+import org.apache.avro.{Schema, SchemaCompatibility}
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecordBase
 import org.apache.beam.sdk.io.TextIO
@@ -185,7 +186,6 @@ class BigDiffy[T: Coder](
 
   /** Field level statistics. */
   lazy val fieldStats: SCollection[FieldStats] = globalAndFieldStats.flatMap(_._2)
-
 }
 
 sealed trait OutputMode
@@ -351,17 +351,12 @@ object BigDiffy extends Command with Serializable {
     keyFn: GenericRecord => MultiKey,
     diffy: AvroDiffy[GenericRecord]
   ): BigDiffy[GenericRecord] = {
-    val schemaLhs = ParquetIO.getAvroSchemaFromFile(lhs)
-    val schemaRhs = ParquetIO.getAvroSchemaFromFile(rhs)
-    assert(
-      schemaLhs.getFields.equals(schemaRhs.getFields),
-      s"LHS input $lhs had a different schema than input $rhs: " +
-        s"${schemaLhs.getFields} != ${schemaRhs.getFields}")
-    implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schemaLhs)
+    val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhs, rhs)
+    implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(compatSchema)
 
     diff(
-      sc.parquetAvroFile[GenericRecord](lhs).map(identity),
-      sc.parquetAvroFile[GenericRecord](rhs).map(identity), diffy, keyFn
+      sc.parquetAvroFile[GenericRecord](lhs, compatSchema).map(identity),
+      sc.parquetAvroFile[GenericRecord](rhs, compatSchema).map(identity), diffy, keyFn
     )
   }
 
@@ -769,16 +764,10 @@ object BigDiffy extends Command with Serializable {
         if (rowRestriction.isDefined) {
           throw new IllegalArgumentException(s"rowRestriction cannot be passed for Parquet inputs")
         }
-        val schema = new ParquetSampler(rhs, conf = Some(sc.options))
-          .sample(1, head = true)
-          .head
-          .getSchema
-        implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
-        val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)
-        val lhsSCollection = sc.parquetAvroFile[GenericRecord](lhs, schema).map(identity)
-        val rhsSCollection = sc.parquetAvroFile[GenericRecord](rhs, schema).map(identity)
-        BigDiffy
-        .diff[GenericRecord](lhsSCollection, rhsSCollection, diffy, avroKeyFn(keys), ignoreNan)
+        val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhs, rhs)
+        val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)(
+          Coder.avroGenericRecordCoder(compatSchema))
+        BigDiffy.diffParquet(sc, lhs, rhs, avroKeyFn(keys), diffy)
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQuery.defaultInstance()
@@ -796,5 +785,4 @@ object BigDiffy extends Command with Serializable {
   }
   // scalastyle:on cyclomatic.complexity
   // scalastyle:on method.length
-
 }

@@ -17,8 +17,10 @@
 
 package com.spotify.ratatool.io
 
-import com.spotify.ratatool.samplers.ParquetTestData
+import com.spotify.scio.ScioContext
+import com.spotify.scio.coders.Coder
 import org.apache.avro.Schema
+import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.parquet.hadoop.ParquetFileReader
@@ -26,6 +28,9 @@ import org.apache.parquet.hadoop.util.HadoopInputFile
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.io.File
+import java.nio.file.Files
 
 class ParquetIOTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   private lazy val (typedOut, avroOut) = (
@@ -61,7 +66,8 @@ class ParquetIOTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   it should "write parquet-avro as GenericRecords to file" in {
     val writePath = ParquetTestData.createTempDir("avro-write") + "/out.parquet"
 
-    ParquetIO.writeToFile(ParquetTestData.ParquetAvroData, ParquetTestData.avroSchema, writePath)
+    ParquetIO.writeToFile(
+      ParquetTestData.ParquetAvroData, ParquetTestData.avroSchema, new File(writePath))
 
     val readElements = ParquetIO.readFromFile(writePath)
     readElements.toSeq should contain theSameElementsAs ParquetTestData.ParquetAvroData
@@ -74,5 +80,54 @@ class ParquetIOTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     new Schema.Parser().parse(
       parquetFileMetadata.getKeyValueMetaData.get("parquet.avro.schema")
     ) shouldEqual ParquetTestData.avroSchema
+  }
+}
+
+object ParquetTestData extends Serializable {
+  import com.spotify.scio.parquet.types._
+  import com.spotify.scio.parquet.avro._
+
+  case class ParquetClass(id: Int)
+
+  def createTempDir(prefix: String): String = {
+    val dir = Files.createTempDirectory(prefix)
+    dir.toFile.deleteOnExit()
+    dir.toString
+  }
+
+  lazy val ParquetAvroData: Seq[GenericRecord] = (0 until 100).map { id =>
+    val gr = new GenericData.Record(avroSchema)
+    gr.put("id", id)
+    gr
+  }
+
+  lazy val ParquetTypedData: Seq[ParquetClass] = (0 until 100).map(ParquetClass)
+
+  def avroSchema: Schema = new Schema.Parser().parse(
+  """
+  |{"type":"record",
+  |"name":"ParquetClass",
+  |"namespace":"com.spotify.ratatool.io.ParquetTestData",
+  |"fields":[{"name":"id","type":"int"}]}
+  """.stripMargin)
+
+  def writeTestData(avroPath: String, typedPath: String, numShards: Int = 1): Unit = {
+    implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(avroSchema)
+
+    val sc = ScioContext()
+
+    // Write typed Parquet records
+    sc.parallelize(ParquetTypedData)
+      .saveAsTypedParquetFile(typedPath, numShards = numShards)
+
+    // Write avro Parquet records
+    sc.parallelize(ParquetAvroData)
+      .saveAsParquetAvroFile(avroPath, avroSchema, numShards = numShards)
+
+    sc.run()
+
+    List(avroPath, typedPath).foreach { p =>
+      new File(p).listFiles().foreach(_.deleteOnExit())
+    }
   }
 }

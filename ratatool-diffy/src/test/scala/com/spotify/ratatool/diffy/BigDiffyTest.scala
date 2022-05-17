@@ -25,7 +25,11 @@ import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
 import com.spotify.ratatool.scalacheck._
 import com.spotify.scio.testing.PipelineSpec
 import com.google.api.services.bigquery.model.TableRow
-import com.spotify.ratatool.diffy.BigDiffy.stripQuoteWrap
+import com.spotify.ratatool.diffy.BigDiffy.{avroKeyFn, stripQuoteWrap}
+import com.spotify.ratatool.io.{ParquetIO, ParquetTestData}
+import com.spotify.scio.ScioContext
+import org.apache.avro.Schema
+import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 
@@ -365,5 +369,71 @@ class BigDiffyTest extends PipelineSpec {
     }
 
     exc.getMessage shouldBe "rowRestriction cannot be passed for avro inputs"
+  }
+
+  it should "throw an exception when rowRestriction is specified for a parquet input" in {
+    val exc = the[IllegalArgumentException] thrownBy {
+      val args = Array(
+        "--runner=DataflowRunner",
+        "--project=fake",
+        "--tempLocation=gs://tmp/tmp", // dataflow args
+        "--input-mode=parquet",
+        "--key=tmp",
+        "--lhs=gs://tmp/lhs",
+        "--rhs=gs://tmp/rhs",
+        "--rowRestriction=true",
+        "--output=gs://abc"
+      )
+      BigDiffy.run(args)
+    }
+
+    exc.getMessage shouldBe "rowRestriction cannot be passed for Parquet inputs"
+  }
+
+  it should "support Parquet schema evolution" in {
+    val schema1 = new Schema.Parser().parse(
+    """|{"type":"record",
+       |"name":"ParquetRecord",
+       |"namespace":"com.spotify.ratatool.diffy",
+       |"fields":[{"name":"id","type":"int"}]}
+       """.stripMargin
+    )
+    // Schema 2 has added field with default value
+    val schema2 = new Schema.Parser().parse(
+    """|{"type":"record",
+       |"name":"ParquetRecord",
+       |"namespace":"com.spotify.ratatool.diffy",
+       |"fields":[
+       |{"name":"id","type":"int"},
+       |{"name":"s","type":["null","string"],"default":null}]}
+       """.stripMargin
+    )
+
+    def toGenericRecord(schema: Schema, fields: Map[String, _]): GenericRecord = {
+      val gr = new GenericData.Record(schema)
+      fields.foreach { case (k, v) => gr.put(k, v) }
+      gr
+    }
+    val (lhs, rhs) = (
+      ParquetTestData.createTempDir("lhs") + "/out.parquet",
+      ParquetTestData.createTempDir("rhs") + "/out.parquet")
+
+    ParquetIO.writeToFile(
+      (1 to 10).map(i => toGenericRecord(schema1, Map("id" -> i))),
+      schema1, rhs)
+
+    ParquetIO.writeToFile(
+      (1 to 9).map(i => toGenericRecord(schema2, Map("id" -> i, "s" -> i.toString))),
+      schema2, lhs)
+
+    val sc = ScioContext()
+    val bigDiffy = BigDiffy.diffParquet(sc,
+      lhs,
+      rhs,
+      avroKeyFn(Seq("id")),
+      new AvroDiffy[GenericRecord]())
+
+    bigDiffy.keyStats.filter(_.diffType == DiffType.MISSING_LHS) should haveSize(1)
+    sc.run()
   }
 }
