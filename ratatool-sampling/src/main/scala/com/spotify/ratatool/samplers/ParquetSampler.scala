@@ -44,7 +44,7 @@ class ParquetSampler(
 
   override def sample(n: Long, head: Boolean): Seq[GenericRecord] = {
     require(n > 0, "n must be > 0")
-    logger.info("Taking a sample of {} from Avro {}", n, path)
+    logger.info("Taking a sample of {} from Parquet {}", n, path)
 
     FileSystems.setDefaultPipelineOptions(conf.getOrElse(PipelineOptionsFactory.create()))
     val matches = FileSystems.`match`(path).metadata().asScala
@@ -111,7 +111,7 @@ private class ParquetFileSampler(r: ResourceId, protected val seed: Option[Long]
     require(n > 0, "n must be > 0")
 
     val avroSchema = ParquetIO.getAvroSchemaFromFile(r.toString)
-    logger.debug("Converted Avro schema: {}", avroSchema)
+    logger.debug("Converted Parquet to Avro schema: {}", avroSchema)
 
     val jobConfig = ParquetIO.genericRecordReadConfig(avroSchema, r.toString)
 
