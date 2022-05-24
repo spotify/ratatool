@@ -174,6 +174,7 @@ lazy val ratatoolSampling = project
     libraryDependencies ++= Seq(
       "com.spotify" %% "scio-core" % scioVersion,
       "com.spotify" %% "scio-avro" % scioVersion,
+      "com.spotify" %% "scio-parquet" % scioVersion,
       "com.spotify" %% "scio-google-cloud-platform" % scioVersion,
       "com.spotify" %% "scio-test" % scioVersion % "test",
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
@@ -201,6 +202,7 @@ lazy val ratatoolDiffy = project
     name := "ratatool-diffy",
     libraryDependencies ++= Seq(
       "com.spotify" %% "scio-core" % scioVersion,
+      "com.spotify" %% "scio-parquet" % scioVersion,
       "com.spotify" %% "scio-test" % scioVersion % "test",
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
@@ -224,7 +226,7 @@ lazy val ratatoolDiffy = project
   .enablePlugins(ProtobufPlugin)
   .dependsOn(
     ratatoolCommon % "compile->compile;test->test",
-    ratatoolSampling,
+    ratatoolSampling % "compile->compile;test->test",
     ratatoolScalacheck % "test"
   )
   .settings(protoBufSettings)
@@ -246,28 +248,6 @@ lazy val ratatoolShapeless = project
   .dependsOn(
     ratatoolDiffy,
     ratatoolSampling
-  )
-
-lazy val ratatoolExtras = project
-  .in(file("ratatool-extras"))
-  .settings(commonSettings)
-  .settings(
-    name := "ratatool-extras",
-    libraryDependencies ++= Seq(
-      "org.apache.parquet" % "parquet-avro" % parquetVersion,
-      "org.apache.avro" % "avro" % avroVersion,
-      "org.apache.hadoop" % "hadoop-client" % hadoopVersion exclude ("org.slf4j", "slf4j-log4j12"),
-      "com.google.cloud.bigdataoss" % "gcs-connector" % s"hadoop2-$gcsVersion",
-      "com.google.cloud.bigdataoss" % "util" % gcsVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-      "com.google.flogger" % "flogger-system-backend" % floggerVersion % "test"
-    ),
-    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
-  )
-  .dependsOn(
-    ratatoolSampling % "compile->compile;test->test",
-    ratatoolCommon % "test->test",
-    ratatoolScalacheck % "test"
   )
 
 lazy val ratatoolCli = project
@@ -335,7 +315,6 @@ val root = project
     ratatoolDiffy,
     ratatoolSampling,
     ratatoolShapeless,
-    ratatoolExtras,
     ratatoolCli,
     ratatoolExamples
   )

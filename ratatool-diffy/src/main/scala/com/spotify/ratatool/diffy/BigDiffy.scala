@@ -18,21 +18,24 @@
 package com.spotify.ratatool.diffy
 
 import java.nio.ByteBuffer
-
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.google.common.io.BaseEncoding
 import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.Command
-import com.spotify.ratatool.samplers.AvroSampler
+import com.spotify.ratatool.io.ParquetIO
+import com.spotify.ratatool.samplers.{AvroSampler, ParquetSampler}
 import com.spotify.scio._
 import com.spotify.scio.avro._
 import com.spotify.scio.bigquery._
+import com.spotify.scio.parquet.avro._
 import com.spotify.scio.bigquery.client.BigQuery
 import com.spotify.scio.bigquery.types.BigQueryType
 import com.spotify.scio.coders.Coder
 import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
+import org.apache.avro.SchemaCompatibility.SchemaCompatibilityType
+import org.apache.avro.{Schema, SchemaCompatibility}
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecordBase
 import org.apache.beam.sdk.io.TextIO
@@ -183,7 +186,6 @@ class BigDiffy[T: Coder](
 
   /** Field level statistics. */
   lazy val fieldStats: SCollection[FieldStats] = globalAndFieldStats.flatMap(_._2)
-
 }
 
 sealed trait OutputMode
@@ -337,6 +339,26 @@ object BigDiffy extends Command with Serializable {
     diffy: ProtoBufDiffy[T]
   ): BigDiffy[T] =
     diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
+
+  /**
+   * Diff two Parquet data sets.
+   * Note that both typed-parquet and avro-parquet inputs are supported. However, in either case
+   * the diff will be written in Parquet format as Avro GenericRecords. */
+  def diffParquet(
+    sc: ScioContext,
+    lhs: String,
+    rhs: String,
+    keyFn: GenericRecord => MultiKey,
+    diffy: AvroDiffy[GenericRecord]
+  ): BigDiffy[GenericRecord] = {
+    val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhs, rhs)
+    implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(compatSchema)
+
+    diff(
+      sc.parquetAvroFile[GenericRecord](lhs, compatSchema).map(identity),
+      sc.parquetAvroFile[GenericRecord](rhs, compatSchema).map(identity), diffy, keyFn
+    )
+  }
 
   /** Remove quotes wrapping string argument. **/
   def stripQuoteWrap(input: String): String = {
@@ -738,6 +760,14 @@ object BigDiffy extends Command with Serializable {
         val rhsSCollection = sc.avroFile(rhs, schema)
         BigDiffy
           .diff[GenericRecord](lhsSCollection, rhsSCollection, diffy, avroKeyFn(keys), ignoreNan)
+      case "parquet" =>
+        if (rowRestriction.isDefined) {
+          throw new IllegalArgumentException(s"rowRestriction cannot be passed for Parquet inputs")
+        }
+        val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhs, rhs)
+        val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)(
+          Coder.avroGenericRecordCoder(compatSchema))
+        BigDiffy.diffParquet(sc, lhs, rhs, avroKeyFn(keys), diffy)
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQuery.defaultInstance()
@@ -755,5 +785,4 @@ object BigDiffy extends Command with Serializable {
   }
   // scalastyle:on cyclomatic.complexity
   // scalastyle:on method.length
-
 }

@@ -39,4 +39,10 @@ class DirectSamplerParserTest extends AnyFlatSpec with Matchers {
       Some(c.copy(head = true, tableOut = "table:out"))
     )
   }
+
+  it should "parse parquet command" in {
+    val c = config.copy(mode = "parquet")
+    parse("parquet --in in --out out -n 1000") should equal(Some(c))
+    parse("parquet --in in --out out -n 1000 --head") should equal(Some(c.copy(head = true)))
+  }
 }

@@ -23,7 +23,7 @@ From the CLI
 BigDiffy - pair-wise field-level statistical diff
 Usage: ratatool bigDiffy [dataflow_options] [options]
 
-  --input-mode=(avro|bigquery)     Diff-ing Avro or BQ records
+  --input-mode=(avro|bigquery|parquet)     Diff-ing Avro or BQ records
   [--output-mode=(gcs|bigquery)]   Saves to a text file in GCS or a BigQuery dataset. Defaults to GCS
   --key=<key>                      '.' separated key field. Specify multiple --key params or multiple ',' separated key fields for multi key usage.
   --lhs=<path>                     LHS File path or BigQuery table
