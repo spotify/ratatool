@@ -7,7 +7,7 @@ addSbtPlugin("org.scalastyle" % "scalastyle-sbt-plugin" % "1.0.0")
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.9.3")
 addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.9.10")
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.10.0-RC1")
-addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.34")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.10.1")
 
 libraryDependencies ++= Seq(
   "com.github.os72" % "protoc-jar" % "3.11.4"
