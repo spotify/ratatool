@@ -116,6 +116,7 @@ object ParquetTestData extends Serializable {
 
     val sc = ScioContext()
 
+    import scala.language.higherKinds
     // Write typed Parquet records
     sc.parallelize(ParquetTypedData)
       .saveAsTypedParquetFile(typedPath, numShards = numShards)
