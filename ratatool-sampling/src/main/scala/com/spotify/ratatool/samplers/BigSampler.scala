@@ -18,7 +18,6 @@ package com.spotify.ratatool.samplers
 
 import java.net.URI
 import java.nio.charset.Charset
-
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableReference}
 import com.google.common.hash.{HashCode, Hasher, Hashing}
 import com.spotify.ratatool.samplers.util.SamplerSCollectionFunctions._
@@ -34,10 +33,12 @@ import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.runners.dataflow.options.DataflowPipelineWorkerPoolOptions
 import org.apache.beam.sdk.io.FileSystems
+import org.apache.beam.sdk.io.fs.MatchResult.Metadata
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryHelpers
 import org.apache.beam.sdk.options.PipelineOptions
 import org.slf4j.LoggerFactory
 
+import scala.jdk.CollectionConverters._
 import scala.language.{existentials, higherKinds}
 import scala.util.Try
 import scala.reflect.ClassTag
@@ -156,6 +157,10 @@ object BigSampler extends Command {
   ): Hasher =
     BigSamplerAvro.hashAvroField(avroSchema)(r, f, hasher)
 
+  private[samplers] def parseFileExtension(fileMetadata: List[Metadata]) = {
+    fileMetadata
+  }
+
   // scalastyle:off method.length cyclomatic.complexity
   def singleInput(argv: Array[String]): ClosedTap[_] = {
     val (sc, args) = ContextAndArgs(argv)
@@ -253,11 +258,13 @@ object BigSampler extends Command {
       )
       // Prompts FileSystems to load service classes, otherwise fetching schema from non-local fails
       FileSystems.setDefaultPipelineOptions(opts)
-      input match {
-        case avroPath if input.endsWith("avro") =>
+      val fileNames = FileSystems.`match`(input).metadata().asScala.map(_.resourceId().getFilename)
+
+      fileNames match {
+        case avroPath if fileNames.exists(_.endsWith("avro")) =>
           BigSamplerAvro.sample(
             sc,
-            avroPath,
+            input,
             output,
             fields,
             samplePct,
@@ -269,10 +276,10 @@ object BigSampler extends Command {
             sizePerKey,
             byteEncoding
           )
-        case parquetPath if input.endsWith("parquet") =>
+        case parquetPath if fileNames.exists(_.endsWith("parquet")) =>
           BigSamplerParquet.sample(
             sc,
-            parquetPath,
+            input,
             output,
             fields,
             samplePct,
