@@ -260,11 +260,11 @@ object BigSampler extends Command {
       FileSystems.setDefaultPipelineOptions(opts)
       val fileNames = FileSystems.`match`(input).metadata().asScala.map(_.resourceId().getFilename)
 
-      fileNames match {
+      input match {
         case avroPath if fileNames.exists(_.endsWith("avro")) =>
           BigSamplerAvro.sample(
             sc,
-            input,
+            avroPath,
             output,
             fields,
             samplePct,
@@ -279,7 +279,7 @@ object BigSampler extends Command {
         case parquetPath if fileNames.exists(_.endsWith("parquet")) =>
           BigSamplerParquet.sample(
             sc,
-            input,
+            parquetPath,
             output,
             fields,
             samplePct,
