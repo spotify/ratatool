@@ -33,7 +33,6 @@ import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.runners.dataflow.options.DataflowPipelineWorkerPoolOptions
 import org.apache.beam.sdk.io.FileSystems
-import org.apache.beam.sdk.io.fs.MatchResult.Metadata
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryHelpers
 import org.apache.beam.sdk.options.PipelineOptions
 import org.slf4j.LoggerFactory
@@ -156,10 +155,6 @@ object BigSampler extends Command {
     hasher: Hasher
   ): Hasher =
     BigSamplerAvro.hashAvroField(avroSchema)(r, f, hasher)
-
-  private[samplers] def parseFileExtension(fileMetadata: List[Metadata]) = {
-    fileMetadata
-  }
 
   // scalastyle:off method.length cyclomatic.complexity
   def singleInput(argv: Array[String]): ClosedTap[_] = {
