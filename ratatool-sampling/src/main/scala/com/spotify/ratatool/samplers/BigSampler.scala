@@ -157,7 +157,7 @@ object BigSampler extends Command {
   ): Hasher =
     BigSamplerAvro.hashAvroField(avroSchema)(r, f, hasher)
 
-  private[samplers] def getFileMedata(path: String): Seq[Metadata] = {
+  private[samplers] def getMetadata(path: String): Seq[Metadata] = {
     require(FileStorage(path).exists, s"File `$path` does not exist!")
     FileStorage(path).listFiles
   }
@@ -237,6 +237,9 @@ object BigSampler extends Command {
       )
       val inputTbl = parseAsBigQueryTable(input).get
       val outputTbl = parseAsBigQueryTable(output).get
+
+      log.info("Running BigSamplerBigQuery sampler")
+
       BigSamplerBigQuery.sample(
         sc,
         inputTbl,
@@ -259,10 +262,11 @@ object BigSampler extends Command {
       )
       // Prompts FileSystems to load service classes, otherwise fetching schema from non-local fails
       FileSystems.setDefaultPipelineOptions(opts)
-      val fileNames = getFileMedata(input).map(_.resourceId().getFilename)
+      val fileNames = getMetadata(input).map(_.resourceId().getFilename)
 
       input match {
         case avroPath if fileNames.exists(_.endsWith("avro")) =>
+          log.info("Running BigSamplerAvro sampler")
           BigSamplerAvro.sample(
             sc,
             avroPath,
@@ -278,6 +282,7 @@ object BigSampler extends Command {
             byteEncoding
           )
         case parquetPath if fileNames.exists(_.endsWith("parquet")) =>
+          log.info("Running BigSamplerParquet sampler")
           BigSamplerParquet.sample(
             sc,
             parquetPath,
