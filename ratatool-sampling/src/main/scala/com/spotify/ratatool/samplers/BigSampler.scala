@@ -238,8 +238,6 @@ object BigSampler extends Command {
       val inputTbl = parseAsBigQueryTable(input).get
       val outputTbl = parseAsBigQueryTable(output).get
 
-      log.info("Running BigSamplerBigQuery sampler")
-
       BigSamplerBigQuery.sample(
         sc,
         inputTbl,
@@ -266,7 +264,7 @@ object BigSampler extends Command {
 
       input match {
         case avroPath if fileNames.exists(_.endsWith("avro")) =>
-          log.info("Running BigSamplerAvro sampler")
+          log.info(s"Found *.avro files in $avroPath, running BigSamplerAvro")
           BigSamplerAvro.sample(
             sc,
             avroPath,
@@ -282,7 +280,7 @@ object BigSampler extends Command {
             byteEncoding
           )
         case parquetPath if fileNames.exists(_.endsWith("parquet")) =>
-          log.info("Running BigSamplerParquet sampler")
+          log.info(s"Found *.parquet files in $parquetPath, running BigSamplerParquet")
           BigSamplerParquet.sample(
             sc,
             parquetPath,
