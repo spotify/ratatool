@@ -18,12 +18,12 @@ package com.spotify.ratatool.samplers
 
 import java.net.URI
 import java.nio.charset.Charset
-
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableReference}
 import com.google.common.hash.{HashCode, Hasher, Hashing}
 import com.spotify.ratatool.samplers.util.SamplerSCollectionFunctions._
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.avro.specific.TestRecord
+import com.spotify.ratatool.io.FileStorage
 import com.spotify.ratatool.samplers.util._
 import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.io.ClosedTap
@@ -34,11 +34,11 @@ import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.runners.dataflow.options.DataflowPipelineWorkerPoolOptions
 import org.apache.beam.sdk.io.FileSystems
+import org.apache.beam.sdk.io.fs.MatchResult.Metadata
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryHelpers
 import org.apache.beam.sdk.options.PipelineOptions
 import org.slf4j.LoggerFactory
 
-import scala.jdk.CollectionConverters._
 import scala.language.{existentials, higherKinds}
 import scala.util.Try
 import scala.reflect.ClassTag
@@ -157,6 +157,11 @@ object BigSampler extends Command {
   ): Hasher =
     BigSamplerAvro.hashAvroField(avroSchema)(r, f, hasher)
 
+  private[samplers] def getFileMedata(path: String): Seq[Metadata] = {
+    require(FileStorage(path).exists, s"File `$path` does not exist!")
+    FileStorage(path).listFiles
+  }
+
   // scalastyle:off method.length cyclomatic.complexity
   def singleInput(argv: Array[String]): ClosedTap[_] = {
     val (sc, args) = ContextAndArgs(argv)
@@ -254,7 +259,7 @@ object BigSampler extends Command {
       )
       // Prompts FileSystems to load service classes, otherwise fetching schema from non-local fails
       FileSystems.setDefaultPipelineOptions(opts)
-      val fileNames = FileSystems.`match`(input).metadata().asScala.map(_.resourceId().getFilename)
+      val fileNames = getFileMedata(input).map(_.resourceId().getFilename)
 
       input match {
         case avroPath if fileNames.exists(_.endsWith("avro")) =>
