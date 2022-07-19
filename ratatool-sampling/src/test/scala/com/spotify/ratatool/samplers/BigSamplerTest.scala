@@ -461,7 +461,6 @@ sealed trait BigSamplerJobTestRoot
     ParquetIO.writeToFile(data1, schema, fileParquet1)
     ParquetIO.writeToFile(data2, schema, fileParquet2)
 
-
     dir.toFile.deleteOnExit()
     file1.deleteOnExit()
     file2.deleteOnExit()
@@ -523,7 +522,6 @@ class BigSamplerBasicJobTest extends BigSamplerJobTestRoot {
     countParquetRecords(s"$outDir/*.parquet").toDouble shouldBe totalElements
   }
 
-
   it should "work for 50% with hash field and seed" in withOutFile { outDir =>
     BigSampler.run(
       Array(
@@ -550,6 +548,26 @@ class BigSamplerBasicJobTest extends BigSamplerJobTestRoot {
     countParquetRecords(s"$outDir/*.parquet").toDouble shouldBe totalElements * 0.5 +- 2000
   }
 }
+
+class BigSamplerWildCardTest extends BigSamplerJobTestRoot {
+  override def data1Size: Int = 10000
+  override def data2Size: Int = 2500
+
+  override protected def beforeAll(configMap: ConfigMap): Unit = {
+    ParquetIO.writeToFile(data1, schema, fileParquet1)
+    ParquetIO.writeToFile(data2, schema, fileParquet2)
+
+    dir.toFile.deleteOnExit()
+    fileParquet1.deleteOnExit()
+    fileParquet2.deleteOnExit()
+  }
+
+  "BigSampler" should "work for wildcard without file extension" in withOutFile { outDir =>
+    BigSampler.run(Array(s"--input=$dir/part-*", s"--output=$outDir", "--sample=0.5"))
+    countParquetRecords(s"$outDir/*.parquet").toDouble shouldBe totalElements * 0.5 +- 250
+  }
+}
+
 
 class BigSamplerApproxDistJobTest extends BigSamplerJobTestRoot {
   override def data1Size: Int = 10000
