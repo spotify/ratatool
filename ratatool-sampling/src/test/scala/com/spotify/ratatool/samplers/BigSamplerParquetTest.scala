@@ -52,7 +52,7 @@ class BigSamplerParquetTest extends PipelineSpec with BeforeAndAfterAll {
 
     // Read all shards of output
     val sampledRecords = new File(output).listFiles().map(ParquetIO.readFromFile).toSeq.flatten
-    sampledRecords.size should (be <= 60 and be >= 40)
+    sampledRecords.size should (be <= 65 and be >= 35)
     all(sampledRecords.map(_.get("id").asInstanceOf[Int])) should (be < 100 and be >= 0)
   }
 }
