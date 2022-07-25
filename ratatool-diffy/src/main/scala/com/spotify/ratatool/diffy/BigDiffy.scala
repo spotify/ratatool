@@ -385,7 +385,6 @@ object BigDiffy extends Command with Serializable {
   ): BigDiffy[TableRow] = {
     // replace quotation marks at the beginning or end of the argument
     val restrictionCleaned = rowRestriction.map(stripQuoteWrap)
-    implicit val trCoder = Coder.beam(TableRowJsonCoder.of())
 
     diff(
       sc.bigQueryStorage(Table.Spec(lhs), rowRestriction = restrictionCleaned.orNull),

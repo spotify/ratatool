@@ -20,10 +20,10 @@ import Keys._
 
 val algebirdVersion = "0.13.9"
 val avroVersion = "1.8.2"
-val beamVersion = "2.35.0"
-val bigqueryVersion = "v2-rev20211017-1.32.1"
+val beamVersion = "2.39.0"
+val bigqueryVersion = "v2-rev20211129-1.32.1"
 val gcsVersion = "2.1.3"
-val guavaVersion = "30.1-jre" // make sure this stays compatible with scio + beam
+val guavaVersion = "31.0.1-jre" // make sure this stays compatible with scio + beam
 val hadoopVersion = "2.10.1"
 val jodaTimeVersion = "2.10.13"
 val parquetVersion = "1.12.2"
@@ -31,11 +31,11 @@ val protoBufVersion = "3.18.2"
 val scalaTestVersion = "3.2.10"
 val scalaCheckVersion = "1.15.4"
 val scalaCollectionCompatVersion = "2.6.0"
-val scioVersion = "0.11.4"
+val scioVersion = "0.11.9"
 val scoptVersion = "4.0.1"
-val shapelessVersion = "2.3.7"
+val shapelessVersion = "2.3.9"
 val sourcecodeVersion = "0.2.7"
-val slf4jVersion = "1.7.33"
+val slf4jVersion = "1.7.36"
 val floggerVersion = "0.7.4"
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
@@ -50,12 +50,6 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   crossScalaVersions := Seq("2.12.10", "2.13.8"),
   resolvers += "confluent" at "https://packages.confluent.io/maven/",
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
-  scalacOptions in (Compile, doc) ++= {
-    scalaBinaryVersion.value match {
-      case "2.12" => "-no-java-comments" :: Nil
-      case _      => Nil
-    }
-  },
   scalacOptions ++= {
     if (isScala213x.value) {
       Seq("-Ymacro-annotations", "-Ywarn-unused")
@@ -72,9 +66,9 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
       )
     }
   },
-  sourceDirectories in Compile := (sourceDirectories in Compile).value
+  Compile / sourceDirectories := (Compile / sourceDirectories).value
     .filterNot(_.getPath.endsWith("/src_managed/main")),
-  managedSourceDirectories in Compile := (managedSourceDirectories in Compile).value
+  Compile / managedSourceDirectories := (Compile / managedSourceDirectories).value
     .filterNot(_.getPath.endsWith("/src_managed/main")),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
   addCompilerPlugin(scalafixSemanticdb),
@@ -82,9 +76,9 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
 )
 
 lazy val protoBufSettings = Seq(
-  version in ProtobufConfig := protoBufVersion,
-  protobufRunProtoc in ProtobufConfig := (args =>
-    com.github.os72.protocjar.Protoc.runProtoc("-v330" +: args.toArray)
+  ProtobufConfig / version := protoBufVersion,
+  ProtobufConfig / protobufRunProtoc := (args =>
+    com.github.os72.protocjar.Protoc.runProtoc("-v3.17.3" +: args.toArray)
   )
 )
 
@@ -98,7 +92,7 @@ lazy val releaseSettings = Seq(
   releaseCrossBuild := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   publishMavenStyle := true,
-  publishArtifact in Test := false,
+  Test / publishArtifact := false,
   publishTo := Some(
     if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging
   ),
@@ -161,7 +155,7 @@ lazy val ratatoolCommon = project
       "com.google.guava" % "guava" % guavaVersion
     ),
     // In case of scalacheck failures print more info
-    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
+    Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
   .enablePlugins(ProtobufPlugin)
   .settings(protoBufSettings)
@@ -185,8 +179,8 @@ lazy val ratatoolSampling = project
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     ),
     // In case of scalacheck failures print more info
-    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
-    parallelExecution in Test := false
+    Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
+    Test / parallelExecution := false
   )
   .enablePlugins(ProtobufPlugin)
   .dependsOn(
@@ -211,8 +205,8 @@ lazy val ratatoolDiffy = project
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     ),
     // In case of scalacheck failures print more info
-    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
-    parallelExecution in Test := false,
+    Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
+    Test / parallelExecution := false,
     libraryDependencies ++= {
       if (isScala213x.value) {
         Seq()
@@ -242,8 +236,8 @@ lazy val ratatoolShapeless = project
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     ),
     // In case of scalacheck failures print more info
-    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
-    parallelExecution in Test := false
+    Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
+    Test / parallelExecution := false
   )
   .dependsOn(
     ratatoolDiffy,
@@ -260,7 +254,7 @@ lazy val ratatoolCli = project
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     ),
     // In case of scalacheck failures print more info
-    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
+    Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
   .enablePlugins(ProtobufPlugin, PackPlugin)
   .dependsOn(
