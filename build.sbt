@@ -20,10 +20,10 @@ import Keys._
 
 val algebirdVersion = "0.13.9"
 val avroVersion = "1.8.2"
-val beamVersion = "2.35.0"
-val bigqueryVersion = "v2-rev20211017-1.32.1"
+val beamVersion = "2.39.0"
+val bigqueryVersion = "v2-rev20211129-1.32.1"
 val gcsVersion = "2.1.3"
-val guavaVersion = "30.1-jre" // make sure this stays compatible with scio + beam
+val guavaVersion = "31.0.1-jre" // make sure this stays compatible with scio + beam
 val hadoopVersion = "2.10.1"
 val jodaTimeVersion = "2.10.13"
 val parquetVersion = "1.12.2"
@@ -31,11 +31,11 @@ val protoBufVersion = "3.18.2"
 val scalaTestVersion = "3.2.10"
 val scalaCheckVersion = "1.15.4"
 val scalaCollectionCompatVersion = "2.6.0"
-val scioVersion = "0.11.4"
+val scioVersion = "0.11.9"
 val scoptVersion = "4.0.1"
-val shapelessVersion = "2.3.7"
+val shapelessVersion = "2.3.9"
 val sourcecodeVersion = "0.2.7"
-val slf4jVersion = "1.7.33"
+val slf4jVersion = "1.7.36"
 val floggerVersion = "0.7.4"
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
