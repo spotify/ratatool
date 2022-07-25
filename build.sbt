@@ -50,12 +50,6 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   crossScalaVersions := Seq("2.12.10", "2.13.8"),
   resolvers += "confluent" at "https://packages.confluent.io/maven/",
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
-  Compile / doc / scalacOptions ++= {
-    scalaBinaryVersion.value match {
-      case "2.12" => "-no-java-comments" :: Nil
-      case _      => Nil
-    }
-  },
   scalacOptions ++= {
     if (isScala213x.value) {
       Seq("-Ymacro-annotations", "-Ywarn-unused")
