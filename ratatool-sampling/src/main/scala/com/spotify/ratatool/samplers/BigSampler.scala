@@ -18,12 +18,12 @@ package com.spotify.ratatool.samplers
 
 import java.net.URI
 import java.nio.charset.Charset
-
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableReference}
 import com.google.common.hash.{HashCode, Hasher, Hashing}
 import com.spotify.ratatool.samplers.util.SamplerSCollectionFunctions._
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.avro.specific.TestRecord
+import com.spotify.ratatool.io.FileStorage
 import com.spotify.ratatool.samplers.util._
 import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.io.ClosedTap
@@ -34,6 +34,7 @@ import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.runners.dataflow.options.DataflowPipelineWorkerPoolOptions
 import org.apache.beam.sdk.io.FileSystems
+import org.apache.beam.sdk.io.fs.MatchResult.Metadata
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryHelpers
 import org.apache.beam.sdk.options.PipelineOptions
 import org.slf4j.LoggerFactory
@@ -156,6 +157,11 @@ object BigSampler extends Command {
   ): Hasher =
     BigSamplerAvro.hashAvroField(avroSchema)(r, f, hasher)
 
+  private[samplers] def getMetadata(path: String): Seq[Metadata] = {
+    require(FileStorage(path).exists, s"File `$path` does not exist!")
+    FileStorage(path).listFiles
+  }
+
   // scalastyle:off method.length cyclomatic.complexity
   def singleInput(argv: Array[String]): ClosedTap[_] = {
     val (sc, args) = ContextAndArgs(argv)
@@ -231,6 +237,7 @@ object BigSampler extends Command {
       )
       val inputTbl = parseAsBigQueryTable(input).get
       val outputTbl = parseAsBigQueryTable(output).get
+
       BigSamplerBigQuery.sample(
         sc,
         inputTbl,
@@ -253,20 +260,44 @@ object BigSampler extends Command {
       )
       // Prompts FileSystems to load service classes, otherwise fetching schema from non-local fails
       FileSystems.setDefaultPipelineOptions(opts)
-      BigSamplerAvro.sample(
-        sc,
-        input,
-        output,
-        fields,
-        samplePct,
-        seed.map(_.toInt),
-        hashAlgorithm,
-        distribution,
-        distributionFields,
-        exact,
-        sizePerKey,
-        byteEncoding
-      )
+      val fileNames = getMetadata(input).map(_.resourceId().getFilename)
+
+      input match {
+        case avroPath if fileNames.exists(_.endsWith("avro")) =>
+          log.info(s"Found *.avro files in $avroPath, running BigSamplerAvro")
+          BigSamplerAvro.sample(
+            sc,
+            avroPath,
+            output,
+            fields,
+            samplePct,
+            seed.map(_.toInt),
+            hashAlgorithm,
+            distribution,
+            distributionFields,
+            exact,
+            sizePerKey,
+            byteEncoding
+          )
+        case parquetPath if fileNames.exists(_.endsWith("parquet")) =>
+          log.info(s"Found *.parquet files in $parquetPath, running BigSamplerParquet")
+          BigSamplerParquet.sample(
+            sc,
+            parquetPath,
+            output,
+            fields,
+            samplePct,
+            seed.map(_.toInt),
+            hashAlgorithm,
+            distribution,
+            distributionFields,
+            exact,
+            sizePerKey,
+            byteEncoding
+          )
+        case _ =>
+          throw new UnsupportedOperationException(s"File $input must be an Avro or Parquet file")
+      }
     } else {
       throw new UnsupportedOperationException(s"Input `$input not supported.")
     }

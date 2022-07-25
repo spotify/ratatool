@@ -1,8 +1,7 @@
 Sampler
 =======
 
-Diffy contains record sampling classes for Avro and BigQuery. Supported filesystems include Local, GCS (`gs://`), and HDFS (`hdfs://`).
-Parquet is now supported separately in the `ratatool-extras` project.
+Diffy contains record sampling classes for Avro, Parquet, and BigQuery. Supported filesystems include Local, GCS (`gs://`), and HDFS (`hdfs://`).
 
 # BigSampler
 

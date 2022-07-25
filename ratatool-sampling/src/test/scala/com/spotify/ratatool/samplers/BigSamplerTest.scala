@@ -19,13 +19,12 @@ package com.spotify.ratatool.samplers
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.file.{Files, Path}
-
 import com.google.common.hash.Hasher
 import com.google.common.io.BaseEncoding
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.scalacheck._
-import com.spotify.ratatool.io.{AvroIO, FileStorage}
+import com.spotify.ratatool.io.{AvroIO, FileStorage, ParquetIO}
 import com.spotify.ratatool.samplers.util.{ByteHasher, HexEncoding, MurmurHash}
 import org.apache.avro.generic.GenericRecord
 import org.scalacheck.Prop.{all, forAll, proved}
@@ -38,6 +37,7 @@ import scala.language.postfixOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+// scalastyle:off file.size.limit
 object BigSamplerTest extends Properties("BigSampler") {
 
   private val testSeed = Some(42)
@@ -453,14 +453,20 @@ sealed trait BigSamplerJobTestRoot
   val dir: Path = Files.createTempDirectory("ratatool-big-sampler-input")
   val file1 = new File(dir.toString, "part-00000.avro")
   val file2 = new File(dir.toString, "part-00001.avro")
+  val fileParquet1 = new File(dir.toString, "part-00000.parquet")
+  val fileParquet2 = new File(dir.toString, "part-00001.parquet")
 
   override protected def beforeAll(configMap: ConfigMap): Unit = {
     AvroIO.writeToFile(data1, schema, file1)
     AvroIO.writeToFile(data2, schema, file2)
+    ParquetIO.writeToFile(data1, schema, fileParquet1)
+    ParquetIO.writeToFile(data2, schema, fileParquet2)
 
     dir.toFile.deleteOnExit()
     file1.deleteOnExit()
     file2.deleteOnExit()
+    fileParquet1.deleteOnExit()
+    fileParquet2.deleteOnExit()
   }
 
   protected def withOutFile(testCode: (File) => Any) {
@@ -476,6 +482,11 @@ sealed trait BigSamplerJobTestRoot
     FileStorage(p).listFiles.foldLeft(0)((i, m) =>
       i + AvroIO.readFromFile[GenericRecord](m.resourceId().toString).count(f)
     )
+
+  protected def countParquetRecords(p: String, f: GenericRecord => Boolean = _ => true): Long =
+    FileStorage(p).listFiles.foldLeft(0)((i, m) =>
+      i + ParquetIO.readFromFile(m.resourceId().toString).count(f)
+    )
 }
 
 class BigSamplerBasicJobTest extends BigSamplerJobTestRoot {
@@ -487,14 +498,29 @@ class BigSamplerBasicJobTest extends BigSamplerJobTestRoot {
     countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 250
   }
 
+  it should "work for 50% for parquet" in withOutFile { outDir =>
+    BigSampler.run(Array(s"--input=$dir/*.parquet", s"--output=$outDir", "--sample=0.5"))
+    countParquetRecords(s"$outDir/*.parquet").toDouble shouldBe totalElements * 0.5 +- 250
+  }
+
   it should "work for 1%" in withOutFile { outDir =>
     BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=0.01"))
     countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.01 +- 35
   }
 
+  it should "work for 1% for parquet" in withOutFile { outDir =>
+    BigSampler.run(Array(s"--input=$dir/*.parquet", s"--output=$outDir", "--sample=0.01"))
+    countParquetRecords(s"$outDir/*.parquet").toDouble shouldBe totalElements * 0.01 +- 35
+  }
+
   it should "work for 100%" in withOutFile { outDir =>
     BigSampler.run(Array(s"--input=$dir/*.avro", s"--output=$outDir", "--sample=1.0"))
     countAvroRecords(s"$outDir/*.avro") shouldBe totalElements
+  }
+
+  it should "work for 100% for parquet" in withOutFile { outDir =>
+    BigSampler.run(Array(s"--input=$dir/*.parquet", s"--output=$outDir", "--sample=1.0"))
+    countParquetRecords(s"$outDir/*.parquet").toDouble shouldBe totalElements
   }
 
   it should "work for 50% with hash field and seed" in withOutFile { outDir =>
@@ -509,7 +535,40 @@ class BigSamplerBasicJobTest extends BigSamplerJobTestRoot {
     )
     countAvroRecords(s"$outDir/*.avro").toDouble shouldBe totalElements * 0.5 +- 2000
   }
+
+  it should "work for 50% with hash field and seed for parquet" in withOutFile { outDir =>
+    BigSampler.run(
+      Array(
+        s"--input=$dir/*.parquet",
+        s"--output=$outDir",
+        "--sample=0.5",
+        "--seed=42",
+        "--fields=required_fields.int_field"
+      )
+    )
+    countParquetRecords(s"$outDir/*.parquet").toDouble shouldBe totalElements * 0.5 +- 2000
+  }
 }
+
+class BigSamplerWildCardTest extends BigSamplerJobTestRoot {
+  override def data1Size: Int = 10000
+  override def data2Size: Int = 2500
+
+  override protected def beforeAll(configMap: ConfigMap): Unit = {
+    ParquetIO.writeToFile(data1, schema, fileParquet1)
+    ParquetIO.writeToFile(data2, schema, fileParquet2)
+
+    dir.toFile.deleteOnExit()
+    fileParquet1.deleteOnExit()
+    fileParquet2.deleteOnExit()
+  }
+
+  "BigSampler" should "work for wildcard without file extension" in withOutFile { outDir =>
+    BigSampler.run(Array(s"--input=$dir/part-*", s"--output=$outDir", "--sample=0.5"))
+    countParquetRecords(s"$outDir/*.parquet").toDouble shouldBe totalElements * 0.5 +- 250
+  }
+}
+
 
 class BigSamplerApproxDistJobTest extends BigSamplerJobTestRoot {
   override def data1Size: Int = 10000

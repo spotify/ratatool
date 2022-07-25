@@ -19,8 +19,8 @@ package com.spotify.ratatool.tool
 
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.diffy.BigDiffy
-import com.spotify.ratatool.io.{AvroIO, BigQueryIO, TableRowJsonIO}
-import com.spotify.ratatool.samplers.{AvroSampler, BigQuerySampler, BigSampler}
+import com.spotify.ratatool.io.{AvroIO, BigQueryIO, ParquetIO, TableRowJsonIO}
+import com.spotify.ratatool.samplers.{AvroSampler, BigQuerySampler, BigSampler, ParquetSampler}
 
 object Ratatool {
   private def commandSet[T <: Command](xs: T*): Set[String] = xs.map(_.command).toSet
@@ -62,9 +62,8 @@ object Ratatool {
                 BigQueryIO.writeToTable(data, sampler.schema, table)
               }
             case "parquet" =>
-              throw new NotImplementedError("""We have moved ParquetSampler to the ratatool-extras
-                  | project. If this causes any problems for you please open an issue
-                  | on github and let us know.""".stripMargin)
+              val data = new ParquetSampler(o.in).sample(o.n, o.head)
+              ParquetIO.writeToFile(data, data.head.getSchema, o.out)
             case _ =>
               throw new NotImplementedError(s"${o.mode} not implemented")
           }
