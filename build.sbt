@@ -20,17 +20,17 @@ import Keys._
 
 val algebirdVersion = "0.13.9"
 val avroVersion = "1.8.2"
-val beamVersion = "2.43.0" // Need to keep in sync with Scio
+val beamVersion = "2.44.0" // Need to keep in sync with Scio
 val bigqueryVersion = "v2-rev20220924-2.0.0"
 val guavaVersion = "31.0.1-jre" // make sure this stays compatible with scio + beam
 val hadoopVersion = "2.10.2"
 val jodaTimeVersion = "2.12.2"
 val parquetVersion = "1.12.3"
-val protoBufVersion = "3.21.7"
+val protoBufVersion = "3.21.9"
 val scalaTestVersion = "3.2.13"
 val scalaCheckVersion = "1.17.0"
 val scalaCollectionCompatVersion = "2.9.0"
-val scioVersion = "0.12.1"
+val scioVersion = "0.12.3"
 val scoptVersion = "4.0.1"
 val shapelessVersion = "2.3.10"
 val sourcecodeVersion = "0.2.7"
