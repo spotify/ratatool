@@ -24,8 +24,8 @@ import org.scalacheck.rng.Seed
 import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
 import com.spotify.ratatool.scalacheck._
 import com.spotify.scio.testing.PipelineSpec
-import com.google.api.services.bigquery.model.TableRow
-import com.spotify.ratatool.diffy.BigDiffy.{avroKeyFn, stripQuoteWrap}
+import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
+import com.spotify.ratatool.diffy.BigDiffy.{avroKeyFn, mergeTableSchema, stripQuoteWrap}
 import com.spotify.ratatool.io.{ParquetIO, ParquetTestData}
 import com.spotify.scio.ScioContext
 import org.apache.avro.Schema
@@ -33,6 +33,7 @@ import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.beam.sdk.coders.AvroCoder
 import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 
+import scala.jdk.CollectionConverters.seqAsJavaListConverter
 import scala.language.higherKinds
 
 class BigDiffyTest extends PipelineSpec {
@@ -435,5 +436,55 @@ class BigDiffyTest extends PipelineSpec {
 
     bigDiffy.keyStats.filter(_.diffType == DiffType.MISSING_LHS) should haveSize(1)
     sc.run()
+  }
+
+  "mergeTableSchema" should "merge two schemas" in {
+
+    def jl[T](x: T*): java.util.List[T] = List(x: _*).asJava
+
+    val schema1 = new TableSchema().setFields(
+      jl(
+        new TableFieldSchema().setName("field1").setType("INTEGER").setMode("REQUIRED"),
+        new TableFieldSchema()
+          .setName("field2")
+          .setType("RECORD")
+          .setMode("NULLABLE")
+          .setFields(
+            jl(
+              new TableFieldSchema().setName("field2a").setType("INTEGER").setMode("REQUIRED"),
+              new TableFieldSchema().setName("field2b").setType("INTEGER").setMode("REQUIRED"),
+              new TableFieldSchema().setName("field2c").setType("STRING").setMode("REQUIRED")
+            )
+          )
+      )
+    )
+    val schema2 = new TableSchema().setFields(
+      jl(
+        new TableFieldSchema().setName("field1").setType("INTEGER").setMode("REQUIRED"),
+        new TableFieldSchema().setName("field3").setType("STRING").setMode("REQUIRED")
+      )
+    )
+
+    val expected = new TableSchema().setFields(
+      jl(
+        new TableFieldSchema().setName("field1").setType("INTEGER").setMode("REQUIRED"),
+        new TableFieldSchema()
+          .setName("field2")
+          .setType("RECORD")
+          .setMode("NULLABLE")
+          .setFields(
+            jl(
+              new TableFieldSchema().setName("field2a").setType("INTEGER").setMode("REQUIRED"),
+              new TableFieldSchema().setName("field2b").setType("INTEGER").setMode("REQUIRED"),
+              new TableFieldSchema().setName("field2c").setType("STRING").setMode("REQUIRED")
+            )
+          ),
+        new TableFieldSchema().setName("field3").setType("STRING").setMode("REQUIRED")
+      )
+    )
+
+    val actual = mergeTableSchema(schema2, schema1)
+
+    assert(actual.getFields.containsAll(expected.getFields))
   }
 }
