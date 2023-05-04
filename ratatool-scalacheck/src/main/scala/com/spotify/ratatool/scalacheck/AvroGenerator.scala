@@ -169,22 +169,17 @@ trait AvroGeneratorOps {
           )
           .map(AvroValue(_))
 
-      case Schema.Type.BYTES => {
-        if (schema.getLogicalType.isInstanceOf[LogicalTypes.Decimal]) {
-          Arbitrary.arbInt.arbitrary.map(
-            // TODO: Check integer against decimal scale
-            // TODO: Handle fixed array size in Avro schema
-            i => AvroValue(ByteBuffer.wrap(BigInteger.valueOf(i).toByteArray))
-          )
-        } else {
-          boundedLengthGen.flatMap(n =>
-            Gen.listOfN(n, Arbitrary.arbByte.arbitrary).map { values =>
-              val bb = ByteBuffer.wrap(values.toArray)
-              AvroValue(bb)
-            }
-          )
+      case Schema.Type.BYTES =>
+        Option(schema.getLogicalType) match {
+          case Some(dt: LogicalTypes.Decimal) =>
+            val max = BigInt(10).pow(dt.getPrecision) - 1
+            Gen.choose(-max, max).map(bs => AvroValue(ByteBuffer.wrap(bs.toByteArray)))
+          case _ =>
+            for {
+              n <- boundedLengthGen
+              bs <- Gen.listOfN(n, Arbitrary.arbByte.arbitrary)
+            } yield AvroValue(ByteBuffer.wrap(bs.toArray))
         }
-      }
       case Schema.Type.INT     => Arbitrary.arbInt.arbitrary.map(AvroValue(_))
       case Schema.Type.LONG    => Arbitrary.arbLong.arbitrary.map(AvroValue(_))
       case Schema.Type.FLOAT   => Arbitrary.arbFloat.arbitrary.map(AvroValue(_))
