@@ -26,6 +26,10 @@ import scala.jdk.CollectionConverters._
 
 object FixRandomData {
 
+  // bug in avro 1.8.2. model's data is not initialized with conversions
+  // force decimal conversion on the default SpecificData instance
+  SpecificData.get().addLogicalTypeConversion(new Conversions.DecimalConversion())
+
   /** Fix equality for maps by converting Utf8 to String */
   def apply(x: TestRecord): TestRecord = {
     def fixHashMap[T](xs: JMap[CharSequence, T]): JMap[CharSequence, T] = {
@@ -38,9 +42,6 @@ object FixRandomData {
       }
     }
 
-    // bug in avro 1.8.2. model's data is not initialized with conversions
-    // force decimal conversion on the default SpecificData instance
-    SpecificData.get().addLogicalTypeConversion(new Conversions.DecimalConversion())
     val newInstance = TestRecord.newBuilder(x).build()
 
     newInstance.getRequiredFields.setMapField(fixHashMap(x.getRequiredFields.getMapField))
