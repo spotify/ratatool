@@ -42,6 +42,9 @@ object AvroGeneratorTest extends Properties("AvroGenerator") {
       _.getNullableFields.setStringField,
       m => s => m.getNullableFields.setUpperStringField(s.toUpperCase)
     )
+    .amend(Gen.const(BigDecimal("5.000000001").bigDecimal))(
+      _.getRequiredFields.setLogicalDecimalField
+    )
 
   val richTupGen = (specificRecordOf[TestRecord], specificRecordOf[TestRecord]).tupled
     .amend2(specificRecordOf[RequiredNestedRecord])(_.setRequiredFields, _.setRequiredFields)
@@ -58,7 +61,10 @@ object AvroGeneratorTest extends Properties("AvroGenerator") {
         r.getNullableFields.getDoubleField >= 10.0 && r.getNullableFields.getDoubleField <= 20.0,
       "Boolean" |: r.getNullableFields.getBooleanField == true,
       "String" |: r.getNullableFields.getStringField == "hello",
-      "String" |: r.getNullableFields.getUpperStringField == "HELLO"
+      "String" |: r.getNullableFields.getUpperStringField == "HELLO",
+      "BigDecimal" |: r.getRequiredFields.getLogicalDecimalField == BigDecimal(
+        "5.000000001"
+      ).bigDecimal
     )
   }
 

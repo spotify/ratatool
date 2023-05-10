@@ -18,11 +18,17 @@
 package com.spotify.ratatool.io
 
 import com.spotify.ratatool.avro.specific.TestRecord
+import org.apache.avro.Conversions
+import org.apache.avro.specific.SpecificData
 
 import java.util.{HashMap => JHashMap, Map => JMap}
 import scala.jdk.CollectionConverters._
 
 object FixRandomData {
+
+  // bug in avro 1.8.2. model's data is not initialized with conversions
+  // force decimal conversion on the default SpecificData instance
+  SpecificData.get().addLogicalTypeConversion(new Conversions.DecimalConversion())
 
   /** Fix equality for maps by converting Utf8 to String */
   def apply(x: TestRecord): TestRecord = {
