@@ -547,7 +547,7 @@ object BigDiffy extends Command with Serializable {
     y: Seq[TableFieldSchema]
   ): Seq[TableFieldSchema] = {
     val xMap = x.map(f => (f.getName, f)).toMap
-    val yMap = x.map(f => (f.getName, f)).toMap
+    val yMap = y.map(f => (f.getName, f)).toMap
     val names = mutable.LinkedHashSet.empty[String]
     xMap.foreach(kv => names.add(kv._1))
     yMap.foreach(kv => names.add(kv._1))
