@@ -26,6 +26,8 @@ Usage: ratatool bigDiffy [dataflow_options] [options]
   --input-mode=(avro|bigquery|parquet)     Diff-ing Avro or BQ records
   [--output-mode=(gcs|bigquery)]   Saves to a text file in GCS or a BigQuery dataset. Defaults to GCS
   --key=<key>                      '.' separated key field. Specify multiple --key params or multiple ',' separated key fields for multi key usage.
+                                   No two (or more) records within the same dataset may have the same key,
+                                   or the workflow will fail with "More than two values found for key".
   --lhs=<path>                     LHS File path or BigQuery table
   --rhs=<path>                     RHS File path or BigQuery table
   [--rowRestriction=<filter>]      SQL text filtering statement to apply to BigQuery inputs (not available for avro inputs),
