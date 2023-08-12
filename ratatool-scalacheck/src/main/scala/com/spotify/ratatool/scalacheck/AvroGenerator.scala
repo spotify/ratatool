@@ -19,7 +19,6 @@ package com.spotify.ratatool.scalacheck
 
 import java.nio.ByteBuffer
 import java.util
-
 import org.apache.avro._
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.avro.specific.SpecificRecord
@@ -28,6 +27,7 @@ import org.apache.beam.sdk.coders.{AvroCoder, AvroGenericCoder}
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.{Arbitrary, Gen}
 
+import java.math.BigInteger
 import scala.reflect.ClassTag
 
 /** Mainly type inference not to fall into `Any` */
@@ -170,12 +170,16 @@ trait AvroGeneratorOps {
           .map(AvroValue(_))
 
       case Schema.Type.BYTES =>
-        boundedLengthGen.flatMap(n =>
-          Gen.listOfN(n, Arbitrary.arbByte.arbitrary).map { values =>
-            val bb = ByteBuffer.wrap(values.toArray)
-            AvroValue(bb)
-          }
-        )
+        Option(schema.getLogicalType) match {
+          case Some(dt: LogicalTypes.Decimal) =>
+            val max = BigInt(10).pow(dt.getPrecision) - 1
+            Gen.choose(-max, max).map(bs => AvroValue(ByteBuffer.wrap(bs.toByteArray)))
+          case _ =>
+            for {
+              n <- boundedLengthGen
+              bs <- Gen.listOfN(n, Arbitrary.arbByte.arbitrary)
+            } yield AvroValue(ByteBuffer.wrap(bs.toArray))
+        }
       case Schema.Type.INT     => Arbitrary.arbInt.arbitrary.map(AvroValue(_))
       case Schema.Type.LONG    => Arbitrary.arbLong.arbitrary.map(AvroValue(_))
       case Schema.Type.FLOAT   => Arbitrary.arbFloat.arbitrary.map(AvroValue(_))

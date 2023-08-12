@@ -47,7 +47,15 @@
                       "namespace": "com.spotify.ratatool.avro.specific",
                       "name": "ABTest", "symbols": ["A", "B"]}},
                     {"name": "map_field", "type": {"type": "map", "values": "int"}},
-                    {"name": "bytes_field", "type": "bytes" }
+                    {"name": "bytes_field", "type": "bytes" },
+                    {"name": "logical_decimal_field",
+                     "type": {
+                               "type": "bytes",
+                               "logicalType": "decimal",
+                               "precision": 32,
+                               "scale": 9
+                             }
+                     }
                 ]
             }
         },

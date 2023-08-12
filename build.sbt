@@ -18,25 +18,24 @@
 import sbt.{Def, _}
 import Keys._
 
-val algebirdVersion = "0.13.9"
+val algebirdVersion = "0.13.10"
 val avroVersion = "1.8.2"
-val beamVersion = "2.39.0"
-val bigqueryVersion = "v2-rev20211129-1.32.1"
-val gcsVersion = "2.1.3"
-val guavaVersion = "31.0.1-jre" // make sure this stays compatible with scio + beam
-val hadoopVersion = "2.10.1"
-val jodaTimeVersion = "2.10.13"
-val parquetVersion = "1.12.2"
-val protoBufVersion = "3.18.2"
-val scalaTestVersion = "3.2.10"
-val scalaCheckVersion = "1.15.4"
-val scalaCollectionCompatVersion = "2.6.0"
-val scioVersion = "0.11.9"
-val scoptVersion = "4.0.1"
-val shapelessVersion = "2.3.9"
-val sourcecodeVersion = "0.2.7"
-val slf4jVersion = "1.7.36"
+val beamVersion = "2.44.0" // Need to keep in sync with Scio
+val bigqueryVersion = "v2-rev20220924-2.0.0"
 val floggerVersion = "0.7.4"
+val guavaVersion = "31.1-jre" // make sure this stays compatible with scio + beam
+val hadoopVersion = "2.10.2"
+val jodaTimeVersion = "2.12.2"
+val parquetVersion = "1.12.3"
+val protoBufVersion = "3.21.12"
+val scalaTestVersion = "3.2.16"
+val scalaCheckVersion = "1.17.0"
+val scalaCollectionCompatVersion = "2.11.0"
+val scioVersion = "0.12.4"
+val scoptVersion = "4.1.0"
+val shapelessVersion = "2.3.10"
+val sourcecodeVersion = "0.3.0"
+val slf4jVersion = "1.7.36"
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
   scalaBinaryVersion.value == "2.13"
@@ -47,7 +46,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   name := "ratatool",
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.12.10",
-  crossScalaVersions := Seq("2.12.10", "2.13.8"),
+  crossScalaVersions := Seq("2.12.10", "2.13.11"),
   resolvers += "confluent" at "https://packages.confluent.io/maven/",
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions ++= {
