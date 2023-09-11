@@ -19,19 +19,19 @@ import sbt.{Def, _}
 import Keys._
 
 val algebirdVersion = "0.13.10"
-val avroVersion = "1.8.2"
-val beamVersion = "2.44.0" // Need to keep in sync with Scio
-val bigqueryVersion = "v2-rev20220924-2.0.0"
+val avroVersion = "1.8.2" // keep in sync with scio
+val beamVersion = "2.50.0" // keep in sync with scio
+val bigqueryVersion = "v2-rev20230520-2.0.0" // keep in sync with scio
 val floggerVersion = "0.7.4"
-val guavaVersion = "31.1-jre" // make sure this stays compatible with scio + beam
-val hadoopVersion = "2.10.2"
+val guavaVersion = "32.1.2-jre" // keep in sync with scio + beam
+val hadoopVersion = "2.10.2" // keep in sync with scio
 val jodaTimeVersion = "2.12.2"
 val parquetVersion = "1.12.3"
 val protoBufVersion = "3.24.2"
 val scalaTestVersion = "3.2.17"
 val scalaCheckVersion = "1.17.0"
 val scalaCollectionCompatVersion = "2.11.0"
-val scioVersion = "0.12.4"
+val scioVersion = "0.13.3"
 val scoptVersion = "4.1.0"
 val shapelessVersion = "2.3.10"
 val sourcecodeVersion = "0.3.0"
@@ -149,7 +149,8 @@ lazy val ratatoolCommon = project
       "org.apache.avro" % "avro" % avroVersion,
       "org.apache.avro" % "avro" % avroVersion classifier "tests",
       "org.apache.avro" % "avro-mapred" % avroVersion classifier "hadoop2",
-      "org.slf4j" % "slf4j-simple" % slf4jVersion,
+      "org.slf4j" % "slf4j-simple" % slf4jVersion, // temporary workaround for scio 0.13.3 bug
+      "org.slf4j" % "log4j-over-slf4j" % slf4jVersion % Test,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "com.google.guava" % "guava" % guavaVersion
     ),
