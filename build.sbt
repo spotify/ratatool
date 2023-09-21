@@ -150,7 +150,10 @@ lazy val ratatoolCommon = project
       "org.apache.avro" % "avro" % avroVersion classifier "tests",
       "org.apache.avro" % "avro-mapred" % avroVersion classifier "hadoop2",
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
-      "org.slf4j" % "log4j-over-slf4j" % slf4jVersion % Test, // temporary workaround for scio 0.13.3 bug
+      "org.slf4j" % "log4j-over-slf4j" % slf4jVersion % Test, // temporary workaround for scio
+      // 0.13.3 bug
+      "org.slf4j" % "log4j-over-slf4j" % slf4jVersion % Runtime, // temporary workaround for scio
+      // 0.13.3 bug
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "com.google.guava" % "guava" % guavaVersion
     ),
