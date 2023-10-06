@@ -25,17 +25,17 @@ val bigqueryVersion = "v2-rev20230520-2.0.0" // keep in sync with scio
 val floggerVersion = "0.7.4"
 val guavaVersion = "32.1.2-jre" // keep in sync with scio + beam
 val hadoopVersion = "2.10.2" // keep in sync with scio
-val jodaTimeVersion = "2.12.2"
-val parquetVersion = "1.12.3"
-val protoBufVersion = "3.24.3"
+val jodaTimeVersion = "2.10.10" // keep in sync with scio
+val parquetVersion = "1.12.3" // keep in sync with scio
+val protoBufVersion = "3.23.2" // keep in sync with scio
 val scalaTestVersion = "3.2.17"
 val scalaCheckVersion = "1.17.0"
 val scalaCollectionCompatVersion = "2.11.0"
 val scioVersion = "0.13.3"
 val scoptVersion = "4.1.0"
-val shapelessVersion = "2.3.10"
+val shapelessVersion = "2.3.10" // keep in sync with scio
 val sourcecodeVersion = "0.3.1"
-val slf4jVersion = "2.0.9"
+val slf4jVersion = "1.7.30" // keep in sync with scio
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
   scalaBinaryVersion.value == "2.13"
