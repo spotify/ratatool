@@ -30,7 +30,7 @@ import com.spotify.ratatool.io.{ParquetIO, ParquetTestData}
 import com.spotify.scio.ScioContext
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecord}
-import org.apache.beam.sdk.coders.AvroCoder
+import org.apache.beam.sdk.extensions.avro.coders.AvroCoder
 import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 
 import scala.jdk.CollectionConverters.seqAsJavaListConverter

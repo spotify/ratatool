@@ -18,10 +18,10 @@
 package com.spotify.ratatool.scalacheck
 
 import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
-import org.apache.beam.sdk.coders.AvroCoder
+import org.apache.beam.sdk.extensions.avro.coders.AvroCoder
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck._
-import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
+import org.scalacheck.Prop.{all, forAll, propBoolean}
 
 object AvroGeneratorTest extends Properties("AvroGenerator") {
   property("round trips") = forAll(specificRecordOf[TestRecord]) { m =>

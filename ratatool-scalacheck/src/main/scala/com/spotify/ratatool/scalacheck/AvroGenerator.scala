@@ -23,11 +23,10 @@ import org.apache.avro._
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.avro.specific.SpecificRecord
 import org.apache.avro.util.Utf8
-import org.apache.beam.sdk.coders.{AvroCoder, AvroGenericCoder}
+import org.apache.beam.sdk.extensions.avro.coders.{AvroCoder, AvroGenericCoder}
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.{Arbitrary, Gen}
 
-import java.math.BigInteger
 import scala.reflect.ClassTag
 
 /** Mainly type inference not to fall into `Any` */
