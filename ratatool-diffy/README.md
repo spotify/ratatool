@@ -3,7 +3,7 @@ Diffy
 
 Diffy contains record diff-ing classes that can be utilized by BigDiffy to perform Diffs over large datasets.
  Supported filesystems include Local, GCS (`gs://`), HDFS (`hdfs://`). There is also support for diff-ing directly from BigQuery tables.
- Currently supported formats are Avro, Protobuf, or BigQuery TableRow, but the CLI only supports Avro and BigQuery TableRow.
+ Currently supported formats are Avro, Parquet, Protobuf, or BigQuery TableRow, but the CLI only supports Avro and BigQuery TableRow.
  
 # BigDiffy
 
@@ -23,7 +23,7 @@ From the CLI
 BigDiffy - pair-wise field-level statistical diff
 Usage: ratatool bigDiffy [dataflow_options] [options]
 
-  --input-mode=(avro|bigquery|parquet)     Diff-ing Avro or BQ records
+  --input-mode=(avro|bigquery|parquet)     Diff-ing Avro, Parquet or BQ records
   [--output-mode=(gcs|bigquery)]   Saves to a text file in GCS or a BigQuery dataset. Defaults to GCS
   --key=<key>                      '.' separated key field. Specify multiple --key params or multiple ',' separated key fields for multi key usage.
                                    No two (or more) records within the same dataset may have the same key,
