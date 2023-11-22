@@ -33,7 +33,7 @@ import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder
 import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 
-import scala.jdk.CollectionConverters.seqAsJavaListConverter
+import scala.jdk.CollectionConverters._
 import scala.language.higherKinds
 
 class BigDiffyTest extends PipelineSpec {
