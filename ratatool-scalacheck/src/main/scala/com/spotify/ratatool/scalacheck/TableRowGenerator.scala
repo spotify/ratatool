@@ -121,7 +121,7 @@ trait TableRowGeneratorOps {
     }
   }
 
-    private def tableFieldValueOf(fieldSchema: TableFieldSchema): Gen[TableFieldValue] = {
+  private def tableFieldValueOf(fieldSchema: TableFieldSchema): Gen[TableFieldValue] = {
     val n = fieldSchema.getName
     def genV(): Gen[TableFieldValue] = fieldSchema.getType match {
       case "INTEGER" => Arbitrary.arbInt.arbitrary.map(TableFieldValue(n, _))
@@ -155,4 +155,4 @@ trait TableRowGeneratorOps {
       case m => throw new RuntimeException(s"Unknown mode: $m")
     }
   }
-  }
+}

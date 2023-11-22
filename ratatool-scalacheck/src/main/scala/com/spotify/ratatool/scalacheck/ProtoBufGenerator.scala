@@ -158,7 +158,7 @@ trait ProtoBufGeneratorOps {
   private def genPositiveInt: Gen[Int] = Gen.chooseNum(0, Int.MaxValue)
   private def genPositiveLong: Gen[Long] = Gen.chooseNum(0L, Long.MaxValue)
 
-    private def genField(field: FieldDescriptor): Gen[PartialWriter] = {
+  private def genField(field: FieldDescriptor): Gen[PartialWriter] = {
     val id = field.getNumber
     def genV: Gen[PartialWriter] = field.getType match {
       case Type.DOUBLE   => Arbitrary.arbDouble.arbitrary.map(v => DoubleWriter(id, v))
@@ -203,4 +203,4 @@ trait ProtoBufGeneratorOps {
       case Label.LABEL_REPEATED => Gen.listOf(genV).map(l => RepeatedWriter(l))
     }
   }
-  }
+}

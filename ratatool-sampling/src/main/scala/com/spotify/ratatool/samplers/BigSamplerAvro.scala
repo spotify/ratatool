@@ -157,7 +157,7 @@ private[samplers] object BigSamplerAvro {
     }
   }
 
-    private def hashPrimitive(
+  private def hashPrimitive(
     fieldName: String,
     fieldSchema: Schema,
     fieldValue: AnyRef,
@@ -182,7 +182,6 @@ private[samplers] object BigSamplerAvro {
         )
     }
   }
-
 
   private def hashEnum(
     fieldName: String,
@@ -219,7 +218,7 @@ private[samplers] object BigSamplerAvro {
     }
   }
 
-    private[samplers] def sample(
+  private[samplers] def sample(
     sc: ScioContext,
     input: String,
     output: String,
@@ -264,4 +263,4 @@ private[samplers] object BigSamplerAvro {
       r
     }
   }
-  }
+}

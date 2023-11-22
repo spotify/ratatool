@@ -190,7 +190,7 @@ object SamplerSCollectionFunctions {
       .map { case (k, ((v, _), _)) => (k, v) }
   }
 
-    private def stratifiedThresholdByKey[T: ClassTag: Coder, U: ClassTag: Coder](
+  private def stratifiedThresholdByKey[T: ClassTag: Coder, U: ClassTag: Coder](
     s: SCollection[(U, (T, Double))],
     prob: Double,
     delta: Double,
@@ -233,7 +233,7 @@ object SamplerSCollectionFunctions {
       }
   }
 
-    private def uniformThresholdByKey[T: ClassTag: Coder, U: ClassTag: Coder](
+  private def uniformThresholdByKey[T: ClassTag: Coder, U: ClassTag: Coder](
     s: SCollection[(U, (T, Double))],
     probByKey: SCollection[(U, Double)],
     popPerKey: SideInput[Double],

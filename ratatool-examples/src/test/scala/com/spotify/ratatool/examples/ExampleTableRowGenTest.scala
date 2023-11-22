@@ -49,7 +49,7 @@ object ExampleTableRowGenTest extends Properties("ExampleTableRowGenerator") {
     }
 
   property("the record id is the same when using amend2 for correlated fields") =
-    forAll(ExampleTableRowGen.correlatedRecordGen) { case (correlatedRecord) =>
+    forAll(ExampleTableRowGen.correlatedRecordGen) { case correlatedRecord =>
       correlatedRecord.get("record_id") ==
         correlatedRecord.get("parent_record_id")
     }

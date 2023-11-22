@@ -26,13 +26,11 @@ import org.scalatest.BeforeAndAfterAll
 import java.io.File
 
 class BigSamplerParquetTest extends PipelineSpec with BeforeAndAfterAll {
-  private lazy val (typedOut, avroOut) = (
-    ParquetTestData.createTempDir("typed"),
-    ParquetTestData.createTempDir("avro"))
+  private lazy val (typedOut, avroOut) =
+    (ParquetTestData.createTempDir("typed"), ParquetTestData.createTempDir("avro"))
 
-  override protected def beforeAll(): Unit = {
+  override protected def beforeAll(): Unit =
     ParquetTestData.writeTestData(avroPath = avroOut, typedPath = typedOut, numShards = 2)
-  }
 
   "BigSamplerParquet" should "convert typed to GenericRecords and defer to BigSamplerAvro" in {
     val output = s"${ParquetTestData.createTempDir("output")}"

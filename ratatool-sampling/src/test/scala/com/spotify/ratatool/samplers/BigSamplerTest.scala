@@ -568,7 +568,6 @@ class BigSamplerWildCardTest extends BigSamplerJobTestRoot {
   }
 }
 
-
 class BigSamplerApproxDistJobTest extends BigSamplerJobTestRoot {
   override def data1Size: Int = 10000
   override def data2Size: Int = 2500

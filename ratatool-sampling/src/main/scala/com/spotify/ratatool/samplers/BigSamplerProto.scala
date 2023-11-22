@@ -49,7 +49,7 @@ private[samplers] object BigSamplerProto {
       .sorted
   }
 
-    private[samplers] def hashProtobufField[T <: AbstractMessage: ClassTag](
+  private[samplers] def hashProtobufField[T <: AbstractMessage: ClassTag](
     m: T,
     fieldStr: String,
     hasher: Hasher
@@ -83,7 +83,7 @@ private[samplers] object BigSamplerProto {
     }
   }
 
-    private[samplers] def getProtobufField[T <: AbstractMessage: ClassTag](
+  private[samplers] def getProtobufField[T <: AbstractMessage: ClassTag](
     m: T,
     fieldStr: String
   ): Any = {
@@ -105,4 +105,4 @@ private[samplers] object BigSamplerProto {
       }
     }
   }
-  }
+}

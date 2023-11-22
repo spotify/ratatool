@@ -97,7 +97,7 @@ object BigSampler extends Command {
     Try(new URI(uri)).toOption
 
   private def usage(): Unit = {
-        // TODO: Rename --exact to something better
+    // TODO: Rename --exact to something better
     println(s"""BigSampler - a tool for big data sampling
         |Usage: ratatool $command [dataflow_options] [options]
         |
@@ -127,7 +127,7 @@ object BigSampler extends Command {
         |
         |For more details regarding Dataflow options see here: https://cloud.google.com/dataflow/pipelines/specifying-exec-params
       """.stripMargin)
-        sys.exit(1)
+    sys.exit(1)
   }
 
   private[samplers] def hashTableRow(
@@ -151,7 +151,7 @@ object BigSampler extends Command {
     FileStorage(path).listFiles
   }
 
-    def singleInput(argv: Array[String]): ClosedTap[_] = {
+  def singleInput(argv: Array[String]): ClosedTap[_] = {
     val (sc, args) = ContextAndArgs(argv)
     val (opts, _) = ScioContext.parseArguments[PipelineOptions](argv)
     // Determines how large our heap should be for topByKey
@@ -291,7 +291,7 @@ object BigSampler extends Command {
     }
   }
 
-    /**
+  /**
    * Sample wrapper function that manages sampling pipeline based on determinimism, precision, and
    * data type. Can be used to build sampling for data types not supported out of the box.
    * @param s

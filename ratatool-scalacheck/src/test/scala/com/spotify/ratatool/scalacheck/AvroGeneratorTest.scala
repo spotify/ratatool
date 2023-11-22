@@ -70,9 +70,9 @@ object AvroGeneratorTest extends Properties("AvroGenerator") {
 
   property("support RichAvroTupGen") = forAll(richTupGen) { case (a, b) =>
     (a.getRequiredFields.getBooleanField == b.getRequiredFields.getBooleanField
-      && a.getRequiredFields.getIntField == b.getRequiredFields.getIntField
-      && a.getRequiredFields.getStringField.toString == b.getRequiredFields.getStringField.toString
-      && a.getRequiredFields.getLongField == b.getRequiredFields.getLongField)
+    && a.getRequiredFields.getIntField == b.getRequiredFields.getIntField
+    && a.getRequiredFields.getStringField.toString == b.getRequiredFields.getStringField.toString
+    && a.getRequiredFields.getLongField == b.getRequiredFields.getLongField)
   }
 
 }

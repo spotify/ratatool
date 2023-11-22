@@ -93,7 +93,7 @@ trait AvroGeneratorOps {
     .flatMap(n => Gen.listOfN(n, Arbitrary.arbChar.arbitrary))
     .map(l => new Utf8(l.mkString))
 
-      private def avroValueOf(schema: Schema): Gen[AvroValue] = {
+  private def avroValueOf(schema: Schema): Gen[AvroValue] = {
     import scala.jdk.CollectionConverters._
 
     schema.getType match {

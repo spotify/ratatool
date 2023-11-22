@@ -31,7 +31,7 @@ commands:
           - v5-dependencies-
       - run:
           command: |
-            sbt clean "project $TEST_PROJECT" coverage test "project root" coverageReport
+            sbt clean "project $TEST_PROJECT" scalafmtCheckAll coverage test "project root" coverageReport
       - run:
           command: bash <(curl -s https://codecov.io/bash) -cF $TEST_PROJECT
       - save_cache:

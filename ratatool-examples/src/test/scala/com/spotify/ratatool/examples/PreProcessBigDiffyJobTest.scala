@@ -25,7 +25,7 @@ import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Gen
 import com.spotify.scio.avro._
 import com.spotify.scio.io.TextIO
-import org.apache.beam.sdk.extensions.avro.coders.AvroCoder
+import org.apache.beam.sdk.coders.AvroCoder
 
 class PreProcessBigDiffyJobTest extends PipelineSpec {
   val lhs = Gen.listOfN(1000, ExampleAvroGen.exampleRecordGen).sample.get.map { r =>

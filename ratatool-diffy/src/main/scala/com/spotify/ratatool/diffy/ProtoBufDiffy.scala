@@ -42,7 +42,7 @@ class ProtoBufDiffy[T <: AbstractMessage: ClassTag](
       .invoke(null)
       .asInstanceOf[Descriptor]
 
-    private def diff(
+  private def diff(
     x: Option[AbstractMessage],
     y: Option[AbstractMessage],
     fields: Seq[FieldDescriptor],
