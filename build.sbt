@@ -65,13 +65,8 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
       )
     }
   },
-  Compile / sourceDirectories := (Compile / sourceDirectories).value
-    .filterNot(_.getPath.endsWith("/src_managed/main")),
-  Compile / managedSourceDirectories := (Compile / managedSourceDirectories).value
-    .filterNot(_.getPath.endsWith("/src_managed/main")),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
-  addCompilerPlugin(scalafixSemanticdb),
-  run / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+  fork := true
 )
 
 ThisBuild / PB.protocVersion := protoBufVersion
