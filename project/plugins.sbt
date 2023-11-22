@@ -1,3 +1,4 @@
+addDependencyTreePlugin
 addSbtPlugin("com.github.sbt" % "sbt-avro" % "3.4.3")
 addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.17")
 addSbtPlugin("com.thesamet" % "sbt-protoc" % "1.0.6")
