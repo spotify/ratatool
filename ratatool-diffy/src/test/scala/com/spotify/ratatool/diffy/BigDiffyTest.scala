@@ -30,7 +30,7 @@ import com.spotify.ratatool.io.{ParquetIO, ParquetTestData}
 import com.spotify.scio.ScioContext
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecord}
-import org.apache.beam.sdk.coders.AvroCoder
+import org.apache.beam.sdk.extensions.avro.coders.AvroCoder
 import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 
 import scala.jdk.CollectionConverters.seqAsJavaListConverter
@@ -39,7 +39,7 @@ import scala.language.higherKinds
 class BigDiffyTest extends PipelineSpec {
 
   val keys = (1 to 1000).map(k => MultiKey("key" + k))
-  val coder = AvroCoder.of(classOf[TestRecord])
+  val coder = AvroCoder.reflect(classOf[TestRecord])
 
   /** Fixed to a small range so that Std. Dev. & Variance calculations are easier to predict */
   val rnr = specificRecordOf[RequiredNestedRecord]
