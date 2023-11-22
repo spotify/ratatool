@@ -7,12 +7,14 @@ version: 2.1
 executors:
   scala_212:
     docker:
-      - image: circleci/openjdk:8-jdk
+      - image: cimg/openjdk:11.0
+    resource_class: medium+
     environment:
-      SCALA_VERSION: 2.12.10
+      SCALA_VERSION: 2.12.18
   scala_213:
     docker:
-      - image: circleci/openjdk:8-jdk
+      - image: cimg/openjdk:11.0
+    resource_class: medium+
     environment:
       SCALA_VERSION: 2.13.12
 
@@ -31,7 +33,7 @@ commands:
           - v5-dependencies-
       - run:
           command: |
-            sbt clean "project $TEST_PROJECT" scalastyle test:scalastyle coverage test "project root" coverageReport
+            sbt clean "project $TEST_PROJECT" scalafmtCheckAll coverage test "project root" coverageReport
       - run:
           command: bash <(curl -s https://codecov.io/bash) -cF $TEST_PROJECT
       - save_cache:

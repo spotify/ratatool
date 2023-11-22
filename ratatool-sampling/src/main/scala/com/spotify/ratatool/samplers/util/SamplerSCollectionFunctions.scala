@@ -190,7 +190,6 @@ object SamplerSCollectionFunctions {
       .map { case (k, ((v, _), _)) => (k, v) }
   }
 
-  // scalastyle:off cyclomatic.complexity
   private def stratifiedThresholdByKey[T: ClassTag: Coder, U: ClassTag: Coder](
     s: SCollection[(U, (T, Double))],
     prob: Double,
@@ -233,9 +232,7 @@ object SamplerSCollectionFunctions {
         }
       }
   }
-  // scalastyle:on cyclomatic.complexity
 
-  // scalastyle:off cyclomatic.complexity
   private def uniformThresholdByKey[T: ClassTag: Coder, U: ClassTag: Coder](
     s: SCollection[(U, (T, Double))],
     probByKey: SCollection[(U, Double)],
@@ -276,7 +273,6 @@ object SamplerSCollectionFunctions {
       }
       .toSCollection
   }
-  // scalastyle:on cyclomatic.complexity
 
   implicit class RatatoolKVDSCollection[T: ClassTag, U: ClassTag](
     s: SCollection[(U, (T, Double))]

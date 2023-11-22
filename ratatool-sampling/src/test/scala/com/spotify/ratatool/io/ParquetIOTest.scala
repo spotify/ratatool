@@ -33,21 +33,21 @@ import java.io.File
 import java.nio.file.Files
 
 class ParquetIOTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
-  private lazy val (typedOut, avroOut) = (
-    ParquetTestData.createTempDir("typed"),
-    ParquetTestData.createTempDir("avro"))
+  private lazy val (typedOut, avroOut) =
+    (ParquetTestData.createTempDir("typed"), ParquetTestData.createTempDir("avro"))
 
-  override protected def beforeAll(): Unit = {
+  override protected def beforeAll(): Unit =
     ParquetTestData.writeTestData(avroPath = avroOut, typedPath = typedOut)
-  }
 
   "ParquetIO" should "read file-based parquet-avro into GenericRecords" in {
-    ParquetIO.readFromFile(avroOut + "/part-00000-of-00001.parquet")
+    ParquetIO
+      .readFromFile(avroOut + "/part-00000-of-00001.parquet")
       .toList should contain theSameElementsAs ParquetTestData.ParquetAvroData
   }
 
   it should "read file-based typed-parquet into GenericRecords" in {
-    ParquetIO.readFromFile(typedOut + "/part-00000-of-00001.parquet")
+    ParquetIO
+      .readFromFile(typedOut + "/part-00000-of-00001.parquet")
       .toList should contain theSameElementsAs ParquetTestData.ParquetAvroData
   }
 
@@ -67,14 +67,17 @@ class ParquetIOTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val writePath = ParquetTestData.createTempDir("avro-write") + "/out.parquet"
 
     ParquetIO.writeToFile(
-      ParquetTestData.ParquetAvroData, ParquetTestData.avroSchema, new File(writePath))
+      ParquetTestData.ParquetAvroData,
+      ParquetTestData.avroSchema,
+      new File(writePath)
+    )
 
     val readElements = ParquetIO.readFromFile(writePath)
     readElements.toSeq should contain theSameElementsAs ParquetTestData.ParquetAvroData
 
     // Test that avro schema is written in metadata
-    val parquetFileMetadata = ParquetFileReader.open(
-      HadoopInputFile.fromPath(new Path(writePath), new Configuration()))
+    val parquetFileMetadata = ParquetFileReader
+      .open(HadoopInputFile.fromPath(new Path(writePath), new Configuration()))
       .getFileMetaData
 
     new Schema.Parser().parse(
@@ -103,8 +106,7 @@ object ParquetTestData extends Serializable {
 
   lazy val ParquetTypedData: Seq[ParquetClass] = (0 until 100).map(ParquetClass)
 
-  def avroSchema: Schema = new Schema.Parser().parse(
-  """
+  def avroSchema: Schema = new Schema.Parser().parse("""
   |{"type":"record",
   |"name":"ParquetClass",
   |"namespace":"com.spotify.ratatool.io.ParquetTestData",

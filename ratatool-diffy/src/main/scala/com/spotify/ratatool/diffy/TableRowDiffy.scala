@@ -49,7 +49,6 @@ class TableRowDiffy(
     new JsonObjectParser(new GsonFactory)
       .parseAndClose(new StringReader(schemaString), classOf[TableSchema])
 
-  // scalastyle:off cyclomatic.complexity method.length
   private def diff(
     x: Option[Record],
     y: Option[Record],
@@ -116,5 +115,4 @@ class TableRowDiffy(
       }
       .filter(d => !ignore.contains(d.field))
   }
-  // scalastyle:on cyclomatic.complexity method.length
 }

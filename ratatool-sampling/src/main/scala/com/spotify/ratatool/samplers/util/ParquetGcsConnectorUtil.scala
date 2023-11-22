@@ -27,14 +27,12 @@ import java.io.File
 import java.util.Locale
 import scala.util.{Success, Try}
 
-
 /**
  * Utility for setting Parquet credential properties.
  *
- * Ported from
- * https://github.com/spotify/scio/blob/main/scio-parquet/src/main/scala/com/spotify/
+ * Ported from https://github.com/spotify/scio/blob/main/scio-parquet/src/main/scala/com/spotify/
  * scio/parquet/GcsConnectorUtil.scala
- **/
+ */
 private[ratatool] object ParquetGcsConnectorUtil {
 
   /**

@@ -15,7 +15,7 @@
  * under the License.
  */
 
-import sbt.{Def, _}
+import sbt._
 import Keys._
 
 val algebirdVersion = "0.13.10"
@@ -45,8 +45,8 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
   name := "ratatool",
   description := "A tool for random data sampling and generation",
-  scalaVersion := "2.12.10",
-  crossScalaVersions := Seq("2.12.10", "2.13.12"),
+  scalaVersion := "2.12.18",
+  crossScalaVersions := Seq("2.12.18", "2.13.12"),
   resolvers += "confluent" at "https://packages.confluent.io/maven/",
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions ++= {
@@ -65,21 +65,25 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
       )
     }
   },
-  Compile / sourceDirectories := (Compile / sourceDirectories).value
-    .filterNot(_.getPath.endsWith("/src_managed/main")),
-  Compile / managedSourceDirectories := (Compile / managedSourceDirectories).value
-    .filterNot(_.getPath.endsWith("/src_managed/main")),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
-  addCompilerPlugin(scalafixSemanticdb),
-  run / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+  fork := true
 )
 
+ThisBuild / PB.protocVersion := protoBufVersion
+
 lazy val protoBufSettings = Seq(
-  ProtobufConfig / version := protoBufVersion,
-  ProtobufConfig / protobufRunProtoc := (args =>
-    com.github.os72.protocjar.Protoc.runProtoc("-v3.17.3" +: args.toArray)
+  libraryDependencies ++= Seq(
+    "com.google.protobuf" % "protobuf-java" % protoBufVersion % "protobuf",
+    "com.google.protobuf" % "protobuf-java" % protoBufVersion,
   )
-)
+) ++ Seq(Compile, Test).flatMap(c => inConfig(c)(Def.settings(
+  PB.targets := Seq(
+    PB.gens.java -> (ThisScope.copy(config = Zero) / sourceManaged).value /
+      "compiled_proto" /
+      Defaults.nameForSrc(configuration.value.name),
+  ),
+  managedSourceDirectories ++= PB.targets.value.map(_.outputPath)
+)))
 
 lazy val noPublishSettings = Seq(
   publish := {},
@@ -147,20 +151,15 @@ lazy val ratatoolCommon = project
     name := "ratatool-common",
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion,
-      "org.apache.avro" % "avro" % avroVersion classifier "tests",
       "org.apache.avro" % "avro-mapred" % avroVersion classifier "hadoop2",
-      "org.slf4j" % "slf4j-simple" % slf4jVersion,
-      "org.slf4j" % "log4j-over-slf4j" % slf4jVersion % Test, // temporary workaround for scio
-      // 0.13.3 bug
-      "org.slf4j" % "log4j-over-slf4j" % slf4jVersion % Runtime, // temporary workaround for scio
-      // 0.13.3 bug
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
-      "com.google.guava" % "guava" % guavaVersion
+      "com.google.guava" % "guava" % guavaVersion,
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
+      "org.apache.avro" % "avro" % avroVersion % Test classifier "tests",
+      "org.slf4j" % "slf4j-simple" % slf4jVersion % Test,
     ),
     // In case of scalacheck failures print more info
     Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
-  .enablePlugins(ProtobufPlugin)
   .settings(protoBufSettings)
 
 lazy val ratatoolSampling = project
@@ -173,19 +172,18 @@ lazy val ratatoolSampling = project
       "com.spotify" %% "scio-avro" % scioVersion,
       "com.spotify" %% "scio-parquet" % scioVersion,
       "com.spotify" %% "scio-google-cloud-platform" % scioVersion,
-      "com.spotify" %% "scio-test" % scioVersion % "test",
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "com.twitter" %% "algebird-core" % algebirdVersion,
       "joda-time" % "joda-time" % jodaTimeVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+      "com.spotify" %% "scio-test" % scioVersion % Test,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % Test
     ),
     // In case of scalacheck failures print more info
     Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
     Test / parallelExecution := false
   )
-  .enablePlugins(ProtobufPlugin)
   .dependsOn(
     ratatoolCommon % "compile->compile;test->test",
     ratatoolScalacheck % "test"
@@ -200,12 +198,12 @@ lazy val ratatoolDiffy = project
     libraryDependencies ++= Seq(
       "com.spotify" %% "scio-core" % scioVersion,
       "com.spotify" %% "scio-parquet" % scioVersion,
-      "com.spotify" %% "scio-test" % scioVersion % "test",
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "com.twitter" %% "algebird-core" % algebirdVersion,
       "joda-time" % "joda-time" % jodaTimeVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+      "com.spotify" %% "scio-test" % scioVersion % Test,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % Test
     ),
     // In case of scalacheck failures print more info
     Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
@@ -220,7 +218,6 @@ lazy val ratatoolDiffy = project
       }
     }
   )
-  .enablePlugins(ProtobufPlugin)
   .dependsOn(
     ratatoolCommon % "compile->compile;test->test",
     ratatoolSampling % "compile->compile;test->test",
@@ -259,7 +256,7 @@ lazy val ratatoolCli = project
     // In case of scalacheck failures print more info
     Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
   )
-  .enablePlugins(ProtobufPlugin, PackPlugin)
+  .enablePlugins(PackPlugin)
   .dependsOn(
     ratatoolCommon % "compile->compile;test->test",
     ratatoolSampling,
@@ -275,13 +272,13 @@ lazy val ratatoolScalacheck = project
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
-      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % "provided",
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-      "com.lihaoyi" %% "sourcecode" % sourcecodeVersion
+      "org.apache.beam" % "beam-sdks-java-extensions-avro" % beamVersion,
+      "com.lihaoyi" %% "sourcecode" % sourcecodeVersion,
+      "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
     )
   )
-  .enablePlugins(ProtobufPlugin)
   .dependsOn(ratatoolCommon % "compile->compile;test->test")
   .settings(protoBufSettings)
 
@@ -292,12 +289,11 @@ lazy val ratatoolExamples = project
     name := "ratatool-examples",
     libraryDependencies ++= Seq(
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
-      "com.spotify" %% "scio-test" % scioVersion % "test"
+      "com.spotify" %% "scio-test" % scioVersion % Test
     )
   )
-  .enablePlugins(ProtobufPlugin)
   .dependsOn(
-    ratatoolCommon,
+    ratatoolCommon % "compile->test",
     ratatoolScalacheck,
     ratatoolDiffy
   )
