@@ -22,7 +22,6 @@ import com.spotify.ratatool.Command
 object DirectSamplerParser extends Command {
   val command: String = "directSampler"
 
-  // scalastyle:off if.brace
   val parser = new scopt.OptionParser[DirectSamplerConfig](s"ratatool $command") {
     head("Direct Sampler - a tool for random data sampling")
 
@@ -102,7 +101,6 @@ object DirectSamplerParser extends Command {
       else success
     )
   }
-  // scalastyle:on if.brace
 
   def parse(args: Array[String]): Option[DirectSamplerConfig] =
     parser.parse(args, DirectSamplerConfig())

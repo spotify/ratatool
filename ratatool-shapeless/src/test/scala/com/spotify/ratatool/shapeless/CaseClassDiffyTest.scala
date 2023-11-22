@@ -55,7 +55,7 @@ class CaseClassDiffyTest extends AnyFlatSpec with Matchers {
     result should contain(Delta("b2.f2", Option(1), Option(1), NumericDelta(0.0)))
     result should contain(Delta("b2.f3", Option(3), Option(3), NumericDelta(0.0)))
     result should contain
-    (Delta("b2.f5", Option(Vector("foo1")), Option(Vector("foo2")), UnknownDelta))
+    Delta("b2.f5", Option(Vector("foo1")), Option(Vector("foo2")), UnknownDelta)
   }
 
   "CaseClassDiffy" should "support ignore with exact match case" in {
@@ -75,6 +75,6 @@ class CaseClassDiffyTest extends AnyFlatSpec with Matchers {
     result should contain(Delta("b2.f1", Option("foo1"), Option("foo2"), StringDelta(1.0)))
     result should contain(Delta("b2.f3", Option(3), Option(3), NumericDelta(0.0)))
     result should contain
-    (Delta("b2.f5", Option(Vector("foo1")), Option(Vector("foo2")), UnknownDelta))
+    Delta("b2.f5", Option(Vector("foo1")), Option(Vector("foo2")), UnknownDelta)
   }
 }

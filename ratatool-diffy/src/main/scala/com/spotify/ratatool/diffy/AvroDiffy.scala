@@ -43,7 +43,6 @@ class AvroDiffy[T <: GenericRecord: Coder](
       (Schema.Type.UNION.equals(schema.getType) &&
         schema.getTypes.asScala.map(_.getType).contains(Schema.Type.RECORD))
 
-  // scalastyle:off cyclomatic.complexity method.length
   private def diff(x: Option[GenericRecord], y: Option[GenericRecord], root: String): Seq[Delta] = {
     // If a y exists we assume it has the superset of all fields, since x must be backwards
     // compatible with it based on the SchemaValidator check in apply()
@@ -112,7 +111,6 @@ class AvroDiffy[T <: GenericRecord: Coder](
       }
       .filter(d => !ignore.contains(d.field))
   }
-  // scalastyle:on cyclomatic.complexity method.length
 
   private def getRawType(schema: Schema): Schema = {
     schema.getType match {

@@ -37,7 +37,6 @@ import scala.language.postfixOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-// scalastyle:off file.size.limit
 object BigSamplerTest extends Properties("BigSampler") {
 
   private val testSeed = Some(42)
@@ -568,7 +567,6 @@ class BigSamplerWildCardTest extends BigSamplerJobTestRoot {
     countParquetRecords(s"$outDir/*.parquet").toDouble shouldBe totalElements * 0.5 +- 250
   }
 }
-
 
 class BigSamplerApproxDistJobTest extends BigSamplerJobTestRoot {
   override def data1Size: Int = 10000

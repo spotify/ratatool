@@ -19,10 +19,9 @@ package com.spotify.ratatool.samplers
 import java.net.URI
 import java.nio.charset.Charset
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableReference}
-import com.google.common.hash.{HashCode, Hasher, Hashing}
+import com.google.common.hash.{HashCode, Hasher}
 import com.spotify.ratatool.samplers.util.SamplerSCollectionFunctions._
 import com.spotify.ratatool.Command
-import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.io.FileStorage
 import com.spotify.ratatool.samplers.util._
 import com.spotify.scio.bigquery.TableRow
@@ -98,7 +97,6 @@ object BigSampler extends Command {
     Try(new URI(uri)).toOption
 
   private def usage(): Unit = {
-    // scalastyle:off regex line.size.limit
     // TODO: Rename --exact to something better
     println(s"""BigSampler - a tool for big data sampling
         |Usage: ratatool $command [dataflow_options] [options]
@@ -129,7 +127,6 @@ object BigSampler extends Command {
         |
         |For more details regarding Dataflow options see here: https://cloud.google.com/dataflow/pipelines/specifying-exec-params
       """.stripMargin)
-    // scalastyle:on regex line.size.limit
     sys.exit(1)
   }
 
@@ -140,14 +137,6 @@ object BigSampler extends Command {
     hasher: Hasher
   ): Hasher =
     BigSamplerBigQuery.hashTableRow(tblSchemaFields)(r, f, hasher)
-
-  private[samplers] def hashAvroField(
-    r: TestRecord,
-    f: String,
-    avroSchema: Schema,
-    hasher: Hasher
-  ): Hasher =
-    BigSamplerAvro.hashAvroField(avroSchema)(r, f, hasher)
 
   private[samplers] def hashAvroField(
     r: GenericRecord,
@@ -162,7 +151,6 @@ object BigSampler extends Command {
     FileStorage(path).listFiles
   }
 
-  // scalastyle:off method.length cyclomatic.complexity
   def singleInput(argv: Array[String]): ClosedTap[_] = {
     val (sc, args) = ContextAndArgs(argv)
     val (opts, _) = ScioContext.parseArguments[PipelineOptions](argv)
@@ -302,9 +290,7 @@ object BigSampler extends Command {
       throw new UnsupportedOperationException(s"Input `$input not supported.")
     }
   }
-  // scalastyle:on method.length cyclomatic.complexity
 
-  // scalastyle:off method.length cyclomatic.complexity parameter.number
   /**
    * Sample wrapper function that manages sampling pipeline based on determinimism, precision, and
    * data type. Can be used to build sampling for data types not supported out of the box.
@@ -426,7 +412,6 @@ object BigSampler extends Command {
         throw new UnsupportedOperationException("This sampling mode is not currently supported")
     }
   }
-  // scalastyle:on method.length cyclomatic.complexity
 
   def run(argv: Array[String]): Unit =
     this.singleInput(argv)

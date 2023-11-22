@@ -30,7 +30,7 @@ import com.spotify.ratatool.io.{ParquetIO, ParquetTestData}
 import com.spotify.scio.ScioContext
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecord}
-import org.apache.beam.sdk.coders.AvroCoder
+import org.apache.beam.sdk.extensions.avro.coders.AvroCoder
 import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 
 import scala.jdk.CollectionConverters.seqAsJavaListConverter
@@ -39,7 +39,7 @@ import scala.language.higherKinds
 class BigDiffyTest extends PipelineSpec {
 
   val keys = (1 to 1000).map(k => MultiKey("key" + k))
-  val coder = AvroCoder.of(classOf[TestRecord])
+  val coder = AvroCoder.reflect(classOf[TestRecord])
 
   /** Fixed to a small range so that Std. Dev. & Variance calculations are easier to predict */
   val rnr = specificRecordOf[RequiredNestedRecord]
@@ -282,7 +282,7 @@ class BigDiffyTest extends PipelineSpec {
 
   "stripQuoteWrap" should "leave anything else" in {
     stripQuoteWrap("date=\"2021-12-01\"") shouldEqual "date=\"2021-12-01\""
-    stripQuoteWrap("date='2021-12-01'") shouldEqual  "date='2021-12-01'"
+    stripQuoteWrap("date='2021-12-01'") shouldEqual "date='2021-12-01'"
     stripQuoteWrap("abc") shouldEqual "abc"
   }
 
@@ -393,7 +393,7 @@ class BigDiffyTest extends PipelineSpec {
 
   it should "support Parquet schema evolution" in {
     val schema1 = new Schema.Parser().parse(
-    """|{"type":"record",
+      """|{"type":"record",
        |"name":"ParquetRecord",
        |"namespace":"com.spotify.ratatool.diffy",
        |"fields":[{"name":"id","type":"int"}]}
@@ -401,7 +401,7 @@ class BigDiffyTest extends PipelineSpec {
     )
     // Schema 2 has added field with default value
     val schema2 = new Schema.Parser().parse(
-    """|{"type":"record",
+      """|{"type":"record",
        |"name":"ParquetRecord",
        |"namespace":"com.spotify.ratatool.diffy",
        |"fields":[
@@ -417,22 +417,24 @@ class BigDiffyTest extends PipelineSpec {
     }
     val (lhs, rhs) = (
       ParquetTestData.createTempDir("lhs") + "/out.parquet",
-      ParquetTestData.createTempDir("rhs") + "/out.parquet")
+      ParquetTestData.createTempDir("rhs") + "/out.parquet"
+    )
 
     ParquetIO.writeToFile(
       (1 to 10).map(i => toGenericRecord(schema1, Map("id" -> i))),
-      schema1, rhs)
+      schema1,
+      rhs
+    )
 
     ParquetIO.writeToFile(
       (1 to 9).map(i => toGenericRecord(schema2, Map("id" -> i, "s" -> i.toString))),
-      schema2, lhs)
+      schema2,
+      lhs
+    )
 
     val sc = ScioContext()
-    val bigDiffy = BigDiffy.diffParquet(sc,
-      lhs,
-      rhs,
-      avroKeyFn(Seq("id")),
-      new AvroDiffy[GenericRecord]())
+    val bigDiffy =
+      BigDiffy.diffParquet(sc, lhs, rhs, avroKeyFn(Seq("id")), new AvroDiffy[GenericRecord]())
 
     bigDiffy.keyStats.filter(_.diffType == DiffType.MISSING_LHS) should haveSize(1)
     sc.run()

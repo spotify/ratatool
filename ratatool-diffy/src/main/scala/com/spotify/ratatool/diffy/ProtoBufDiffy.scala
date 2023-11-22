@@ -42,7 +42,6 @@ class ProtoBufDiffy[T <: AbstractMessage: ClassTag](
       .invoke(null)
       .asInstanceOf[Descriptor]
 
-  // scalastyle:off cyclomatic.complexity method.length
   private def diff(
     x: Option[AbstractMessage],
     y: Option[AbstractMessage],
@@ -127,6 +126,5 @@ class ProtoBufDiffy[T <: AbstractMessage: ClassTag](
       }
       .filter(d => !ignore.contains(d.field))
   }
-  // scalastyle:on cyclomatic.complexity method.length
 
 }

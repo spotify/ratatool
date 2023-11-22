@@ -23,11 +23,10 @@ import org.apache.avro._
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.avro.specific.SpecificRecord
 import org.apache.avro.util.Utf8
-import org.apache.beam.sdk.coders.{AvroCoder, AvroGenericCoder}
+import org.apache.beam.sdk.extensions.avro.coders.{AvroCoder, AvroGenericCoder}
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.{Arbitrary, Gen}
 
-import java.math.BigInteger
 import scala.reflect.ClassTag
 
 /** Mainly type inference not to fall into `Any` */
@@ -53,7 +52,7 @@ object AvroGeneratorOps extends AvroGeneratorOps
 trait AvroGeneratorOps {
   def specificRecordOf[A <: SpecificRecord: ClassTag]: Gen[A] = {
     val cls = implicitly[ClassTag[A]].runtimeClass.asInstanceOf[Class[A]]
-    val specificCoder = AvroCoder.of(cls)
+    val specificCoder = AvroCoder.reflect(cls)
     val genericCoder = AvroGenericCoder.of(specificCoder.getSchema)
 
     genericRecordOf(specificCoder.getSchema).map { generic =>
@@ -94,8 +93,6 @@ trait AvroGeneratorOps {
     .flatMap(n => Gen.listOfN(n, Arbitrary.arbChar.arbitrary))
     .map(l => new Utf8(l.mkString))
 
-  // scalastyle:off cyclomatic.complexity
-  // scalastyle:off method.length
   private def avroValueOf(schema: Schema): Gen[AvroValue] = {
     import scala.jdk.CollectionConverters._
 

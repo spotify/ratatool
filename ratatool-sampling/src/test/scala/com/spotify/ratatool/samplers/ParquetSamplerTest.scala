@@ -24,15 +24,13 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class ParquetSamplerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
-  private lazy val (typedOut, avroOut) = (
-    ParquetTestData.createTempDir("typed"),
-    ParquetTestData.createTempDir("avro"))
+  private lazy val (typedOut, avroOut) =
+    (ParquetTestData.createTempDir("typed"), ParquetTestData.createTempDir("avro"))
 
-  override protected def beforeAll(): Unit = {
+  override protected def beforeAll(): Unit =
     ParquetTestData.writeTestData(avroPath = avroOut, typedPath = typedOut, numShards = 2)
-  }
 
-  private val BeBetween0And100 = (be < 100 and be >= 0)
+  private val BeBetween0And100 = be < 100 and be >= 0
   private val GetId: GenericRecord => Int = _.get("id").asInstanceOf[Int]
 
   "ParquetSampler" should "sample typed parquet records from wildcard pattern" in {

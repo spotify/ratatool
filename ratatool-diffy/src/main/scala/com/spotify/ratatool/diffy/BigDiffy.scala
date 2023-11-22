@@ -261,7 +261,6 @@ object BigDiffy extends Command with Serializable {
       }
   }
 
-  // scalastyle:off cyclomatic.complexity
   private def computeGlobalAndFieldStats(
     deltas: DeltaSCollection,
     ignoreNan: Boolean
@@ -307,7 +306,6 @@ object BigDiffy extends Command with Serializable {
         (globalKeyStats, fieldStats)
       }
   }
-  // scalastyle:on cyclomatic.complexity
 
   /** Diff two data sets. */
   def diff[T: ClassTag: Coder](
@@ -341,9 +339,9 @@ object BigDiffy extends Command with Serializable {
     diff(sc.protobufFile(lhs), sc.protobufFile(rhs), diffy, keyFn)
 
   /**
-   * Diff two Parquet data sets.
-   * Note that both typed-parquet and avro-parquet inputs are supported. However, in either case
-   * the diff will be written in Parquet format as Avro GenericRecords. */
+   * Diff two Parquet data sets. Note that both typed-parquet and avro-parquet inputs are supported.
+   * However, in either case the diff will be written in Parquet format as Avro GenericRecords.
+   */
   def diffParquet(
     sc: ScioContext,
     lhs: String,
@@ -356,17 +354,19 @@ object BigDiffy extends Command with Serializable {
 
     diff(
       sc.parquetAvroFile[GenericRecord](lhs, compatSchema).map(identity),
-      sc.parquetAvroFile[GenericRecord](rhs, compatSchema).map(identity), diffy, keyFn
+      sc.parquetAvroFile[GenericRecord](rhs, compatSchema).map(identity),
+      diffy,
+      keyFn
     )
   }
 
-  /** Remove quotes wrapping string argument. **/
+  /** Remove quotes wrapping string argument. * */
   def stripQuoteWrap(input: String): String = {
     val startChar = input.charAt(0)
     val endChar = input.charAt(input.length - 1)
     val quoteChars = List('"', '\'', '`')
 
-    if(quoteChars.contains(startChar) && startChar == endChar) {
+    if (quoteChars.contains(startChar) && startChar == endChar) {
       input.slice(1, input.length - 1)
     } else {
       input
@@ -432,7 +432,6 @@ object BigDiffy extends Command with Serializable {
     kurtosis: Double
   )
 
-  // scalastyle:off method.length
   /** saves stats to either GCS as text, or BigQuery */
   def saveStats[T](
     bigDiffy: BigDiffy[T],
@@ -540,7 +539,6 @@ object BigDiffy extends Command with Serializable {
           .saveAsTypedBigQueryTable(Table.Spec(s"${output}_global"))
     }
   }
-  // scalastyle:on method.length
 
   private def mergeFields(
     x: Seq[TableFieldSchema],
@@ -570,7 +568,6 @@ object BigDiffy extends Command with Serializable {
   }
 
   private def usage(): Unit = {
-    // scalastyle:off regex line.size.limit
     println(s"""BigDiffy - pair-wise field-level statistical diff
         |Usage: ratatool $command [dataflow_options] [options]
         |
@@ -604,7 +601,6 @@ object BigDiffy extends Command with Serializable {
         |
         |For more details regarding Dataflow options see here: https://cloud.google.com/dataflow/pipelines/specifying-exec-params
       """.stripMargin)
-    // scalastyle:on regex line.size.limit
     sys.exit(1)
   }
 
@@ -680,7 +676,6 @@ object BigDiffy extends Command with Serializable {
   def main(cmdlineArgs: Array[String]): Unit = run(cmdlineArgs)
 
   /** Scio pipeline for BigDiffy. */
-  // scalastyle:off cyclomatic.complexity method.length
   def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
@@ -745,7 +740,7 @@ object BigDiffy extends Command with Serializable {
     // validity checks passed, ok to run the diff
     val result = inputMode match {
       case "avro" =>
-        if(rowRestriction.isDefined) {
+        if (rowRestriction.isDefined) {
           throw new IllegalArgumentException(s"rowRestriction cannot be passed for avro inputs")
         }
 
@@ -765,7 +760,8 @@ object BigDiffy extends Command with Serializable {
         }
         val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhs, rhs)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)(
-          Coder.avroGenericRecordCoder(compatSchema))
+          Coder.avroGenericRecordCoder(compatSchema)
+        )
         BigDiffy.diffParquet(sc, lhs, rhs, avroKeyFn(keys), diffy)
       case "bigquery" =>
         // TODO: handle schema evolution
@@ -782,6 +778,4 @@ object BigDiffy extends Command with Serializable {
 
     sc.run().waitUntilDone()
   }
-  // scalastyle:on cyclomatic.complexity
-  // scalastyle:on method.length
 }

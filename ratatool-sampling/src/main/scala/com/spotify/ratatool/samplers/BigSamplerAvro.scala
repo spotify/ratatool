@@ -157,7 +157,6 @@ private[samplers] object BigSamplerAvro {
     }
   }
 
-  // scalastyle:off cyclomatic.complexity
   private def hashPrimitive(
     fieldName: String,
     fieldSchema: Schema,
@@ -183,8 +182,6 @@ private[samplers] object BigSamplerAvro {
         )
     }
   }
-
-  // scalastyle:on cyclomatic.complexity
 
   private def hashEnum(
     fieldName: String,
@@ -221,7 +218,6 @@ private[samplers] object BigSamplerAvro {
     }
   }
 
-  // scalastyle:off method.length cyclomatic.complexity parameter.number
   private[samplers] def sample(
     sc: ScioContext,
     input: String,
@@ -267,5 +263,4 @@ private[samplers] object BigSamplerAvro {
       r
     }
   }
-  // scalastyle:on method.length cyclomatic.complexity parameter.number
 }

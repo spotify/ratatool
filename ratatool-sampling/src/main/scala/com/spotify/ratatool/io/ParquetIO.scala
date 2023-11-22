@@ -45,31 +45,32 @@ object ParquetIO {
 
     val conf = new Configuration()
 
-    val parquetFileMetadata = ParquetFileReader.open(BeamInputFile.of(file))
-      .getFileMetaData
+    val parquetFileMetadata = ParquetFileReader.open(BeamInputFile.of(file)).getFileMetaData
 
     // We know Parquet files will either have the parquet.avro.schema key, or have a raw Parquet
     // schema that can be converted to an Avro one.
     Option(parquetFileMetadata.getKeyValueMetaData.get("parquet.avro.schema"))
-        .map(new Schema.Parser().parse(_))
-        .getOrElse(new AvroSchemaConverter(conf).convert(parquetFileMetadata.getSchema))
+      .map(new Schema.Parser().parse(_))
+      .getOrElse(new AvroSchemaConverter(conf).convert(parquetFileMetadata.getSchema))
   }
 
   private[ratatool] def getCompatibleSchemaForFiles(path1: String, path2: String): Schema = {
     val schemaLhs = getAvroSchemaFromFile(path1)
     val schemaRhs = getAvroSchemaFromFile(path2)
-    def isReadCompatible(s1: Schema, s2: Schema): Boolean = {
-      SchemaCompatibility.checkReaderWriterCompatibility(s1, s2)
+    def isReadCompatible(s1: Schema, s2: Schema): Boolean =
+      SchemaCompatibility
+        .checkReaderWriterCompatibility(s1, s2)
         .getType == SchemaCompatibilityType.COMPATIBLE
-    }
 
     if (isReadCompatible(schemaLhs, schemaRhs)) {
       schemaLhs
     } else if (isReadCompatible(schemaRhs, schemaLhs)) {
       schemaRhs
     } else {
-      throw new IllegalStateException(s"input $path1 had an incompatible schema to input " +
-        s"$path2: $schemaLhs not compatible with $schemaRhs")
+      throw new IllegalStateException(
+        s"input $path1 had an incompatible schema to input " +
+          s"$path2: $schemaLhs not compatible with $schemaRhs"
+      )
     }
   }
 
@@ -78,7 +79,9 @@ object ParquetIO {
 
     job.getConfiguration.setBoolean(AvroReadSupport.AVRO_COMPATIBILITY, true)
     job.getConfiguration.setClass(
-      AvroReadSupport.AVRO_DATA_SUPPLIER, classOf[GenericDataSupplier], classOf[AvroDataSupplier]
+      AvroReadSupport.AVRO_DATA_SUPPLIER,
+      classOf[GenericDataSupplier],
+      classOf[AvroDataSupplier]
     )
 
     AvroParquetInputFormat.setAvroReadSchema(job, schema)

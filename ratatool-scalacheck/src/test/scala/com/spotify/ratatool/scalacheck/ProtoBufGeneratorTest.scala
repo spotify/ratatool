@@ -64,9 +64,9 @@ object ProtoBufGeneratorTest extends Properties("ProtoBufGenerator") {
 
   property("support RichProtoTupGen") = forAll(richTupGen) { case (a, b) =>
     (a.getRequiredFields.getBoolField == b.getRequiredFields.getBoolField
-      && a.getRequiredFields.getInt32Field == b.getRequiredFields.getInt32Field
-      && a.getRequiredFields.getFixed64Field == b.getRequiredFields.getFixed64Field
-      && a.getRequiredFields.getStringField == b.getRequiredFields.getStringField
-      && a.getRequiredFields.getUint32Field == b.getRequiredFields.getUint32Field)
+    && a.getRequiredFields.getInt32Field == b.getRequiredFields.getInt32Field
+    && a.getRequiredFields.getFixed64Field == b.getRequiredFields.getFixed64Field
+    && a.getRequiredFields.getStringField == b.getRequiredFields.getStringField
+    && a.getRequiredFields.getUint32Field == b.getRequiredFields.getUint32Field)
   }
 }

@@ -26,7 +26,6 @@ object Ratatool {
   private def commandSet[T <: Command](xs: T*): Set[String] = xs.map(_.command).toSet
   private val commands = commandSet(DirectSamplerParser, BigDiffy, BigSampler)
 
-  // scalastyle:off cyclomatic.complexity
   def main(args: Array[String]): Unit = {
     val usage = """
       | Ratatool - a tool for random data generation, sampling, and diff-ing
@@ -70,5 +69,4 @@ object Ratatool {
       }
     }
   }
-  // scalastyle:on cyclomatic.complexity
 }
