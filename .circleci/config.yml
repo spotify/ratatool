@@ -8,11 +8,13 @@ executors:
   scala_212:
     docker:
       - image: circleci/openjdk:11-jdk
+    resource_class: medium
     environment:
       SCALA_VERSION: 2.12.18
   scala_213:
     docker:
       - image: circleci/openjdk:11-jdk
+    resource_class: medium
     environment:
       SCALA_VERSION: 2.13.12
 
