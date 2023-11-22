@@ -49,8 +49,7 @@ private[samplers] object BigSamplerProto {
       .sorted
   }
 
-  // scalastyle:off cyclomatic.complexity
-  private[samplers] def hashProtobufField[T <: AbstractMessage: ClassTag](
+    private[samplers] def hashProtobufField[T <: AbstractMessage: ClassTag](
     m: T,
     fieldStr: String,
     hasher: Hasher
@@ -83,10 +82,8 @@ private[samplers] object BigSamplerProto {
       }
     }
   }
-  // scalastyle:on cyclomatic.complexity
 
-  // scalastyle:off cyclomatic.complexity
-  private[samplers] def getProtobufField[T <: AbstractMessage: ClassTag](
+    private[samplers] def getProtobufField[T <: AbstractMessage: ClassTag](
     m: T,
     fieldStr: String
   ): Any = {
@@ -108,5 +105,4 @@ private[samplers] object BigSamplerProto {
       }
     }
   }
-  // scalastyle:on cyclomatic.complexity
-}
+  }

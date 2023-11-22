@@ -31,8 +31,7 @@ import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
 package object samplers {
-  // scalastyle:off parameter.number
-  /**
+    /**
    * Sample wrapper function for Avro GenericRecord
    * @param coll
    *   The input SCollection to be sampled
@@ -203,6 +202,5 @@ package object samplers {
       byteEncoding
     )
   }
-  // scalastyle:on parameter.number
 
 }

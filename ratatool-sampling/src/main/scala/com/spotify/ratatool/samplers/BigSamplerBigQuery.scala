@@ -39,8 +39,7 @@ private[samplers] object BigSamplerBigQuery {
 
   private val log = LoggerFactory.getLogger(BigSamplerBigQuery.getClass)
 
-  // scalastyle:off cyclomatic.complexity method.length
-  private[samplers] def hashTableRow(
+    private[samplers] def hashTableRow(
     tblSchema: => Seq[TableFieldSchema]
   )(r: TableRow, fieldStr: String, hasher: Hasher): Hasher = {
     val subfields = fieldStr.split(BigSampler.fieldSep)
@@ -92,10 +91,8 @@ private[samplers] object BigSamplerBigQuery {
       }
     }
   }
-  // scalastyle:on cyclomatic.complexity method.length
 
-  // scalastyle:off cyclomatic.complexity
-  // TODO: Potentially reduce this and hashAvroField to a single function
+    // TODO: Potentially reduce this and hashAvroField to a single function
   @tailrec
   private[samplers] def getTableRowField(
     r: TableRow,
@@ -125,7 +122,6 @@ private[samplers] object BigSamplerBigQuery {
       }
     }
   }
-  // scalastyle:on cyclomatic.complexity
 
   /**
    * Builds a key function per record Sets do not have deterministic ordering so we return a sorted
@@ -144,8 +140,7 @@ private[samplers] object BigSamplerBigQuery {
       .sorted
   }
 
-  // scalastyle:off method.length cyclomatic.complexity parameter.number
-  // TODO: investigate if possible to move this logic to BQ itself
+    // TODO: investigate if possible to move this logic to BQ itself
   private[samplers] def sample(
     sc: ScioContext,
     inputTbl: TableReference,
@@ -201,5 +196,4 @@ private[samplers] object BigSamplerBigQuery {
       r
     }
   }
-  // scalastyle:on method.length cyclomatic.complexity parameter.number
-}
+  }

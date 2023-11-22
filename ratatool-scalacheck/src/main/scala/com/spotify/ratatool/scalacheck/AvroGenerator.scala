@@ -27,7 +27,6 @@ import org.apache.beam.sdk.coders.{AvroCoder, AvroGenericCoder}
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.{Arbitrary, Gen}
 
-import java.math.BigInteger
 import scala.reflect.ClassTag
 
 /** Mainly type inference not to fall into `Any` */
@@ -94,9 +93,7 @@ trait AvroGeneratorOps {
     .flatMap(n => Gen.listOfN(n, Arbitrary.arbChar.arbitrary))
     .map(l => new Utf8(l.mkString))
 
-  // scalastyle:off cyclomatic.complexity
-  // scalastyle:off method.length
-  private def avroValueOf(schema: Schema): Gen[AvroValue] = {
+      private def avroValueOf(schema: Schema): Gen[AvroValue] = {
     import scala.jdk.CollectionConverters._
 
     schema.getType match {

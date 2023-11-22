@@ -37,7 +37,6 @@ import scala.language.postfixOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-// scalastyle:off file.size.limit
 object BigSamplerTest extends Properties("BigSampler") {
 
   private val testSeed = Some(42)

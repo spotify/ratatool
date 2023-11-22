@@ -261,7 +261,6 @@ object BigDiffy extends Command with Serializable {
       }
   }
 
-  // scalastyle:off cyclomatic.complexity
   private def computeGlobalAndFieldStats(
     deltas: DeltaSCollection,
     ignoreNan: Boolean
@@ -307,7 +306,6 @@ object BigDiffy extends Command with Serializable {
         (globalKeyStats, fieldStats)
       }
   }
-  // scalastyle:on cyclomatic.complexity
 
   /** Diff two data sets. */
   def diff[T: ClassTag: Coder](
@@ -432,7 +430,6 @@ object BigDiffy extends Command with Serializable {
     kurtosis: Double
   )
 
-  // scalastyle:off method.length
   /** saves stats to either GCS as text, or BigQuery */
   def saveStats[T](
     bigDiffy: BigDiffy[T],
@@ -540,7 +537,6 @@ object BigDiffy extends Command with Serializable {
           .saveAsTypedBigQueryTable(Table.Spec(s"${output}_global"))
     }
   }
-  // scalastyle:on method.length
 
   private def mergeFields(
     x: Seq[TableFieldSchema],
@@ -570,7 +566,6 @@ object BigDiffy extends Command with Serializable {
   }
 
   private def usage(): Unit = {
-    // scalastyle:off regex line.size.limit
     println(s"""BigDiffy - pair-wise field-level statistical diff
         |Usage: ratatool $command [dataflow_options] [options]
         |
@@ -604,8 +599,7 @@ object BigDiffy extends Command with Serializable {
         |
         |For more details regarding Dataflow options see here: https://cloud.google.com/dataflow/pipelines/specifying-exec-params
       """.stripMargin)
-    // scalastyle:on regex line.size.limit
-    sys.exit(1)
+        sys.exit(1)
   }
 
   private[diffy] def avroKeyFn(keys: Seq[String]): GenericRecord => MultiKey = {
@@ -680,8 +674,7 @@ object BigDiffy extends Command with Serializable {
   def main(cmdlineArgs: Array[String]): Unit = run(cmdlineArgs)
 
   /** Scio pipeline for BigDiffy. */
-  // scalastyle:off cyclomatic.complexity method.length
-  def run(cmdlineArgs: Array[String]): Unit = {
+    def run(cmdlineArgs: Array[String]): Unit = {
     val (sc, args) = ContextAndArgs(cmdlineArgs)
 
     val (
@@ -782,6 +775,4 @@ object BigDiffy extends Command with Serializable {
 
     sc.run().waitUntilDone()
   }
-  // scalastyle:on cyclomatic.complexity
-  // scalastyle:on method.length
-}
+    }

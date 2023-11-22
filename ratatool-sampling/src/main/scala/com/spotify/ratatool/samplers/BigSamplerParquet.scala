@@ -29,8 +29,7 @@ import org.slf4j.LoggerFactory
 private[samplers] object BigSamplerParquet {
   private val log = LoggerFactory.getLogger(BigSamplerParquet.getClass)
 
-  // scalastyle:off parameter.number
-  private[samplers] def sample(
+    private[samplers] def sample(
     sc: ScioContext,
     input: String,
     output: String,
@@ -76,5 +75,4 @@ private[samplers] object BigSamplerParquet {
       r
     }
   }
-  // scalastyle:on parameter.number
-}
+  }
