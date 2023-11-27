@@ -18,20 +18,13 @@
 package com.spotify.ratatool.scalacheck
 
 import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
-import org.apache.avro.Conversions
-import org.apache.avro.specific.SpecificData
 import org.scalacheck.Prop.{all, forAll, propBoolean}
 import org.scalacheck._
 
-import scala.util.chaining._
-
 object AvroGeneratorTest extends Properties("AvroGenerator") {
-  // This is require for avro 1.8 that does not generate valid model data
-  val specificData = new SpecificData()
-    .tap(_.addLogicalTypeConversion(new Conversions.DecimalConversion()))
 
-  val genTestRecord = specificRecordOf[TestRecord](specificData)
-  val genRequiredNestedRecord = specificRecordOf[RequiredNestedRecord](specificData)
+  val genTestRecord = specificRecordOf[TestRecord]
+  val genRequiredNestedRecord = specificRecordOf[RequiredNestedRecord]
 
   val genRich = genTestRecord
     .amend(Gen.choose(10, 20))(_.getNullableFields.setIntField)

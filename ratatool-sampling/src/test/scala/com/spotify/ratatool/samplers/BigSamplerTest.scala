@@ -26,9 +26,7 @@ import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.scalacheck._
 import com.spotify.ratatool.io.{AvroIO, FileStorage, ParquetIO}
 import com.spotify.ratatool.samplers.util.{ByteHasher, HexEncoding, MurmurHash}
-import org.apache.avro.Conversions
 import org.apache.avro.generic.GenericRecord
-import org.apache.avro.specific.SpecificData
 import org.scalacheck.Prop.{all, forAll, proved}
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Gen, Properties}
@@ -38,8 +36,6 @@ import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
-import scala.util.chaining._
 
 object BigSamplerTest extends Properties("BigSampler") {
 
@@ -159,11 +155,8 @@ object BigSamplerTest extends Properties("BigSampler") {
       )
   }
 
-  // This is require for avro 1.8 that does not generate valid model data
-  private val specificData = new SpecificData()
-    .tap(_.addLogicalTypeConversion(new Conversions.DecimalConversion()))
   private val avroSchema = TestRecord.getClassSchema
-  private val specificAvroGen = specificRecordOf[TestRecord](specificData)
+  private val specificAvroGen = specificRecordOf[TestRecord]
   private val supportedAvroTypes = Seq(
     "int_field",
     "float_field",
