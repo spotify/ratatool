@@ -285,6 +285,7 @@ lazy val ratatoolScalacheck = project
     name := "ratatool-scalacheck",
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion,
+      "joda-time" % "joda-time" % jodaTimeVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
       "org.apache.beam" % "beam-sdks-java-extensions-avro" % beamVersion,
