@@ -18,53 +18,59 @@
 package com.spotify.ratatool.io
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
-
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific.TestRecord
 import org.apache.avro.generic.GenericRecord
 import com.spotify.ratatool.scalacheck._
+import org.apache.avro.Conversions
+import org.apache.avro.specific.SpecificData
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import scala.util.chaining._
 
 class AvroIOTest extends AnyFlatSpec with Matchers {
 
   private val genericSchema = Schemas.avroSchema
   private val genericGen = genericRecordOf(genericSchema)
-  private val genericData = (1 to 100).flatMap(_ => genericGen.sample)
+  private val genericRecords = (1 to 100).flatMap(_ => genericGen.sample)
 
+  // This is require for avro 1.8 that does not generate valid model data
+  val specificData = new SpecificData()
+    .tap(_.addLogicalTypeConversion(new Conversions.DecimalConversion()))
   private val specificSchema = TestRecord.getClassSchema
-  private val specificGen = specificRecordOf[TestRecord]
-  private val specificData = (1 to 100).flatMap(_ => specificGen.sample)
+  private val specificGen = specificRecordOf[TestRecord](specificData)
+  private val specificRecords = (1 to 100).flatMap(_ => specificGen.sample)
 
   "AvroIO" should "work with generic record and stream" in {
     val out = new ByteArrayOutputStream()
-    AvroIO.writeToOutputStream(genericData, genericSchema, out)
+    AvroIO.writeToOutputStream(genericRecords, genericSchema, out)
     val in = new ByteArrayInputStream(out.toByteArray)
     val result = AvroIO.readFromInputStream[GenericRecord](in).toList
-    result should equal(genericData)
+    result should equal(genericRecords)
   }
 
   it should "work with generic record and file" in {
     val file = File.createTempFile("ratatool-", ".avro")
     file.deleteOnExit()
-    AvroIO.writeToFile(genericData, genericSchema, file)
+    AvroIO.writeToFile(genericRecords, genericSchema, file)
     val result = AvroIO.readFromFile[GenericRecord](file).toList
-    result should equal(genericData)
+    result should equal(genericRecords)
   }
 
   it should "work with specific record and stream" in {
     val out = new ByteArrayOutputStream()
-    AvroIO.writeToOutputStream(specificData, specificSchema, out)
+    AvroIO.writeToOutputStream(specificRecords, specificSchema, out)
     val in = new ByteArrayInputStream(out.toByteArray)
     val result = AvroIO.readFromInputStream[TestRecord](in).toList
-    result.map(FixRandomData(_)) should equal(specificData.map(FixRandomData(_)))
+    result.map(FixRandomData(_)) should equal(specificRecords.map(FixRandomData(_)))
   }
 
   it should "work with specific record and file" in {
     val file = File.createTempFile("ratatool-", ".avro")
     file.deleteOnExit()
-    AvroIO.writeToFile(specificData, specificSchema, file)
+    AvroIO.writeToFile(specificRecords, specificSchema, file)
     val result = AvroIO.readFromFile[TestRecord](file).toList
-    result.map(FixRandomData(_)) should equal(specificData.map(FixRandomData(_)))
+    result.map(FixRandomData(_)) should equal(specificRecords.map(FixRandomData(_)))
   }
 }

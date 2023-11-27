@@ -27,8 +27,8 @@ import scala.util.chaining._
 
 object AvroGeneratorTest extends Properties("AvroGenerator") {
   // This is require for avro 1.8 that does not generate valid model data
-  val specificData =
-    new SpecificData().tap(_.addLogicalTypeConversion(new Conversions.DecimalConversion()))
+  val specificData = new SpecificData()
+    .tap(_.addLogicalTypeConversion(new Conversions.DecimalConversion()))
 
   val genTestRecord = specificRecordOf[TestRecord](specificData)
   val genRequiredNestedRecord = specificRecordOf[RequiredNestedRecord](specificData)
