@@ -90,19 +90,14 @@ class AvroDiffy[T <: IndexedRecord: Coder](
         val bs =
           y.asInstanceOf[java.util.List[GenericRecord]].asScala.map(r => r.get(keyField) -> r).toMap
 
-        val aKeys = as.keySet
-        val bKeys = bs.keySet
-        val delta = if (aKeys != bKeys) {
-          Some(UnknownDelta)
-        } else {
-          aKeys
-            .map(k => (as(k), bs(k)))
-            .find { case (a, b) =>
-              a != b && diff(a, b, schema.getElementType, field).nonEmpty
-            }
-            .map(_ => UnknownDelta)
-        }
-        delta.map(d => Delta(field, Some(x), Some(y), d)).toSeq
+        for {
+          k <- (as.keySet ++ bs.keySet).toSeq
+          elementField = field + s"[$k]"
+          delta <- (as.get(k), bs.get(k)) match {
+            case (Some(a), Some(b)) => diff(a, b, schema.getElementType, field)
+            case (a, b)             => Seq(Delta(field, a, b, UnknownDelta))
+          }
+        } yield delta.copy(field = delta.field.replaceFirst(field, elementField))
       case Schema.Type.ARRAY =>
         val xs = x.asInstanceOf[java.util.List[AnyRef]]
         val ys = y.asInstanceOf[java.util.List[AnyRef]]
@@ -133,19 +128,15 @@ class AvroDiffy[T <: IndexedRecord: Coder](
         val bs = y.asInstanceOf[java.util.Map[CharSequence, AnyRef]].asScala.map { case (k, v) =>
           k.toString -> v
         }
-        val aKeys = as.keySet
-        val bKeys = bs.keySet
-        val delta = if (aKeys != bKeys) {
-          Some(UnknownDelta)
-        } else {
-          aKeys
-            .map(k => (as(k), bs(k)))
-            .find { case (a, b) =>
-              a != b && diff(a, b, schema.getValueType, field).nonEmpty
-            }
-            .map(_ => UnknownDelta)
-        }
-        delta.map(d => Delta(field, Some(x), Some(y), d)).toSeq
+
+        for {
+          k <- (as.keySet ++ bs.keySet).toSeq
+          elementField = field + s"[$k]"
+          delta <- (as.get(k), bs.get(k)) match {
+            case (Some(a), Some(b)) => diff(a, b, schema.getValueType, field)
+            case (a, b)             => Seq(Delta(field, a, b, UnknownDelta))
+          }
+        } yield delta.copy(field = delta.field.replaceFirst(field, elementField))
       case Schema.Type.STRING =>
         val a = x.asInstanceOf[CharSequence].toString
         val b = y.asInstanceOf[CharSequence].toString

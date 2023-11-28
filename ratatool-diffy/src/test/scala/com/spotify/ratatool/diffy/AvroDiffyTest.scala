@@ -209,7 +209,7 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
     )
 
     du(x, y) should equal(
-      Seq(Delta("repeated_record", Option(jl(a, b, c)), Some(jl(a, c)), UnknownDelta))
+      Seq(Delta("repeated_record[b]", Option(b), None, UnknownDelta))
     )
   }
 
