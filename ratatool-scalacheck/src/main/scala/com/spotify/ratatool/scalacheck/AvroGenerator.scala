@@ -32,29 +32,24 @@ object AvroGeneratorOps extends AvroGeneratorOps
 
 trait AvroGeneratorOps {
 
-  def specificRecordOf[A <: SpecificRecord: ClassTag]: Gen[A] = {
-    // after avro 1.8, use SpecificData.getForClass
-    val data = Try {
-      val cls = implicitly[ClassTag[A]].runtimeClass.asInstanceOf[Class[A]]
-      val specificDataField = cls.getDeclaredField("MODEL$")
-      specificDataField.setAccessible(true)
-      specificDataField.get(null).asInstanceOf[SpecificData]
-    }.recover { case _: NoSuchFieldException =>
-      // Return default instance
-      SpecificData.get()
-    }.get
-    specificRecordOf[A](data)
-  }
+  // after avro 1.8, use SpecificData.getForClass
+  private def dataForClass(cls: Class[_]): SpecificData = Try {
+    val modelField = cls.getDeclaredField("MODEL$")
+    modelField.setAccessible(true)
+    modelField.get(null).asInstanceOf[SpecificData]
+  }.recover { case _: NoSuchFieldException =>
+    // Return default instance
+    SpecificData.get()
+  }.get
 
-  def specificRecordOf[A <: SpecificRecord: ClassTag](data: SpecificData): Gen[A] = {
+  def specificRecordOf[A <: SpecificRecord: ClassTag]: Gen[A] = {
     val cls = implicitly[ClassTag[A]].runtimeClass.asInstanceOf[Class[A]]
+    val data: SpecificData = dataForClass(cls)
     val schema = data.getSchema(cls)
     avroValueOf(schema)(data).asInstanceOf[Gen[A]]
   }
   def genericRecordOf(schema: Schema): Gen[GenericRecord] =
-    genericRecordOf(schema, GenericData.get())
-  def genericRecordOf(schema: Schema, data: GenericData): Gen[GenericRecord] =
-    avroValueOf(schema)(data).asInstanceOf[Gen[GenericRecord]]
+    avroValueOf(schema)(GenericData.get()).asInstanceOf[Gen[GenericRecord]]
 
   /** Aliases for API consistency across formats */
   def avroOf[A <: SpecificRecord: ClassTag]: Gen[A] = specificRecordOf[A]
@@ -80,11 +75,16 @@ trait AvroGeneratorOps {
 
     schema.getType match {
       case Schema.Type.RECORD =>
+        val recordData = data match {
+          case specificData: SpecificData => dataForClass(specificData.getClass(schema))
+          case _                          => data
+        }
+
         val record = for {
           fields <- Gen.sequence[List[(Int, Any)], (Int, Any)](schema.getFields.asScala.map { f =>
-            avroValueOf(f.schema()).map(v => f.pos() -> v)
+            avroValueOf(f.schema())(recordData).map(v => f.pos() -> v)
           })
-        } yield fields.foldLeft(data.newRecord(null, schema).asInstanceOf[IndexedRecord]) {
+        } yield fields.foldLeft(recordData.newRecord(null, schema).asInstanceOf[IndexedRecord]) {
           case (r, (idx, v)) =>
             r.put(idx, v)
             r
@@ -164,7 +164,7 @@ trait AvroGeneratorOps {
               case _ =>
                 bytes
             }
-            bs.map(b => c.fromBytes(b, schema, schema.getLogicalType))
+            bs.map(b => c.asInstanceOf[Conversion[Any]].fromBytes(b, schema, schema.getLogicalType))
           case None => bytes
         }
 

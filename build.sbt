@@ -163,7 +163,6 @@ lazy val ratatoolCommon = project
     name := "ratatool-common",
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion,
-      "org.apache.avro" % "avro-mapred" % avroVersion classifier "hadoop2",
       "com.google.guava" % "guava" % guavaVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "org.apache.avro" % "avro" % avroTestVersion % Test,
