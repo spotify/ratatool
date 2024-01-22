@@ -19,19 +19,23 @@ import sbt._
 import Keys._
 
 val algebirdVersion = "0.13.10"
+
+// Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.14.0/build.sbt
+val scioVersion = "0.14-8962386-SNAPSHOT"
+
 val avroVersion = "1.8.2" // keep in sync with scio
-val beamVersion = "2.52.0" // keep in sync with scio
+val beamVersion = "2.53.0" // keep in sync with scio
+val beamVendorVersion = "0.1" // keep in sync with scio
 val bigqueryVersion = "v2-rev20230812-2.0.0" // keep in sync with scio
-val floggerVersion = "0.7.4" // keep in sync with scio + beam
+val floggerVersion = "0.8" // keep in sync with scio + beam
 val guavaVersion = "32.1.2-jre" // keep in sync with scio + beam
-val hadoopVersion = "2.10.2" // keep in sync with scio
+val hadoopVersion = "3.2.4" // keep in sync with scio
 val jodaTimeVersion = "2.10.10" // keep in sync with scio
-val parquetVersion = "1.12.3" // keep in sync with scio
-val protoBufVersion = "3.23.2" // keep in sync with scio
+val parquetVersion = "1.13.1" // keep in sync with scio
+val protoBufVersion = "3.25.1" // keep in sync with scio
 val scalaTestVersion = "3.2.17"
 val scalaCheckVersion = "1.17.0"
 val scalaCollectionCompatVersion = "2.11.0"
-val scioVersion = "0.13.6"
 val scoptVersion = "4.1.0"
 val shapelessVersion = "2.3.10" // keep in sync with scio
 val sourcecodeVersion = "0.3.1"
@@ -48,7 +52,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   scalaVersion := "2.12.18",
   crossScalaVersions := Seq("2.12.18", "2.13.12"),
   resolvers += "confluent" at "https://packages.confluent.io/maven/",
-  scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
+  scalacOptions ++= Seq("-target:8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions ++= {
     if (isScala213x.value) {
       Seq("-Ymacro-annotations", "-Ywarn-unused")
@@ -65,7 +69,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
       )
     }
   },
-  javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
+  javacOptions ++= Seq("--release", "8", "-Xlint:unchecked"),
   fork := true
 )
 
@@ -153,6 +157,7 @@ lazy val ratatoolCommon = project
       "org.apache.avro" % "avro" % avroVersion,
       "org.apache.avro" % "avro-mapred" % avroVersion classifier "hadoop2",
       "com.google.guava" % "guava" % guavaVersion,
+      "org.apache.beam" % "beam-vendor-guava-32_1_2-jre" % beamVendorVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "org.apache.avro" % "avro" % avroVersion % Test classifier "tests",
       "org.slf4j" % "slf4j-simple" % slf4jVersion % Test,
@@ -174,6 +179,7 @@ lazy val ratatoolSampling = project
       "com.spotify" %% "scio-google-cloud-platform" % scioVersion,
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
+      "org.apache.beam" % "beam-vendor-guava-32_1_2-jre" % beamVendorVersion,
       "com.twitter" %% "algebird-core" % algebirdVersion,
       "joda-time" % "joda-time" % jodaTimeVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
@@ -200,6 +206,7 @@ lazy val ratatoolDiffy = project
       "com.spotify" %% "scio-parquet" % scioVersion,
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
+      "org.apache.beam" % "beam-vendor-guava-32_1_2-jre" % beamVendorVersion,
       "com.twitter" %% "algebird-core" % algebirdVersion,
       "joda-time" % "joda-time" % jodaTimeVersion,
       "com.spotify" %% "scio-test" % scioVersion % Test,
@@ -274,6 +281,7 @@ lazy val ratatoolScalacheck = project
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
       "org.apache.beam" % "beam-sdks-java-extensions-avro" % beamVersion,
+      "org.apache.beam" % "beam-vendor-guava-32_1_2-jre" % beamVendorVersion,
       "com.lihaoyi" %% "sourcecode" % sourcecodeVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
@@ -289,6 +297,7 @@ lazy val ratatoolExamples = project
     name := "ratatool-examples",
     libraryDependencies ++= Seq(
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
+      "org.apache.beam" % "beam-vendor-guava-32_1_2-jre" % beamVendorVersion,
       "com.spotify" %% "scio-test" % scioVersion % Test
     )
   )

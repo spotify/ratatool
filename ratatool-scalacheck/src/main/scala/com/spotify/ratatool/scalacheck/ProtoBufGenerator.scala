@@ -20,7 +20,11 @@ package com.spotify.ratatool.scalacheck
 import java.io.ByteArrayOutputStream
 import java.lang.reflect.Method
 
-import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.cache.{
+  CacheBuilder,
+  CacheLoader,
+  LoadingCache
+}
 import com.google.protobuf.DescriptorProtos.FieldDescriptorProto.Label
 import com.google.protobuf.{AbstractMessage, CodedOutputStream, Descriptors}
 import com.google.protobuf.Descriptors.{Descriptor, EnumValueDescriptor, FieldDescriptor}

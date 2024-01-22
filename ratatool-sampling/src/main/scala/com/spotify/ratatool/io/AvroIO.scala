@@ -21,7 +21,7 @@ import java.io.{File, InputStream, OutputStream}
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
 
-import com.google.common.io.ByteStreams
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.ByteStreams
 import org.apache.avro.Schema
 import org.apache.avro.file.{DataFileReader, DataFileWriter, SeekableByteArrayInput, SeekableInput}
 import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericRecord}

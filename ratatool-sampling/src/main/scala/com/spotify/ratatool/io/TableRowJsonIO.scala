@@ -20,8 +20,8 @@ package com.spotify.ratatool.io
 import java.io.{File, InputStream, OutputStream}
 
 import com.google.api.services.bigquery.model.TableRow
-import com.google.common.base.Charsets
-import com.google.common.io.Files
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.base.Charsets
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.Files
 import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 import org.apache.beam.sdk.util.CoderUtils
 

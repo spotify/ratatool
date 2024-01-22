@@ -22,7 +22,7 @@ import java.util
 import com.google.api.client.json.JsonObjectParser
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.bigquery.model.{TableRow, TableSchema}
-import com.google.common.base.Charsets
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.base.Charsets
 import com.spotify.ratatool.avro.specific.{EnumField, ExampleRecord, NestedExampleRecord}
 import com.spotify.ratatool.scalacheck._
 import org.apache.avro.util.Utf8

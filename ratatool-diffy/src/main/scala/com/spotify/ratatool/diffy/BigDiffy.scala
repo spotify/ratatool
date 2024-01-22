@@ -19,7 +19,7 @@ package com.spotify.ratatool.diffy
 
 import java.nio.ByteBuffer
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
-import com.google.common.io.BaseEncoding
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
 import com.google.protobuf.AbstractMessage
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.io.ParquetIO
@@ -350,7 +350,7 @@ object BigDiffy extends Command with Serializable {
     diffy: AvroDiffy[GenericRecord]
   ): BigDiffy[GenericRecord] = {
     val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhs, rhs)
-    implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(compatSchema)
+    implicit val grCoder: Coder[GenericRecord] = avroGenericRecordCoder(compatSchema)
 
     diff(
       sc.parquetAvroFile[GenericRecord](lhs, compatSchema).map(identity),
@@ -748,7 +748,7 @@ object BigDiffy extends Command with Serializable {
           .sample(1, head = true)
           .head
           .getSchema
-        implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
+        implicit val grCoder: Coder[GenericRecord] = avroGenericRecordCoder(schema)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)
         val lhsSCollection = sc.avroFile(lhs, schema)
         val rhsSCollection = sc.avroFile(rhs, schema)
@@ -760,7 +760,7 @@ object BigDiffy extends Command with Serializable {
         }
         val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhs, rhs)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)(
-          Coder.avroGenericRecordCoder(compatSchema)
+          avroGenericRecordCoder(compatSchema)
         )
         BigDiffy.diffParquet(sc, lhs, rhs, avroKeyFn(keys), diffy)
       case "bigquery" =>

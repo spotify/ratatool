@@ -19,7 +19,7 @@ package com.spotify.ratatool.diffy
 
 import java.nio.ByteBuffer
 
-import com.google.common.io.BaseEncoding
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific._
 import com.spotify.ratatool.scalacheck._
