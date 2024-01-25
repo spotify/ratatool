@@ -31,6 +31,7 @@ import com.spotify.scio.parquet.avro._
 import com.spotify.scio.bigquery.client.BigQuery
 import com.spotify.scio.bigquery.types.BigQueryType
 import com.spotify.scio.coders.Coder
+import com.spotify.scio.coders.kryo._
 import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._

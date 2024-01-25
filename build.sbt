@@ -21,7 +21,7 @@ import Keys._
 val algebirdVersion = "0.13.10"
 
 // Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.14.0/build.sbt
-val scioVersion = "0.14-8962386-SNAPSHOT"
+val scioVersion = "0.14-80c6d3c-SNAPSHOT"
 
 val avroVersion = "1.8.2" // keep in sync with scio
 val beamVersion = "2.53.0" // keep in sync with scio
@@ -51,7 +51,8 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.12.18",
   crossScalaVersions := Seq("2.12.18", "2.13.12"),
-  resolvers += "confluent" at "https://packages.confluent.io/maven/",
+  resolvers ++= Resolver.sonatypeOssRepos("public"),
+  resolvers ++= Resolver.sonatypeOssRepos("snapshots"), // @Todo remove when 0.14.0 released
   scalacOptions ++= Seq("-target:8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions ++= {
     if (isScala213x.value) {
