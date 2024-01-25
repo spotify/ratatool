@@ -70,6 +70,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
       )
     }
   },
+  excludeDependencies += "org.apache.beam" % "beam-sdks-java-io-kafka",
   javacOptions ++= Seq("--release", "8", "-Xlint:unchecked"),
   fork := true
 )
