@@ -20,7 +20,7 @@ package com.spotify.ratatool
 import com.google.api.client.json.JsonObjectParser
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.bigquery.model.TableSchema
-import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.base.Charsets
+import com.google.common.base.Charsets
 import org.apache.avro.Schema
 
 object Schemas {

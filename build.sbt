@@ -159,7 +159,6 @@ lazy val ratatoolCommon = project
       "org.apache.avro" % "avro" % avroVersion,
       "org.apache.avro" % "avro-mapred" % avroVersion classifier "hadoop2",
       "com.google.guava" % "guava" % guavaVersion,
-      "org.apache.beam" % "beam-vendor-guava-32_1_2-jre" % beamVendorVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "org.apache.avro" % "avro" % avroVersion % Test classifier "tests",
       "org.slf4j" % "slf4j-simple" % slf4jVersion % Test,
