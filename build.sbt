@@ -165,8 +165,8 @@ lazy val ratatoolCommon = project
       "org.apache.avro" % "avro" % avroVersion,
       "com.google.guava" % "guava" % guavaVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
-      "org.apache.avro" % "avro" % avroTestVersion % Test,
-      "org.apache.avro" % "avro" % avroTestVersion % Test classifier "tests",
+      "org.apache.avro" % "avro" % avroVersion % Test,
+      "org.apache.avro" % "avro" % avroVersion % Test classifier "tests",
       "org.slf4j" % "slf4j-simple" % slf4jVersion % Test,
     ),
     // In case of scalacheck failures print more info

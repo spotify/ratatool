@@ -34,13 +34,8 @@ import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.parquet.avro._
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
-import org.apache.avro.SchemaCompatibility.SchemaCompatibilityType
-import org.apache.avro.{Schema, SchemaCompatibility}
-import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
-import org.apache.avro.io.DatumReader
+import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecordBase
-import org.apache.beam.sdk.extensions.avro.coders.AvroCoder
-import org.apache.beam.sdk.extensions.avro.io.AvroDatumFactory
 import org.apache.beam.sdk.io.TextIO
 import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
 import org.slf4j.{Logger, LoggerFactory}
@@ -200,28 +195,6 @@ case object BQ extends OutputMode
 object BigDiffy extends Command with Serializable {
   val command: String = "bigDiffy"
   @transient private lazy val logger: Logger = LoggerFactory.getLogger(BigDiffy.getClass)
-
-  // When Utf8 is used for CharSequence, it messes immutability check with beam
-  // Use custom coder that uses String instead of Utf8
-  private object GenericRecordDatumFactory extends AvroDatumFactory.GenericDatumFactory {
-
-    private class ScioGenericDatumReader extends GenericDatumReader[GenericRecord] {
-      override def findStringClass(schema: Schema): Class[_] = super.findStringClass(schema) match {
-        case cls if cls == classOf[CharSequence] => classOf[String]
-        case cls                                 => cls
-      }
-    }
-
-    override def apply(writer: Schema, reader: Schema): DatumReader[GenericRecord] = {
-      val datumReader = new ScioGenericDatumReader()
-      datumReader.setExpected(reader)
-      datumReader.setSchema(writer)
-      datumReader
-    }
-  }
-
-  def avroGenericRecordCoder(schema: Schema): Coder[GenericRecord] =
-    Coder.beam(AvroCoder.of(GenericRecordDatumFactory, schema))
 
   // (field, deltas, diff type)
   type DeltaSCollection = SCollection[(MultiKey, (Seq[Delta], DiffType.Value))]

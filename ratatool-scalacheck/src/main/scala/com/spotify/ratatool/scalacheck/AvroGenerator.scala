@@ -32,12 +32,25 @@ object AvroGeneratorOps extends AvroGeneratorOps
 
 trait AvroGeneratorOps {
 
+  private lazy val avroRuntimeVersion =
+    Option(classOf[Schema].getPackage.getImplementationVersion)
+
   // after avro 1.8, use SpecificData.getForClass
   private def dataForClass(cls: Class[_]): SpecificData = Try {
     val modelField = cls.getDeclaredField("MODEL$")
     modelField.setAccessible(true)
-    modelField.get(null).asInstanceOf[SpecificData]
-  }.recover { case _: NoSuchFieldException =>
+    val data = modelField.get(null).asInstanceOf[SpecificData]
+
+    // avro 1.8 generated code does not add conversions to the data
+    if (avroRuntimeVersion.exists(_.startsWith("1.8."))) {
+      val conversionsField = cls.getDeclaredField("conversions")
+      conversionsField.setAccessible(true)
+      val conversions = conversionsField.get(null).asInstanceOf[Array[Conversion[_]]]
+      conversions.filterNot(_ == null).foreach(data.addLogicalTypeConversion)
+    }
+
+    data
+  }.recover { case _: NoSuchFieldException | _: IllegalAccessException =>
     // Return default instance
     SpecificData.get()
   }.get
