@@ -17,7 +17,7 @@
 
 package com.spotify.ratatool.samplers
 
-import com.google.common.hash.Hasher
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.hash.Hasher
 import com.google.protobuf.{AbstractMessage, ByteString}
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import org.slf4j.LoggerFactory

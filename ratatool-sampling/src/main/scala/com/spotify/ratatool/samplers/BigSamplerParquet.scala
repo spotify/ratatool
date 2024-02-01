@@ -20,6 +20,7 @@ package com.spotify.ratatool.samplers
 import com.spotify.ratatool.io.{FileStorage, ParquetIO}
 import com.spotify.ratatool.samplers.util._
 import com.spotify.scio.ScioContext
+import com.spotify.scio.avro._
 import com.spotify.scio.coders.Coder
 import com.spotify.scio.io.{ClosedTap, MaterializeTap}
 import com.spotify.scio.parquet.avro._
@@ -46,13 +47,12 @@ private[samplers] object BigSamplerParquet {
     val schema = ParquetIO.getAvroSchemaFromFile(input)
     val outputParts = if (output.endsWith("/")) output + "part*" else output + "/part*"
 
+    implicit val coder: Coder[GenericRecord] = avroGenericRecordCoder(schema)
     if (FileStorage(outputParts).isDone) {
-      implicit val coder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
       log.info(s"Reuse previous sample at $outputParts")
       ClosedTap(MaterializeTap[GenericRecord](outputParts, sc))
     } else {
       log.info(s"Will sample from: $input, output will be $output")
-      implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
 
       val coll = sc.parquetAvroFile[GenericRecord](input, schema).map(identity)
 

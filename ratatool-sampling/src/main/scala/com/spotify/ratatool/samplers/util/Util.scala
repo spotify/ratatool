@@ -17,7 +17,7 @@
 
 package com.spotify.ratatool.samplers.util
 
-import com.google.common.hash.{Hasher, Hashing}
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.hash.{Hasher, Hashing}
 
 trait SampleDistribution
 case object StratifiedDistribution extends SampleDistribution

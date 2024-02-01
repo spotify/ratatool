@@ -16,8 +16,8 @@
  */
 package com.spotify.ratatool.samplers.util
 
-import com.google.common.hash.{Funnel, PrimitiveSink}
-import com.google.common.io.BaseEncoding
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.hash.{Funnel, PrimitiveSink}
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
 import com.spotify.ratatool.samplers.BigSampler
 import org.scalacheck.Prop.forAll
 import org.scalacheck.Properties

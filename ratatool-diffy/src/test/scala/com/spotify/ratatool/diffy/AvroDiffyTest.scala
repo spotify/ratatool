@@ -19,7 +19,8 @@ package com.spotify.ratatool.diffy
 
 import java.nio.ByteBuffer
 
-import com.google.common.io.BaseEncoding
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
+import com.spotify.scio.avro._
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific._
 import com.spotify.ratatool.scalacheck._
@@ -36,9 +37,9 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
 
   def jl[T](x: T*): java.util.List[T] = List(x: _*).asJava
 
-  val d = new AvroDiffy[GenericRecord]()
-
   "AvroDiffy" should "support primitive fields" in {
+    val d = new AvroDiffy[NullableNestedRecord]()
+
     val x = NullableNestedRecord.newBuilder().setIntField(10).setLongField(20L).build()
     val y = NullableNestedRecord.newBuilder().setIntField(10).setLongField(20L).build()
     val z = NullableNestedRecord.newBuilder().setIntField(10).setLongField(200L).build()
@@ -65,6 +66,8 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
     val z2 = CoderUtils.clone(coder, x)
     z2.setNullableNestedField(null)
     val z3 = CoderUtils.clone(coder, z2)
+
+    val d = new AvroDiffy[TestRecord]()
 
     d(x, y) should equal(Nil)
     d(x, z1) should equal(
@@ -95,6 +98,8 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
     z.getRepeatedFields.setLongField(jl(-20L, -21L))
     z.getRepeatedFields.setStringField(jl("Hello", "World"))
 
+    val d = new AvroDiffy[TestRecord]()
+
     d(x, y) should equal(Nil)
     d(x, z) should equal(
       Seq(
@@ -119,7 +124,7 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
     val y = NullableNestedRecord.newBuilder().setIntField(10).setLongField(20L).build()
     val z = NullableNestedRecord.newBuilder().setIntField(20).setLongField(200L).build()
 
-    val di = new AvroDiffy[GenericRecord](Set("int_field"))
+    val di = new AvroDiffy[NullableNestedRecord](Set("int_field"))
     di(x, y) should equal(Nil)
     di(x, z) should equal(Seq(Delta("long_field", Option(20L), Option(200L), NumericDelta(180.0))))
   }
@@ -137,9 +142,11 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
     val z = CoderUtils.clone(coder, x)
     z.setRepeatedNestedField(jl(a, c, b))
 
-    val du = new AvroDiffy[GenericRecord](unordered = Set("repeated_nested_field"))
+    val du = new AvroDiffy[TestRecord](unordered = Set("repeated_nested_field"))
     du(x, y) should equal(Nil)
     du(x, z) should equal(Nil)
+
+    val d = new AvroDiffy[TestRecord]()
     d(x, z) should equal(
       Seq(Delta("repeated_nested_field", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta))
     )
@@ -170,6 +177,8 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
 
     du(x, y) should equal(Nil)
     du(x, z) should equal(Nil)
+
+    val d = new AvroDiffy[DeeplyRepeatedRecord]()
     d(x, z) should equal(
       Seq(Delta("repeated_record", Option(jl(a, b, c)), Option(jl(a, c, b)), UnknownDelta))
     )
@@ -246,6 +255,8 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
           .build()
       )
       .build()
+
+    implicit val coder = avroGenericRecordCoder(Schemas.evolvedSimpleAvroSchema)
 
     val d = new AvroDiffy[GenericRecord]()
     val di = new AvroDiffy[GenericRecord](ignore = Set("nullable_fields.string_field"))

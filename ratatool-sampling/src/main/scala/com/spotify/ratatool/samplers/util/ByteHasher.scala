@@ -18,8 +18,8 @@ package com.spotify.ratatool.samplers.util
 
 import java.nio.charset.Charset
 
-import com.google.common.hash.{Funnel, HashCode, Hasher}
-import com.google.common.io.BaseEncoding
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.hash.{Funnel, HashCode, Hasher}
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
 
 object ByteHasher {
   def wrap(hasher: Hasher, be: ByteEncoding, charset: Charset): Hasher = {

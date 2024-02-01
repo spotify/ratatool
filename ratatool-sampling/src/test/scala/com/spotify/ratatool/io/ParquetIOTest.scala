@@ -18,6 +18,7 @@
 package com.spotify.ratatool.io
 
 import com.spotify.scio.ScioContext
+import com.spotify.scio.avro._
 import com.spotify.scio.coders.Coder
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecord}
@@ -114,7 +115,7 @@ object ParquetTestData extends Serializable {
   """.stripMargin)
 
   def writeTestData(avroPath: String, typedPath: String, numShards: Int = 1): Unit = {
-    implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(avroSchema)
+    implicit val grCoder: Coder[GenericRecord] = avroGenericRecordCoder(avroSchema)
 
     val sc = ScioContext()
 

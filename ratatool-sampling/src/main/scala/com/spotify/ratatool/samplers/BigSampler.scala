@@ -19,7 +19,7 @@ package com.spotify.ratatool.samplers
 import java.net.URI
 import java.nio.charset.Charset
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableReference}
-import com.google.common.hash.{HashCode, Hasher}
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.hash.{HashCode, Hasher}
 import com.spotify.ratatool.samplers.util.SamplerSCollectionFunctions._
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.io.FileStorage
