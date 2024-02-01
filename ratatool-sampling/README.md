@@ -85,6 +85,16 @@ Leveraging `--fields=<field1,field2,...>` BigSampler can produce a hash based on
  are in the sample. For example, `--fields=user_id --sample=0.5` will always produce the same sample
  of 50% of users. If multiple records contain the same `user_id` they will all be in or out of the
  sample.
+
+### Reproducing within BigQuery
+Currently, BigSampler defaults to Farmhash, which is also used in BigQuery. When sampling with a seed and one or more fields,
+ under the hood Farmhash will create a byte array, convert all inputs to bytes, and concatenate them together. To recreate this in BigQuery, you
+ will have to pre-create the seed as a little endian hex encoded byte string, as BigQuery does not currently allow directly converting an integer
+ to bytes.
+
+`FARM_FINGERPRINT(CONCAT(b'\x2A\x00\x00\x00', b"abc"))` will produce the equivalent hash of `--seed=42` with one `fields` where the given record has value `abc`.
+
+The output will also need to be normalized to the range [0.0, 1.0] from the range [Long.MinValue, Long.MaxValue] in order to produce the exact equivalent sample as BigSampler.
  
 ## Sampling a Distribution
 BigSampler supports sampling to produce either a Stratified or Uniform distribution.
