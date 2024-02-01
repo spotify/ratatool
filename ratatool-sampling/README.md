@@ -121,7 +121,7 @@ Distribution sampling currently assumes all distinct keys or strata can fit into
 ## Distributions
 ### Stratified
 ![Stratified](https://github.com/spotify/ratatool/blob/master/misc/Stratified.png)
-Stratified sampling example. Not that only the specified distributionFields are preserved in the sample.
+Stratified sampling example. Note that only the specified distributionFields are preserved in the sample.
 
 ![Uniform](https://github.com/spotify/ratatool/blob/master/misc/Uniform.png)
-Uniform sampling example. Adjusts
+Uniform sampling example. Adjusts input to produce an even output distribution if possible.
