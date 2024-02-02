@@ -92,7 +92,7 @@ Currently, BigSampler defaults to Farmhash, which is also used in BigQuery. When
  will have to pre-create the seed as a little endian hex encoded byte string, as BigQuery does not currently allow directly converting an integer
  to bytes.
 
-`FARM_FINGERPRINT(CONCAT(b'\x2A\x00\x00\x00', b'abc'))` will produce the equivalent hash of `--seed=42` with one `fields` where the given record has value `abc`.
+`FARM_FINGERPRINT(CONCAT(b'\x2A\x00\x00\x00', CAST('abc' as BYTES))` will produce the equivalent hash of `--seed=42` with one `fields` where the given record has value `abc`.
 
 The output will also need to be normalized to the range [0.0, 1.0] from the range [Long.MinValue, Long.MaxValue] in order to produce the exact equivalent sample as BigSampler.
  
