@@ -18,12 +18,11 @@
 package com.spotify.ratatool.diffy
 
 import com.spotify.scio.coders.Coder
-import org.apache.avro.{Conversion, Schema}
-import org.apache.avro.generic.{GenericData, GenericRecord, IndexedRecord}
+import org.apache.avro.Schema
+import org.apache.avro.generic.{GenericRecord, IndexedRecord}
 import org.apache.avro.specific.SpecificData
 
 import scala.jdk.CollectionConverters._
-import scala.util.Try
 
 /** Field level diff tool for Avro records. */
 class AvroDiffy[T <: IndexedRecord: Coder](
@@ -31,29 +30,6 @@ class AvroDiffy[T <: IndexedRecord: Coder](
   unordered: Set[String] = Set.empty,
   unorderedFieldKeys: Map[String, String] = Map()
 ) extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
-
-  private lazy val avroRuntimeVersion =
-    Option(classOf[Schema].getPackage.getImplementationVersion)
-
-  // after avro 1.8, use SpecificData.getForClass
-  private def dataForClass(cls: Class[_]): SpecificData = Try {
-    val modelField = cls.getDeclaredField("MODEL$")
-    modelField.setAccessible(true)
-    val data = modelField.get(null).asInstanceOf[SpecificData]
-
-    // avro 1.8 generated code does not add conversions to the data
-    if (avroRuntimeVersion.exists(_.startsWith("1.8."))) {
-      val conversionsField = cls.getDeclaredField("conversions")
-      conversionsField.setAccessible(true)
-      val conversions = conversionsField.get(null).asInstanceOf[Array[Conversion[_]]]
-      conversions.filterNot(_ == null).foreach(data.addLogicalTypeConversion)
-    }
-
-    data
-  }.recover { case _: NoSuchFieldException | _: IllegalAccessException =>
-    // Return default instance
-    SpecificData.get()
-  }.get
 
   override def apply(x: T, y: T): Seq[Delta] = (x, y) match {
     case (null, null)                    => Seq.empty
