@@ -146,7 +146,13 @@ lazy val releaseSettings = Seq(
       name = "Rafal Wojdyla",
       email = "ravwojdyla@gmail.com",
       url = url("https://twitter.com/ravwojdyla")
-    )
+    ),
+    Developer(
+      id = "benk",
+      name = "Ben Konz",
+      email = "benkonz16@gmail.com",
+      url = url("https://benkonz.github.io/")
+    ),
   )
 )
 
