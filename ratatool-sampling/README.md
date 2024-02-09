@@ -6,7 +6,7 @@ Diffy contains record sampling classes for Avro, Parquet, and BigQuery. Supporte
 # BigSampler
 
 BigSampler will run a [Scio](https://github.com/spotify/scio) pipeline sampling either Avro or BigQuery data.
- It also allows specifying a hash function (either FarmHash or Murmur) with seed (if applicable for 
+ It also allows specifying a hash function (either [FarmHash](https://github.com/google/farmhash) or Murmur) with seed (if applicable for 
  your hash) and fields to hash for deterministic cohort selection.
 
 For full details see [BigSample.scala](https://github.com/spotify/ratatool/blob/master/ratatool-sampling/src/main/scala/com/spotify/ratatool/samplers/BigSampler.scala)
