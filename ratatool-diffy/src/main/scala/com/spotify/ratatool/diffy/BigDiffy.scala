@@ -756,16 +756,16 @@ object BigDiffy extends Command with Serializable {
         val lhsSchema = avroFileSchema(lhs, sc.options)
         val rhsSchema = avroFileSchema(rhs, sc.options)
 
-        val lhsReader  = SchemaCompatibility.checkReaderWriterCompatibility(lhsSchema, rhsSchema)
+        val lhsReader = SchemaCompatibility.checkReaderWriterCompatibility(lhsSchema, rhsSchema)
         val rhsReader = SchemaCompatibility.checkReaderWriterCompatibility(rhsSchema, lhsSchema)
 
         import SchemaCompatibility.SchemaCompatibilityType._
         val schema = (lhsReader.getType, rhsReader.getType) match {
           case (COMPATIBLE, COMPATIBLE) =>
             if (lhsSchema != rhsSchema) {
-              logger.warn("Avro schemas are compatible, but not equal. Using schema from {}", lhs)
+              logger.warn("Avro schemas are compatible, but not equal. Using schema from {}", rhs)
             }
-            lhsSchema
+            rhsSchema
           case (COMPATIBLE, INCOMPATIBLE) =>
             lhsSchema
           case (INCOMPATIBLE, COMPATIBLE) =>
