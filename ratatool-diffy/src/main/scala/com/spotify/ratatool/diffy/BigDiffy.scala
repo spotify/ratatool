@@ -42,10 +42,8 @@ import org.apache.beam.sdk.options.PipelineOptions
 import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
 import org.slf4j.{Logger, LoggerFactory}
 
-import java.io.File
 import java.nio.ByteBuffer
 import scala.annotation.tailrec
-import scala.collection.compat.BuildFrom.fromCanBuildFromConversion
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.language.higherKinds
