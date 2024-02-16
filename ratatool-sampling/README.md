@@ -6,7 +6,7 @@ Diffy contains record sampling classes for Avro, Parquet, and BigQuery. Supporte
 # BigSampler
 
 BigSampler will run a [Scio](https://github.com/spotify/scio) pipeline sampling either Avro or BigQuery data.
- It also allows specifying a hash function (either FarmHash or Murmur) with seed (if applicable for 
+ It also allows specifying a hash function (either [FarmHash](https://github.com/google/farmhash) or Murmur) with seed (if applicable for 
  your hash) and fields to hash for deterministic cohort selection.
 
 For full details see [BigSample.scala](https://github.com/spotify/ratatool/blob/master/ratatool-sampling/src/main/scala/com/spotify/ratatool/samplers/BigSampler.scala)
@@ -85,6 +85,16 @@ Leveraging `--fields=<field1,field2,...>` BigSampler can produce a hash based on
  are in the sample. For example, `--fields=user_id --sample=0.5` will always produce the same sample
  of 50% of users. If multiple records contain the same `user_id` they will all be in or out of the
  sample.
+
+### Reproducing within BigQuery
+Currently, BigSampler defaults to Farmhash, which is also used in BigQuery. When sampling with a seed and one or more fields,
+ under the hood Farmhash will create a byte array, convert all inputs to bytes, and concatenate them together. To recreate this in BigQuery, you
+ will have to pre-create the seed as a little endian hex encoded byte string, as BigQuery does not currently allow directly converting an integer
+ to bytes.
+
+`FARM_FINGERPRINT(CONCAT(b'\x2A\x00\x00\x00', CAST('abc' as BYTES))` will produce the equivalent hash of `--seed=42` with one `fields` where the given record has value `abc`.
+
+The output will also need to be normalized to the range [0.0, 1.0] from the range [Long.MinValue, Long.MaxValue] in order to produce the exact equivalent sample as BigSampler.
  
 ## Sampling a Distribution
 BigSampler supports sampling to produce either a Stratified or Uniform distribution.
@@ -111,7 +121,7 @@ Distribution sampling currently assumes all distinct keys or strata can fit into
 ## Distributions
 ### Stratified
 ![Stratified](https://github.com/spotify/ratatool/blob/master/misc/Stratified.png)
-Stratified sampling example. Not that only the specified distributionFields are preserved in the sample.
+Stratified sampling example. Note that only the specified distributionFields are preserved in the sample.
 
 ![Uniform](https://github.com/spotify/ratatool/blob/master/misc/Uniform.png)
-Uniform sampling example. Adjusts
+Uniform sampling example. Adjusts input to produce an even output distribution if possible.

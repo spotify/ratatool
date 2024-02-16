@@ -23,6 +23,8 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
 import com.spotify.ratatool.scalacheck._
+import com.spotify.scio.avro._
+import com.spotify.scio.coders.kryo._
 import com.spotify.scio.testing.PipelineSpec
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
 import com.spotify.ratatool.diffy.BigDiffy.{avroKeyFn, mergeTableSchema, stripQuoteWrap}
@@ -433,6 +435,9 @@ class BigDiffyTest extends PipelineSpec {
     )
 
     val sc = ScioContext()
+
+    implicit val coder = avroGenericRecordCoder(schema2)
+
     val bigDiffy =
       BigDiffy.diffParquet(sc, lhs, rhs, avroKeyFn(Seq("id")), new AvroDiffy[GenericRecord]())
 

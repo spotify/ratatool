@@ -19,8 +19,8 @@ package com.spotify.ratatool.samplers
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.file.{Files, Path}
-import com.google.common.hash.Hasher
-import com.google.common.io.BaseEncoding
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.hash.Hasher
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific.TestRecord
 import com.spotify.ratatool.scalacheck._

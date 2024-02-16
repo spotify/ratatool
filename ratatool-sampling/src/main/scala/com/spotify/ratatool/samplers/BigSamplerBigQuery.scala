@@ -19,7 +19,7 @@ package com.spotify.ratatool.samplers
 
 import java.util.{List => JList}
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableReference}
-import com.google.common.hash.Hasher
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.hash.Hasher
 import com.spotify.ratatool.samplers.util._
 import com.spotify.scio.ScioContext
 import com.spotify.scio.bigquery.TableRow

@@ -17,34 +17,33 @@
 
 package com.spotify.ratatool.diffy
 
-import java.nio.ByteBuffer
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
-import com.google.common.io.BaseEncoding
 import com.google.protobuf.AbstractMessage
+import com.spotify.ratatool.BigQueryUtil.getFieldModeWithDefault
 import com.spotify.ratatool.Command
 import com.spotify.ratatool.io.ParquetIO
-import com.spotify.ratatool.samplers.{AvroSampler, ParquetSampler}
+import com.spotify.ratatool.samplers.AvroSampler
 import com.spotify.scio._
 import com.spotify.scio.avro._
 import com.spotify.scio.bigquery._
-import com.spotify.scio.parquet.avro._
 import com.spotify.scio.bigquery.client.BigQuery
 import com.spotify.scio.bigquery.types.BigQueryType
 import com.spotify.scio.coders.Coder
+import com.spotify.scio.coders.kryo._
 import com.spotify.scio.io.ClosedTap
+import com.spotify.scio.parquet.avro._
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
-import org.apache.avro.SchemaCompatibility.SchemaCompatibilityType
-import org.apache.avro.{Schema, SchemaCompatibility}
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecordBase
 import org.apache.beam.sdk.io.TextIO
-import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.nio.ByteBuffer
 import scala.annotation.tailrec
-import scala.jdk.CollectionConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
@@ -350,7 +349,7 @@ object BigDiffy extends Command with Serializable {
     diffy: AvroDiffy[GenericRecord]
   ): BigDiffy[GenericRecord] = {
     val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhs, rhs)
-    implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(compatSchema)
+    implicit val grCoder: Coder[GenericRecord] = avroGenericRecordCoder(compatSchema)
 
     diff(
       sc.parquetAvroFile[GenericRecord](lhs, compatSchema).map(identity),
@@ -554,7 +553,12 @@ object BigDiffy extends Command with Serializable {
         case (Some(f), None) => f
         case (None, Some(f)) => f
         case (Some(fx), Some(fy)) =>
-          assert(fx.getType == fy.getType && fx.getMode == fy.getMode)
+          val fxMode = getFieldModeWithDefault(fx.getMode)
+          val fyMode = getFieldModeWithDefault(fy.getMode)
+          assert(
+            fx.getType == fy.getType && fxMode == fyMode,
+            f"field ${fx.getName} in lhs, type: ${fx.getType} mode: $fxMode, and rhs, type: ${fy.getType} mode: $fyMode, do not match"
+          )
           if (fx.getType == "RECORD") {
             fx.setFields(
               mergeFields(fx.getFields.asScala.toList, fy.getFields.asScala.toList).asJava
@@ -748,7 +752,7 @@ object BigDiffy extends Command with Serializable {
           .sample(1, head = true)
           .head
           .getSchema
-        implicit val grCoder: Coder[GenericRecord] = Coder.avroGenericRecordCoder(schema)
+        implicit val grCoder: Coder[GenericRecord] = avroGenericRecordCoder(schema)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)
         val lhsSCollection = sc.avroFile(lhs, schema)
         val rhsSCollection = sc.avroFile(rhs, schema)
@@ -760,7 +764,7 @@ object BigDiffy extends Command with Serializable {
         }
         val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhs, rhs)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)(
-          Coder.avroGenericRecordCoder(compatSchema)
+          avroGenericRecordCoder(compatSchema)
         )
         BigDiffy.diffParquet(sc, lhs, rhs, avroKeyFn(keys), diffy)
       case "bigquery" =>
