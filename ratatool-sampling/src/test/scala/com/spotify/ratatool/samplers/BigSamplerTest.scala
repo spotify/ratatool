@@ -155,7 +155,7 @@ object BigSamplerTest extends Properties("BigSampler") {
       )
   }
 
-  private val avroSchema = TestRecord.SCHEMA$
+  private val avroSchema = TestRecord.getClassSchema
   private val specificAvroGen = specificRecordOf[TestRecord]
   private val supportedAvroTypes = Seq(
     "int_field",

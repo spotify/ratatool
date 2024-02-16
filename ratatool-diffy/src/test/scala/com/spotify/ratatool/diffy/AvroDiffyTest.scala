@@ -17,21 +17,19 @@
 
 package com.spotify.ratatool.diffy
 
-import java.nio.ByteBuffer
-
-import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
-import com.spotify.scio.avro._
 import com.spotify.ratatool.Schemas
 import com.spotify.ratatool.avro.specific._
 import com.spotify.ratatool.scalacheck._
-import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder}
-import org.apache.beam.sdk.extensions.avro.coders.AvroCoder
+import com.spotify.scio.avro._
+import com.spotify.scio.coders.{Coder, CoderMaterializer}
+import org.apache.avro.generic.GenericRecordBuilder
 import org.apache.beam.sdk.util.CoderUtils
-import org.scalacheck.Arbitrary
-
-import scala.jdk.CollectionConverters._
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.nio.ByteBuffer
+import scala.jdk.CollectionConverters._
 
 class AvroDiffyTest extends AnyFlatSpec with Matchers {
 
@@ -49,7 +47,7 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
   }
 
   it should "support nested fields" in {
-    val coder = AvroCoder.reflect(classOf[TestRecord])
+    val coder = CoderMaterializer.beamWithDefault(Coder[TestRecord])
 
     val nnr = specificRecordOf[NullableNestedRecord].sample.get
     nnr.setIntField(10)
@@ -86,7 +84,7 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
   }
 
   it should "support repeated fields" in {
-    val coder = AvroCoder.reflect(classOf[TestRecord])
+    val coder = CoderMaterializer.beamWithDefault(Coder[TestRecord])
 
     val x = specificRecordOf[TestRecord].sample.get
     x.getRepeatedFields.setIntField(jl(10, 11))
@@ -130,7 +128,7 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
   }
 
   it should "support unordered" in {
-    val coder = AvroCoder.reflect(classOf[TestRecord])
+    val coder = CoderMaterializer.beamWithDefault(Coder[TestRecord])
 
     val a = NullableNestedRecord.newBuilder().setIntField(10).setLongField(100L).build()
     val b = NullableNestedRecord.newBuilder().setIntField(20).setLongField(200L).build()
@@ -153,8 +151,8 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
   }
 
   it should "support unordered nested" in {
-    val drnrCoder = AvroCoder.reflect(classOf[RepeatedRecord])
-    val drrCoder = AvroCoder.reflect(classOf[DeeplyRepeatedRecord])
+    val drnrCoder = CoderMaterializer.beamWithDefault(Coder[RepeatedRecord])
+    val drrCoder = CoderMaterializer.beamWithDefault(Coder[DeeplyRepeatedRecord])
 
     val a = avroOf[RepeatedRecord].sample.get
     a.setNestedRepeatedField(jl(10, 20, 30))
@@ -185,8 +183,8 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
   }
 
   it should "support unordered nested of different lengths" in {
-    val drnrCoder = AvroCoder.reflect(classOf[RepeatedRecord])
-    val drrCoder = AvroCoder.reflect(classOf[DeeplyRepeatedRecord])
+    val drnrCoder = CoderMaterializer.beamWithDefault(Coder[RepeatedRecord])
+    val drrCoder = CoderMaterializer.beamWithDefault(Coder[DeeplyRepeatedRecord])
 
     val a = avroOf[RepeatedRecord].sample.get
     a.setNestedRepeatedField(jl(30, 20, 10))
@@ -209,72 +207,7 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
     )
 
     du(x, y) should equal(
-      Seq(
-        Delta("repeated_record.nested_repeated_field", Option(jl(10, 20, 30)), None, UnknownDelta),
-        Delta("repeated_record.string_field", Option("b"), None, UnknownDelta)
-      )
-    )
-  }
-
-  it should "support schema evolution if ignored" in {
-    val inner = avroOf(Schemas.evolvedSimpleAvroSchema.getField("nullable_fields").schema())
-      .flatMap(r =>
-        Arbitrary.arbString.arbitrary.map { s =>
-          r.put("string_field", s)
-          r
-        }
-      )
-    val x = avroOf(Schemas.evolvedSimpleAvroSchema)
-      .flatMap(r =>
-        inner.map { i =>
-          r.put("nullable_fields", i)
-          r
-        }
-      )
-      .sample
-      .get
-    val y = new GenericRecordBuilder(Schemas.simpleAvroSchema)
-      .set(
-        "nullable_fields",
-        new GenericRecordBuilder(Schemas.simpleAvroSchema.getField("nullable_fields").schema())
-          .set("int_field", x.get("nullable_fields").asInstanceOf[GenericRecord].get("int_field"))
-          .set("long_field", x.get("nullable_fields").asInstanceOf[GenericRecord].get("long_field"))
-          .build()
-      )
-      .set(
-        "required_fields",
-        new GenericRecordBuilder(Schemas.simpleAvroSchema.getField("required_fields").schema())
-          .set(
-            "boolean_field",
-            x.get("required_fields").asInstanceOf[GenericRecord].get("boolean_field")
-          )
-          .set(
-            "string_field",
-            x.get("required_fields").asInstanceOf[GenericRecord].get("string_field")
-          )
-          .build()
-      )
-      .build()
-
-    implicit val coder = avroGenericRecordCoder(Schemas.evolvedSimpleAvroSchema)
-
-    val d = new AvroDiffy[GenericRecord]()
-    val di = new AvroDiffy[GenericRecord](ignore = Set("nullable_fields.string_field"))
-    di(y, x) should equal(Nil)
-    d(y, x) should equal(
-      Seq(
-        Delta(
-          "nullable_fields.string_field",
-          None,
-          Option(
-            x.get("nullable_fields")
-              .asInstanceOf[GenericRecord]
-              .get("string_field")
-              .asInstanceOf[String]
-          ),
-          UnknownDelta
-        )
-      )
+      Seq(Delta("repeated_record[b]", Option(b), None, UnknownDelta))
     )
   }
 

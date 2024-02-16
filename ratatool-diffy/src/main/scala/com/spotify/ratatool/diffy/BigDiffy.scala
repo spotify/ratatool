@@ -34,13 +34,16 @@ import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.parquet.avro._
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
+import org.apache.avro.{Schema, SchemaCompatibility, SchemaValidatorBuilder}
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecordBase
 import org.apache.beam.sdk.io.TextIO
+import org.apache.beam.sdk.options.PipelineOptions
 import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.nio.ByteBuffer
+import java.util.Collections
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
@@ -249,14 +252,12 @@ object BigDiffy extends Command with Serializable {
           (key, (Nil, diffType))
         }
       }
-      .map { x =>
-        x._2._2 match {
-          case DiffType.SAME        => accSame.inc()
-          case DiffType.DIFFERENT   => accDiff.inc()
-          case DiffType.MISSING_LHS => accMissingLhs.inc()
-          case DiffType.MISSING_RHS => accMissingRhs.inc()
-        }
-        x
+      .tap {
+        case (_, (_, DiffType.SAME))        => accSame.inc()
+        case (_, (_, DiffType.DIFFERENT))   => accDiff.inc()
+        case (_, (_, DiffType.MISSING_LHS)) => accMissingLhs.inc()
+        case (_, (_, DiffType.MISSING_RHS)) => accMissingRhs.inc()
+        case _                              =>
       }
   }
 
@@ -608,6 +609,9 @@ object BigDiffy extends Command with Serializable {
     sys.exit(1)
   }
 
+  private def avroFileSchema(path: String, options: PipelineOptions): Schema =
+    new AvroSampler(path, conf = Some(options)).sample(1, head = true).head.getSchema
+
   private[diffy] def avroKeyFn(keys: Seq[String]): GenericRecord => MultiKey = {
     @tailrec
     def get(xs: Array[String], i: Int, r: GenericRecord): String =
@@ -745,13 +749,22 @@ object BigDiffy extends Command with Serializable {
     val result = inputMode match {
       case "avro" =>
         if (rowRestriction.isDefined) {
-          throw new IllegalArgumentException(s"rowRestriction cannot be passed for avro inputs")
+          throw new IllegalArgumentException("rowRestriction cannot be passed for avro inputs")
         }
 
-        val schema = new AvroSampler(rhs, conf = Some(sc.options))
-          .sample(1, head = true)
-          .head
-          .getSchema
+        val lhsSchema = avroFileSchema(lhs, sc.options)
+        val rhsSchema = avroFileSchema(rhs, sc.options)
+
+        // validate the rhs schema can be used to read lhs
+        new SchemaValidatorBuilder().canReadStrategy
+          .validateLatest()
+          .validate(rhsSchema, Collections.singletonList(lhsSchema))
+
+        if (lhsSchema != rhsSchema) {
+          logger.warn("Schemas are different but compatible, using the rhs schema for diff")
+        }
+        val schema = rhsSchema
+
         implicit val grCoder: Coder[GenericRecord] = avroGenericRecordCoder(schema)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)
         val lhsSCollection = sc.avroFile(lhs, schema)
@@ -760,7 +773,7 @@ object BigDiffy extends Command with Serializable {
           .diff[GenericRecord](lhsSCollection, rhsSCollection, diffy, avroKeyFn(keys), ignoreNan)
       case "parquet" =>
         if (rowRestriction.isDefined) {
-          throw new IllegalArgumentException(s"rowRestriction cannot be passed for Parquet inputs")
+          throw new IllegalArgumentException("rowRestriction cannot be passed for Parquet inputs")
         }
         val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhs, rhs)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)(

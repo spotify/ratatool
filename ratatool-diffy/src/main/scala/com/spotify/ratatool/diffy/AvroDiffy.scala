@@ -18,118 +18,167 @@
 package com.spotify.ratatool.diffy
 
 import com.spotify.scio.coders.Coder
-import org.apache.avro.{Schema, SchemaValidatorBuilder}
-import org.apache.avro.generic.GenericRecord
-import scala.util.Try
+import org.apache.avro.Schema
+import org.apache.avro.generic.{GenericRecord, IndexedRecord}
+import org.apache.avro.specific.SpecificData
 
 import scala.jdk.CollectionConverters._
 
-/** Field level diff tool for Avro records. */
-class AvroDiffy[T <: GenericRecord: Coder](
+/**
+ * Field level diff tool for Avro records.
+ *
+ * @param ignore
+ *   specify set of fields to ignore during comparison.
+ * @param unordered
+ *   a list of fields to be treated as unordered, i.e. sort before comparison.
+ * @param unorderedFieldKeys
+ *   a map of record field names to fields names that can be keyed by when comparing nested repeated
+ *   records. (currently not support in CLI)
+ */
+class AvroDiffy[T <: IndexedRecord: Coder](
   ignore: Set[String] = Set.empty,
   unordered: Set[String] = Set.empty,
   unorderedFieldKeys: Map[String, String] = Map()
 ) extends Diffy[T](ignore, unordered, unorderedFieldKeys) {
 
-  override def apply(x: T, y: T): Seq[Delta] = {
-    new SchemaValidatorBuilder().canReadStrategy
-      .validateLatest()
-      .validate(y.getSchema, List(x.getSchema).asJava)
-    diff(Option(x), Option(y), "")
+  override def apply(x: T, y: T): Seq[Delta] = (x, y) match {
+    case (null, null)                    => Seq.empty
+    case (_, null)                       => Seq(Delta("", Some(x), None, UnknownDelta))
+    case (null, _)                       => Seq(Delta("", None, Some(y), UnknownDelta))
+    case _ if x.getSchema != y.getSchema => Seq(Delta("", Some(x), Some(y), UnknownDelta))
+    case _                               => diff(x, y, x.getSchema, "")
   }
 
-  def isAvroRecordType(schema: Schema): Boolean =
-    Schema.Type.RECORD.equals(schema.getType) ||
-      (Schema.Type.UNION.equals(schema.getType) &&
-        schema.getTypes.asScala.map(_.getType).contains(Schema.Type.RECORD))
-
-  private def diff(x: Option[GenericRecord], y: Option[GenericRecord], root: String): Seq[Delta] = {
-    // If a y exists we assume it has the superset of all fields, since x must be backwards
-    // compatible with it based on the SchemaValidator check in apply()
-    val schemaFields = (x, y) match {
-      case (Some(xVal), None) => xVal.getSchema.getFields.asScala.toList
-      case (_, Some(yVal))    => yVal.getSchema.getFields.asScala.toList
-      case _                  => List()
-    }
-
-    schemaFields
-      .flatMap { f =>
-        val name = f.name()
-        val fullName = if (root.isEmpty) name else root + "." + name
-        getRawType(f.schema()).getType match {
-          case Schema.Type.RECORD =>
-            val a = x.flatMap(r => Option(r.get(name).asInstanceOf[GenericRecord]))
-            val b = y.flatMap(r => Option(r.get(name).asInstanceOf[GenericRecord]))
-            (a, b) match {
-              case (None, None)       => Nil
-              case (Some(_), None)    => Seq(Delta(fullName, a, None, UnknownDelta))
-              case (None, Some(_))    => Seq(Delta(fullName, None, b, UnknownDelta))
-              case (Some(_), Some(_)) => diff(a, b, fullName)
-            }
-          case Schema.Type.ARRAY if unordered.contains(fullName) =>
-            if (
-              unorderedFieldKeys.contains(fullName)
-              && isAvroRecordType(f.schema().getElementType)
-            ) {
-              val l = x
-                .flatMap(outer =>
-                  Option(outer.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList)
-                )
-                .getOrElse(List())
-                .flatMap(inner =>
-                  Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner))
-                )
-                .toMap
-              val r = y
-                .flatMap(outer =>
-                  Option(outer.get(name).asInstanceOf[java.util.List[GenericRecord]].asScala.toList)
-                )
-                .getOrElse(List())
-                .flatMap(inner =>
-                  Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner))
-                )
-                .toMap
-              (l.keySet ++ r.keySet).flatMap(k => diff(l.get(k), r.get(k), fullName)).toList
-            } else {
-              val a = x
-                .flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]]))
-                .map(sortList)
-              val b = y
-                .flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[GenericRecord]]))
-                .map(sortList)
-              if (a == b) {
-                Nil
-              } else {
-                Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
-              }
-            }
-          case _ =>
-            val a = x.flatMap(r => Option(r.get(name)))
-            val b = y.flatMap(r => Option(r.get(name)))
-            if (a == b) Nil else Seq(Delta(fullName, a, b, delta(a.orNull, b.orNull)))
-        }
-      }
-      .filter(d => !ignore.contains(d.field))
+  private def isRecord(schema: Schema): Boolean = schema.getType match {
+    case Schema.Type.RECORD => true
+    case Schema.Type.UNION  => schema.getTypes.asScala.map(_.getType).contains(Schema.Type.RECORD)
+    case _                  => false
   }
 
-  private def getRawType(schema: Schema): Schema = {
-    schema.getType match {
+  private def isNumericType(`type`: Schema.Type): Boolean = `type` match {
+    case Schema.Type.INT | Schema.Type.LONG | Schema.Type.FLOAT | Schema.Type.DOUBLE => true
+    case _                                                                           => false
+  }
+
+  private def numericValue(value: AnyRef): Double = value match {
+    case i: java.lang.Integer => i.toDouble
+    case l: java.lang.Long    => l.toDouble
+    case f: java.lang.Float   => f.toDouble
+    case d: java.lang.Double  => d
+    case _ => throw new IllegalArgumentException(s"Unsupported numeric type: ${value.getClass}")
+  }
+
+  private def diff(x: AnyRef, y: AnyRef, schema: Schema, field: String): Seq[Delta] = {
+    val deltas = schema.getType match {
       case Schema.Type.UNION =>
-        val types = schema.getTypes
-        if (types.size == 2) {
-          if (types.get(0).getType == Schema.Type.NULL) {
-            types.get(1)
-          } else if (types.get(1).getType == Schema.Type.NULL) {
-            // incorrect use of Avro "nullable" but happens
-            types.get(0)
-          } else {
-            schema
-          }
+        // union, must resolve to same type
+        val data = SpecificData.get()
+        val xTypeIndex = data.resolveUnion(schema, x)
+        val yTypeIndex = data.resolveUnion(schema, y)
+        if (xTypeIndex != yTypeIndex) {
+          // Use Option as x or y can be null
+          Seq(Delta(field, Option(x), Option(y), UnknownDelta))
         } else {
-          schema
+          // same fields, refined schema
+          val fieldSchema = schema.getTypes.get(xTypeIndex)
+          diff(x, y, fieldSchema, field)
         }
-      case _ => schema
-    }
-  }
 
+      case Schema.Type.RECORD =>
+        // record, compare all fields
+        val a = x.asInstanceOf[IndexedRecord]
+        val b = y.asInstanceOf[IndexedRecord]
+        for {
+          f <- schema.getFields.asScala.toSeq
+          pos = f.pos()
+          name = f.name()
+          fullName = if (field.isEmpty) name else field + "." + name
+          delta <- diff(a.get(pos), b.get(pos), f.schema(), fullName)
+        } yield delta
+
+      case Schema.Type.ARRAY
+          if unorderedFieldKeys.contains(field) && isRecord(schema.getElementType) =>
+        // keyed array, compare like Map[String, Record]
+        val keyField = unorderedFieldKeys(field)
+        val as =
+          x.asInstanceOf[java.util.List[GenericRecord]].asScala.map(r => r.get(keyField) -> r).toMap
+        val bs =
+          y.asInstanceOf[java.util.List[GenericRecord]].asScala.map(r => r.get(keyField) -> r).toMap
+
+        for {
+          k <- (as.keySet ++ bs.keySet).toSeq
+          elementField = field + s"[$k]"
+          delta <- (as.get(k), bs.get(k)) match {
+            case (Some(a), Some(b)) => diff(a, b, schema.getElementType, field)
+            case (a, b)             => Seq(Delta(field, a, b, UnknownDelta))
+          }
+        } yield delta.copy(field = delta.field.replaceFirst(field, elementField))
+
+      case Schema.Type.ARRAY =>
+        // array, (un)ordered comparison
+        val xs = x.asInstanceOf[java.util.List[AnyRef]]
+        val ys = y.asInstanceOf[java.util.List[AnyRef]]
+        val (as, bs) = if (unordered.contains(field)) {
+          // ordered comparison
+          (sortList(xs).asScala, sortList(ys).asScala)
+        } else {
+          // unordered
+          (xs.asScala, ys.asScala)
+        }
+
+        val delta = if (as.size != bs.size) {
+          Some(UnknownDelta)
+        } else if (isNumericType(schema.getElementType.getType) && as != bs) {
+          Some(VectorDelta(vectorDelta(as.map(numericValue).toSeq, bs.map(numericValue).toSeq)))
+        } else if (as != bs) {
+          as.zip(bs)
+            .find { case (a, b) =>
+              a != b && diff(a, b, schema.getElementType, field).nonEmpty
+            }
+            .map(_ => UnknownDelta)
+        } else {
+          None
+        }
+        delta.map(d => Delta(field, Some(x), Some(y), d)).toSeq
+
+      case Schema.Type.MAP =>
+        // map, compare key set and values
+        val as = x.asInstanceOf[java.util.Map[CharSequence, AnyRef]].asScala.map { case (k, v) =>
+          k.toString -> v
+        }
+        val bs = y.asInstanceOf[java.util.Map[CharSequence, AnyRef]].asScala.map { case (k, v) =>
+          k.toString -> v
+        }
+
+        for {
+          k <- (as.keySet ++ bs.keySet).toSeq
+          elementField = field + s"[$k]"
+          delta <- (as.get(k), bs.get(k)) match {
+            case (Some(a), Some(b)) => diff(a, b, schema.getValueType, field)
+            case (a, b)             => Seq(Delta(field, a, b, UnknownDelta))
+          }
+        } yield delta.copy(field = delta.field.replaceFirst(field, elementField))
+
+      case Schema.Type.STRING =>
+        // string, convert to java String for equality check
+        val a = x.asInstanceOf[CharSequence].toString
+        val b = y.asInstanceOf[CharSequence].toString
+        val delta = if (a == b) None else Some(StringDelta(stringDelta(a, b)))
+        delta.map(d => Delta(field, Some(x), Some(y), d)).toSeq
+
+      case t if isNumericType(t) =>
+        // numeric, convert to Double for equality check
+        val a = numericValue(x)
+        val b = numericValue(y)
+        val delta = if (a == b) None else Some(NumericDelta(numericDelta(a, b)))
+        delta.map(d => Delta(field, Some(x), Some(y), d)).toSeq
+
+      case _ =>
+        // other case rely on object equality
+        val delta = if (x == y) None else Some(UnknownDelta)
+        delta.map(d => Delta(field, Some(x), Some(y), d)).toSeq
+    }
+
+    deltas.filterNot(d => ignore.contains(d.field))
+  }
 }

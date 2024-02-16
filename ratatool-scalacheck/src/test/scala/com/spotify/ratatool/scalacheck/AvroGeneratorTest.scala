@@ -18,21 +18,15 @@
 package com.spotify.ratatool.scalacheck
 
 import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
-import org.apache.beam.sdk.extensions.avro.coders.AvroCoder
-import org.apache.beam.sdk.util.CoderUtils
+import org.scalacheck.Prop.{all, forAll, propBoolean}
 import org.scalacheck._
-import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 
 object AvroGeneratorTest extends Properties("AvroGenerator") {
-  property("round trips") = forAll(specificRecordOf[TestRecord]) { m =>
-    val coder = AvroCoder.reflect(classOf[TestRecord])
 
-    val bytes = CoderUtils.encodeToByteArray(coder, m)
-    val decoded = CoderUtils.decodeFromByteArray(coder, bytes)
-    decoded ?= m
-  }
+  val genTestRecord = specificRecordOf[TestRecord]
+  val genRequiredNestedRecord = specificRecordOf[RequiredNestedRecord]
 
-  val richGen = specificRecordOf[TestRecord]
+  val genRich = genTestRecord
     .amend(Gen.choose(10, 20))(_.getNullableFields.setIntField)
     .amend(Gen.choose(10L, 20L))(_.getNullableFields.setLongField)
     .amend(Gen.choose(10.0f, 20.0f))(_.getNullableFields.setFloatField)
@@ -46,29 +40,25 @@ object AvroGeneratorTest extends Properties("AvroGenerator") {
       _.getRequiredFields.setLogicalDecimalField
     )
 
-  val richTupGen = (specificRecordOf[TestRecord], specificRecordOf[TestRecord]).tupled
-    .amend2(specificRecordOf[RequiredNestedRecord])(_.setRequiredFields, _.setRequiredFields)
+  val genRichTup = (genTestRecord, genTestRecord).tupled
+    .amend2(genRequiredNestedRecord)(_.setRequiredFields, _.setRequiredFields)
 
-  property("support RichAvroGen") = forAll(richGen) { r =>
+  property("support RichAvroGen") = forAll(genRich) { r =>
+    // format: off
     all(
-      "Int" |:
-        r.getNullableFields.getIntField >= 10 && r.getNullableFields.getIntField <= 20,
-      "Long" |:
-        r.getNullableFields.getLongField >= 10L && r.getNullableFields.getLongField <= 20L,
-      "Float" |:
-        r.getNullableFields.getFloatField >= 10.0f && r.getNullableFields.getFloatField <= 20.0f,
-      "Double" |:
-        r.getNullableFields.getDoubleField >= 10.0 && r.getNullableFields.getDoubleField <= 20.0,
-      "Boolean" |: r.getNullableFields.getBooleanField == true,
-      "String" |: r.getNullableFields.getStringField == "hello",
-      "String" |: r.getNullableFields.getUpperStringField == "HELLO",
-      "BigDecimal" |: r.getRequiredFields.getLogicalDecimalField == BigDecimal(
-        "5.000000001"
-      ).bigDecimal
+      "Int"        |: r.getNullableFields.getIntField >= 10 && r.getNullableFields.getIntField <= 20,
+      "Long"       |: r.getNullableFields.getLongField >= 10L && r.getNullableFields.getLongField <= 20L,
+      "Float"      |: r.getNullableFields.getFloatField >= 10.0f && r.getNullableFields.getFloatField <= 20.0f,
+      "Double"     |: r.getNullableFields.getDoubleField >= 10.0 && r.getNullableFields.getDoubleField <= 20.0,
+      "Boolean"    |: r.getNullableFields.getBooleanField == true,
+      "String"     |: r.getNullableFields.getStringField == "hello",
+      "String"     |: r.getNullableFields.getUpperStringField == "HELLO",
+      "BigDecimal" |: r.getRequiredFields.getLogicalDecimalField == BigDecimal("5.000000001").bigDecimal
     )
+    // format: on
   }
 
-  property("support RichAvroTupGen") = forAll(richTupGen) { case (a, b) =>
+  property("support RichAvroTupGen") = forAll(genRichTup) { case (a, b) =>
     (a.getRequiredFields.getBooleanField == b.getRequiredFields.getBooleanField
     && a.getRequiredFields.getIntField == b.getRequiredFields.getIntField
     && a.getRequiredFields.getStringField.toString == b.getRequiredFields.getStringField.toString

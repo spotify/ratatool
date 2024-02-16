@@ -24,16 +24,19 @@ import com.spotify.scio.testing._
 import org.apache.beam.sdk.util.CoderUtils
 import org.scalacheck.Gen
 import com.spotify.scio.avro._
+import com.spotify.scio.coders.{Coder, CoderMaterializer}
 import com.spotify.scio.io.TextIO
-import org.apache.beam.sdk.extensions.avro.coders.AvroCoder
 
 class PreProcessBigDiffyJobTest extends PipelineSpec {
+
+  val coder = CoderMaterializer.beamWithDefault(Coder[ExampleRecord])
+
   val lhs = Gen.listOfN(1000, ExampleAvroGen.exampleRecordGen).sample.get.map { r =>
     r.setNullableIntField(null)
     r
   }
 
-  val rhs = lhs.map(CoderUtils.clone(AvroCoder.reflect(classOf[ExampleRecord]), _)).map { r =>
+  val rhs = lhs.map(CoderUtils.clone(coder, _)).map { r =>
     r.setNullableIntField(0)
     r
   }

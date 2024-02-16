@@ -30,9 +30,9 @@ import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, Table
 import com.spotify.ratatool.diffy.BigDiffy.{avroKeyFn, mergeTableSchema, stripQuoteWrap}
 import com.spotify.ratatool.io.{ParquetIO, ParquetTestData}
 import com.spotify.scio.ScioContext
+import com.spotify.scio.coders.{Coder, CoderMaterializer}
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecord}
-import org.apache.beam.sdk.extensions.avro.coders.AvroCoder
 import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
 
 import scala.jdk.CollectionConverters._
@@ -41,7 +41,7 @@ import scala.language.higherKinds
 class BigDiffyTest extends PipelineSpec {
 
   val keys = (1 to 1000).map(k => MultiKey("key" + k))
-  val coder = AvroCoder.reflect(classOf[TestRecord])
+  val coder = CoderMaterializer.beamWithDefault(Coder[TestRecord])
 
   /** Fixed to a small range so that Std. Dev. & Variance calculations are easier to predict */
   val rnr = specificRecordOf[RequiredNestedRecord]

@@ -23,7 +23,7 @@ val algebirdVersion = "0.13.10"
 // Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.14.0/build.sbt
 val scioVersion = "0.14.0"
 
-val avroVersion = "1.8.2" // keep in sync with scio
+val avroVersion = avroCompilerVersion // keep in sync with scio
 val beamVersion = "2.53.0" // keep in sync with scio
 val beamVendorVersion = "0.1" // keep in sync with scio
 val bigqueryVersion = "v2-rev20230812-2.0.0" // keep in sync with scio
@@ -163,9 +163,9 @@ lazy val ratatoolCommon = project
     name := "ratatool-common",
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion,
-      "org.apache.avro" % "avro-mapred" % avroVersion classifier "hadoop2",
       "com.google.guava" % "guava" % guavaVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
+      "org.apache.avro" % "avro" % avroVersion % Test,
       "org.apache.avro" % "avro" % avroVersion % Test classifier "tests",
       "org.slf4j" % "slf4j-simple" % slf4jVersion % Test,
     ),
@@ -285,6 +285,7 @@ lazy val ratatoolScalacheck = project
     name := "ratatool-scalacheck",
     libraryDependencies ++= Seq(
       "org.apache.avro" % "avro" % avroVersion,
+      "joda-time" % "joda-time" % jodaTimeVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
       "org.apache.beam" % "beam-sdks-java-extensions-avro" % beamVersion,
