@@ -34,7 +34,7 @@ import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.parquet.avro._
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
-import org.apache.avro.{Schema, SchemaCompatibility}
+import org.apache.avro.{Schema, SchemaCompatibility, SchemaValidatorBuilder}
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecordBase
 import org.apache.beam.sdk.io.TextIO
@@ -43,6 +43,7 @@ import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncodin
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.nio.ByteBuffer
+import java.util.Collections
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
@@ -754,23 +755,15 @@ object BigDiffy extends Command with Serializable {
         val lhsSchema = avroFileSchema(lhs, sc.options)
         val rhsSchema = avroFileSchema(rhs, sc.options)
 
-        val lhsReader = SchemaCompatibility.checkReaderWriterCompatibility(lhsSchema, rhsSchema)
-        val rhsReader = SchemaCompatibility.checkReaderWriterCompatibility(rhsSchema, lhsSchema)
+        // validate the rhs schema can be used to read lhs
+        new SchemaValidatorBuilder().canReadStrategy
+          .validateLatest()
+          .validate(rhsSchema, Collections.singletonList(lhsSchema))
 
-        import SchemaCompatibility.SchemaCompatibilityType._
-        val schema = (lhsReader.getType, rhsReader.getType) match {
-          case (COMPATIBLE, COMPATIBLE) =>
-            if (lhsSchema != rhsSchema) {
-              logger.warn("Avro schemas are compatible, but not equal. Using schema from {}", rhs)
-            }
-            rhsSchema
-          case (COMPATIBLE, INCOMPATIBLE) =>
-            lhsSchema
-          case (INCOMPATIBLE, COMPATIBLE) =>
-            rhsSchema
-          case _ =>
-            throw new IllegalArgumentException("Avro schemas are incompatible")
+        if (lhsSchema != rhsSchema) {
+          logger.warn("Schemas are different but compatible, using the rhs schema for diff")
         }
+        val schema = rhsSchema
 
         implicit val grCoder: Coder[GenericRecord] = avroGenericRecordCoder(schema)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)
