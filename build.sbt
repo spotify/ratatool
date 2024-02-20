@@ -33,7 +33,7 @@ val hadoopVersion = "3.2.4" // keep in sync with scio
 val jodaTimeVersion = "2.10.10" // keep in sync with scio
 val parquetVersion = "1.13.1" // keep in sync with scio
 val protoBufVersion = "3.25.1" // keep in sync with scio
-val scalaTestVersion = "3.2.17"
+val scalaTestVersion = "3.2.18"
 val scalaCheckVersion = "1.17.0"
 val scalaCollectionCompatVersion = "2.11.0"
 val scoptVersion = "4.1.0"
@@ -80,16 +80,20 @@ ThisBuild / PB.protocVersion := protoBufVersion
 lazy val protoBufSettings = Seq(
   libraryDependencies ++= Seq(
     "com.google.protobuf" % "protobuf-java" % protoBufVersion % "protobuf",
-    "com.google.protobuf" % "protobuf-java" % protoBufVersion,
+    "com.google.protobuf" % "protobuf-java" % protoBufVersion
   )
-) ++ Seq(Compile, Test).flatMap(c => inConfig(c)(Def.settings(
-  PB.targets := Seq(
-    PB.gens.java -> (ThisScope.copy(config = Zero) / sourceManaged).value /
-      "compiled_proto" /
-      Defaults.nameForSrc(configuration.value.name),
-  ),
-  managedSourceDirectories ++= PB.targets.value.map(_.outputPath)
-)))
+) ++ Seq(Compile, Test).flatMap(c =>
+  inConfig(c)(
+    Def.settings(
+      PB.targets := Seq(
+        PB.gens.java -> (ThisScope.copy(config = Zero) / sourceManaged).value /
+          "compiled_proto" /
+          Defaults.nameForSrc(configuration.value.name)
+      ),
+      managedSourceDirectories ++= PB.targets.value.map(_.outputPath)
+    )
+  )
+)
 
 lazy val noPublishSettings = Seq(
   publish := {},
@@ -152,7 +156,7 @@ lazy val releaseSettings = Seq(
       name = "Ben Konz",
       email = "benkonz16@gmail.com",
       url = url("https://benkonz.github.io/")
-    ),
+    )
   )
 )
 
@@ -167,7 +171,7 @@ lazy val ratatoolCommon = project
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
       "org.apache.avro" % "avro" % avroVersion % Test,
       "org.apache.avro" % "avro" % avroVersion % Test classifier "tests",
-      "org.slf4j" % "slf4j-simple" % slf4jVersion % Test,
+      "org.slf4j" % "slf4j-simple" % slf4jVersion % Test
     ),
     // In case of scalacheck failures print more info
     Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
@@ -292,7 +296,7 @@ lazy val ratatoolScalacheck = project
       "org.apache.beam" % "beam-vendor-guava-32_1_2-jre" % beamVendorVersion,
       "com.lihaoyi" %% "sourcecode" % sourcecodeVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % Test
     )
   )
   .dependsOn(ratatoolCommon % "compile->compile;test->test")
