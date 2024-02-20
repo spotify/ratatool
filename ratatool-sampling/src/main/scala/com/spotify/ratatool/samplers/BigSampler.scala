@@ -175,7 +175,8 @@ object BigSampler extends Command {
       hashAlgorithm,
       distribution,
       distributionFields,
-      exact
+      exact,
+      bigqueryPartitioning
     ) =
       try {
         val pct = args("sample").toFloat
@@ -189,7 +190,8 @@ object BigSampler extends Command {
           args.optional("hashAlgorithm").map(HashAlgorithm.fromString).getOrElse(FarmHash),
           args.optional("distribution").map(SampleDistribution.fromString),
           args.list("distributionFields"),
-          Precision.fromBoolean(args.boolean("exact", default = false))
+          Precision.fromBoolean(args.boolean("exact", default = false)),
+          args.getOrElse("bigqueryPartitioning", "DAY")
         )
       } catch {
         case e: Throwable =>
@@ -223,6 +225,10 @@ object BigSampler extends Command {
         s"Input is a BigQuery table `$input`, output should be a BigQuery table too," +
           s"but instead it's `$output`."
       )
+      require(
+        List("DAY", "HOUR", "MONTH", "YEAR", "NULL").contains(bigqueryPartitioning.toUpperCase),
+        s"bigqueryPartitioning must be either 'DAY', 'MONTH', 'YEAR', or 'NULL', found $bigqueryPartitioning"
+      )
       val inputTbl = parseAsBigQueryTable(input).get
       val outputTbl = parseAsBigQueryTable(output).get
 
@@ -238,7 +244,8 @@ object BigSampler extends Command {
         distributionFields,
         exact,
         sizePerKey,
-        byteEncoding
+        byteEncoding,
+        bigqueryPartitioning.toUpperCase
       )
     } else if (parseAsURI(input).isDefined) {
       // right now only support for avro
