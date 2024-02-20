@@ -18,16 +18,16 @@ For full details see [BigSample.scala](https://github.com/spotify/ratatool/blob/
 BigSampler - a tool for big data sampling
 Usage: ratatool bigSampler [dataflow_options] [options]
 
-  --sample=<percentage>                              Percentage of records to take in sample, a decimal between 0.0 and 1.0
-  --input=<path>                                     Input file path or BigQuery table
-  --output=<path>                                    Output file path or BigQuery table
-  [--fields=<field1,field2,...>]                     An optional list of fields to include in hashing for sampling cohort selection
-  [--seed=<seed>]                                    An optional seed used in hashing for sampling cohort selection
-  [--hashAlgorithm=(murmur|farm)]                    An optional arg to select the hashing algorithm for sampling cohort selection. Defaults to FarmHash for BigQuery compatibility
-  [--distribution=(uniform|stratified)]              An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
-  [--distributionFields=<field1,field2,...>]         An optional list of fields to sample for distribution. Must provide `distribution`
-  [--exact]                                          An optional arg for higher precision distribution sampling.
-  [--bigqueryPartitioning=<DAY|HOUR|MONTH|YEAR|null> An optional arg specifying what partitioning to use for the output BigQuery table, or 'null' for no partitioning. Defaults to DAY.
+  --sample=<percentage>                               Percentage of records to take in sample, a decimal between 0.0 and 1.0
+  --input=<path>                                      Input file path or BigQuery table
+  --output=<path>                                     Output file path or BigQuery table
+  [--fields=<field1,field2,...>]                      An optional list of fields to include in hashing for sampling cohort selection
+  [--seed=<seed>]                                     An optional seed used in hashing for sampling cohort selection
+  [--hashAlgorithm=(murmur|farm)]                     An optional arg to select the hashing algorithm for sampling cohort selection. Defaults to FarmHash for BigQuery compatibility
+  [--distribution=(uniform|stratified)]               An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
+  [--distributionFields=<field1,field2,...>]          An optional list of fields to sample for distribution. Must provide `distribution`
+  [--exact]                                           An optional arg for higher precision distribution sampling.
+  [--bigqueryPartitioning=<DAY|HOUR|MONTH|YEAR|null>] An optional arg specifying what partitioning to use for the output BigQuery table, or 'null' for no partitioning. Defaults to DAY.
 
 Since this runs a Scio/Beam pipeline, Dataflow options will have to be provided. At a
 minimum, the following should be specified:
