@@ -153,7 +153,8 @@ private[samplers] object BigSamplerBigQuery {
     distributionFields: List[String],
     precision: Precision,
     sizePerKey: Int,
-    byteEncoding: ByteEncoding = RawEncoding
+    byteEncoding: ByteEncoding = RawEncoding,
+    bigqueryPartitioning: String
   ): ClosedTap[TableRow] = {
     import BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED
     import BigQueryIO.Write.WriteDisposition.WRITE_EMPTY
@@ -183,6 +184,10 @@ private[samplers] object BigSamplerBigQuery {
         byteEncoding
       )
 
+      val partitioning = bigqueryPartitioning match {
+        case "NULL" => null
+        case _      => TimePartitioning(bigqueryPartitioning)
+      }
       val r = sampledCollection
         .saveAsBigQueryTable(
           Table.Ref(outputTbl),
@@ -190,7 +195,7 @@ private[samplers] object BigSamplerBigQuery {
           WRITE_EMPTY,
           CREATE_IF_NEEDED,
           tableDescription = "",
-          TimePartitioning("DAY")
+          partitioning
         )
       sc.run().waitUntilDone()
       r
