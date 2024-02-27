@@ -27,7 +27,7 @@ Usage: ratatool bigSampler [dataflow_options] [options]
   [--distribution=(uniform|stratified)]               An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
   [--distributionFields=<field1,field2,...>]          An optional list of fields to sample for distribution. Must provide `distribution`
   [--exact]                                           An optional arg for higher precision distribution sampling.
-  [--bigqueryPartitioning=<day|hour|month|year|null>] An optional arg specifying what partitioning to use for the output BigQuery table, or 'null' for no partitioning. Defaults to DAY.
+  [--bigqueryPartitioning=<day|hour|month|year|null>] An optional arg specifying what partitioning to use for the output BigQuery table, or 'null' for no partitioning. Defaults to day.
 
 Since this runs a Scio/Beam pipeline, Dataflow options will have to be provided. At a
 minimum, the following should be specified:

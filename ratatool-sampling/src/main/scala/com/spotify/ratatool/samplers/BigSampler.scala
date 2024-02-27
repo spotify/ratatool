@@ -111,7 +111,7 @@ object BigSampler extends Command {
         |  [--distributionFields=<field1,field2,...>]          An optional list of fields to sample for distribution. Must provide `distribution`
         |  [--exact]                                           An optional arg for higher precision distribution sampling.
         |  [--byteEncoding=(raw|hex|base64)]                   An optional arg for how to encode fields of type bytes: raw bytes, hex encoded string, or base64 encoded string. Default is to hash raw bytes.
-        |  [--bigqueryPartitioning=<day|hour|month|year|null>] An optional arg specifying what partitioning to use for the output BigQuery table, or 'null' for no partitioning. Defaults to DAY.
+        |  [--bigqueryPartitioning=<day|hour|month|year|null>] An optional arg specifying what partitioning to use for the output BigQuery table, or 'null' for no partitioning. Defaults to day.
         |
         |
         |Since this runs a Scio/Beam pipeline, Dataflow options will have to be provided. At a
