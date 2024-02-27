@@ -101,16 +101,18 @@ object BigSampler extends Command {
     println(s"""BigSampler - a tool for big data sampling
         |Usage: ratatool $command [dataflow_options] [options]
         |
-        |  --sample=<percentage>                      Percentage of records to take in sample, a decimal between 0.0 and 1.0
-        |  --input=<path>                             Input file path or BigQuery table
-        |  --output=<path>                            Output file path or BigQuery table
-        |  [--fields=<field1,field2,...>]             An optional list of fields to include in hashing for sampling cohort selection
-        |  [--seed=<seed>]                            An optional seed used in hashing for sampling cohort selection
-        |  [--hashAlgorithm=(murmur|farm)]            An optional arg to select the hashing algorithm for sampling cohort selection. Defaults to FarmHash for BigQuery compatibility
-        |  [--distribution=(uniform|stratified)]      An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
-        |  [--distributionFields=<field1,field2,...>] An optional list of fields to sample for distribution. Must provide `distribution`
-        |  [--exact]                                  An optional arg for higher precision distribution sampling.
-        |  [--byteEncoding=(raw|hex|base64)]          An optional arg for how to encode fields of type bytes: raw bytes, hex encoded string, or base64 encoded string. Default is to hash raw bytes.
+        |  --sample=<percentage>                               Percentage of records to take in sample, a decimal between 0.0 and 1.0
+        |  --input=<path>                                      Input file path or BigQuery table
+        |  --output=<path>                                     Output file path or BigQuery table
+        |  [--fields=<field1,field2,...>]                      An optional list of fields to include in hashing for sampling cohort selection
+        |  [--seed=<seed>]                                     An optional seed used in hashing for sampling cohort selection
+        |  [--hashAlgorithm=(murmur|farm)]                     An optional arg to select the hashing algorithm for sampling cohort selection. Defaults to FarmHash for BigQuery compatibility
+        |  [--distribution=(uniform|stratified)]               An optional arg to sample for a stratified or uniform distribution. Must provide `distributionFields`
+        |  [--distributionFields=<field1,field2,...>]          An optional list of fields to sample for distribution. Must provide `distribution`
+        |  [--exact]                                           An optional arg for higher precision distribution sampling.
+        |  [--byteEncoding=(raw|hex|base64)]                   An optional arg for how to encode fields of type bytes: raw bytes, hex encoded string, or base64 encoded string. Default is to hash raw bytes.
+        |  [--bigqueryPartitioning=<day|hour|month|year|null>] An optional arg specifying what partitioning to use for the output BigQuery table, or 'null' for no partitioning. Defaults to DAY.
+        |
         |
         |Since this runs a Scio/Beam pipeline, Dataflow options will have to be provided. At a
         |minimum, the following should be specified:
@@ -191,7 +193,7 @@ object BigSampler extends Command {
           args.optional("distribution").map(SampleDistribution.fromString),
           args.list("distributionFields"),
           Precision.fromBoolean(args.boolean("exact", default = false)),
-          args.getOrElse("bigqueryPartitioning", "DAY")
+          args.getOrElse("bigqueryPartitioning", "day")
         )
       } catch {
         case e: Throwable =>
@@ -227,7 +229,7 @@ object BigSampler extends Command {
       )
       require(
         List("DAY", "HOUR", "MONTH", "YEAR", "NULL").contains(bigqueryPartitioning.toUpperCase),
-        s"bigqueryPartitioning must be either 'DAY', 'MONTH', 'YEAR', or 'NULL', found $bigqueryPartitioning"
+        s"bigqueryPartitioning must be either 'day', 'month', 'year', or 'null', found $bigqueryPartitioning"
       )
       val inputTbl = parseAsBigQueryTable(input).get
       val outputTbl = parseAsBigQueryTable(output).get
