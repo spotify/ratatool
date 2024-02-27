@@ -172,9 +172,7 @@ lazy val ratatoolCommon = project
       "org.apache.avro" % "avro" % avroVersion % Test,
       "org.apache.avro" % "avro" % avroVersion % Test classifier "tests",
       "org.slf4j" % "slf4j-simple" % slf4jVersion % Test
-    ),
-    // In case of scalacheck failures print more info
-    Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
+    )
   )
   .settings(protoBufSettings)
 
@@ -197,8 +195,6 @@ lazy val ratatoolSampling = project
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
       "org.scalatestplus" %% "scalacheck-1-17" % s"$scalaTestVersion.0" % Test
     ),
-    // In case of scalacheck failures print more info
-    Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
     Test / parallelExecution := false
   )
   .dependsOn(
@@ -223,8 +219,6 @@ lazy val ratatoolDiffy = project
       "com.spotify" %% "scio-test" % scioVersion % Test,
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test
     ),
-    // In case of scalacheck failures print more info
-    Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
     Test / parallelExecution := false,
     libraryDependencies ++= {
       if (isScala213x.value) {
@@ -253,8 +247,6 @@ lazy val ratatoolShapeless = project
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     ),
-    // In case of scalacheck failures print more info
-    Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
     Test / parallelExecution := false
   )
   .dependsOn(
@@ -270,9 +262,7 @@ lazy val ratatoolCli = project
     libraryDependencies ++= Seq(
       "com.github.scopt" %% "scopt" % scoptVersion,
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test
-    ),
-    // In case of scalacheck failures print more info
-    Test / testOptions += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3")
+    )
   )
   .enablePlugins(PackPlugin)
   .dependsOn(
@@ -311,7 +301,8 @@ lazy val ratatoolExamples = project
     libraryDependencies ++= Seq(
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
       "org.apache.beam" % "beam-vendor-guava-32_1_2-jre" % beamVendorVersion,
-      "com.spotify" %% "scio-test" % scioVersion % Test
+      "com.spotify" %% "scio-test" % scioVersion % Test,
+      "org.scalatestplus" %% "scalacheck-1-17" % s"$scalaTestVersion.0" % Test
     )
   )
   .dependsOn(

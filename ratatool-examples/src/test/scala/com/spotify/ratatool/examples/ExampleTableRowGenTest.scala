@@ -20,38 +20,46 @@ package com.spotify.ratatool.examples
 import com.google.api.services.bigquery.model.TableRow
 import com.spotify.ratatool.examples.scalacheck.ExampleTableRowGen
 import com.spotify.ratatool.scalacheck._
-import org.scalacheck.{Gen, Properties}
-import org.scalacheck.Prop.{forAll, AnyOperators}
+import org.scalacheck.Gen
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
-object ExampleTableRowGenTest extends Properties("ExampleTableRowGenerator") {
+class ExampleTableRowGenTest extends AnyFlatSpec with Matchers with ScalaCheckDrivenPropertyChecks {
   val gen: Gen[TableRow] = ExampleTableRowGen.tableRowGen
   val listGen: Gen[List[TableRow]] = Gen.listOfN(1000, gen)
 
-  property("generates Foo and Bar more frequently than Fizz and Buzz") = forAll(listGen) { l =>
-    val stringFields: Seq[String] = l.flatMap { r =>
-      Option(r.getRecord("nullable_record"))
-        .map(_.get("frequency_string_field").asInstanceOf[String])
+  "ExampleTableRowGenerator" should "generates Foo and Bar more frequently than Fizz and Buzz" in {
+    forAll(listGen) { l =>
+      val stringFields: Seq[String] = l.flatMap { r =>
+        Option(r.getRecord("nullable_record"))
+          .map(_.get("frequency_string_field").asInstanceOf[String])
+      }
+
+      val fooBarCount = stringFields.count(s => s == "Foo" || s == "Bar")
+      val fizzBuzzCount = stringFields.count(s => s == "Fizz" || s == "Buzz")
+      fooBarCount should be > fizzBuzzCount
     }
-
-    stringFields.count(s => s == "Foo" || s == "Bar") >
-      stringFields.count(s => s == "Fizz" || s == "Buzz")
   }
 
-  property("generates valid dependent bytes") = forAll(gen) { r =>
-    val s = r.getRecord("required_record").get("independent_string_field").asInstanceOf[String]
-    val b = r.getRecord("required_record").get("dependent_bytes_field").asInstanceOf[Array[Byte]]
-    new String(b) ?= s
+  it should "generates valid dependent bytes" in {
+    forAll(gen) { r =>
+      val s = r.getRecord("required_record").get("independent_string_field").asInstanceOf[String]
+      val b = r.getRecord("required_record").get("dependent_bytes_field").asInstanceOf[Array[Byte]]
+      new String(b) shouldBe s
+    }
   }
 
-  property("the record id is the same when using amend2 generators") =
+  it should "generate same record id when using amend2 generators" in {
     forAll(ExampleTableRowGen.exampleRecordAmend2Gen) { case (gen1, gen2) =>
-      gen1.get("record_id") == gen2.get("record_id")
+      gen1.get("record_id") shouldBe gen2.get("record_id")
     }
+  }
 
-  property("the record id is the same when using amend2 for correlated fields") =
+  it should "generate same record id when using amend2 for correlated fields" in {
     forAll(ExampleTableRowGen.correlatedRecordGen) { case correlatedRecord =>
-      correlatedRecord.get("record_id") ==
-        correlatedRecord.get("parent_record_id")
+      correlatedRecord.get("record_id") shouldBe correlatedRecord.get("parent_record_id")
     }
+  }
 
 }
