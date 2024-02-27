@@ -72,11 +72,17 @@ trait AvroGeneratorOps {
    * Arbitrary [0-39] range and directly creating Utf-8 chosen to mimic [[RandomData]]. Also avoids
    * some ser/de issues with IndexOutOfBounds decoding with CoderUtils & Kryo
    */
-  private def boundedLengthGen = Gen.chooseNum(0, 39)
-  private def utf8Gen = for {
-    n <- boundedLengthGen
-    cs <- Gen.listOfN(n, Arbitrary.arbChar.arbitrary)
-  } yield new Utf8(cs.mkString)
+  private def boundedLengthGen: Gen[Int] = Gen.chooseNum(0, 39)
+  private def avroStringGen(tpe: Schema): Gen[CharSequence] = {
+    val stringGen = Gen.oneOf(
+      Gen.oneOf(" ", "", "foo"),
+      Arbitrary.arbString.arbitrary
+    )
+    Option(tpe.getProp(GenericData.STRING_PROP)) match {
+      case Some("String") => stringGen
+      case _              => stringGen.map(new Utf8(_))
+    }
+  }
 
   private def avroValueOf(schema: Schema)(implicit data: GenericData): Gen[Any] = {
     import scala.jdk.CollectionConverters._
@@ -137,7 +143,7 @@ trait AvroGeneratorOps {
       case Schema.Type.MAP =>
         import HashMapBuildable._
         val map = Gen.buildableOf[util.HashMap[CharSequence, Any], (CharSequence, Any)](
-          (utf8Gen, avroValueOf(schema.getValueType)).tupled
+          (avroStringGen(schema), avroValueOf(schema.getValueType)).tupled
         )
         conversion match {
           case Some(c) => map.map(m => c.fromMap(m, schema, schema.getLogicalType))
@@ -155,11 +161,10 @@ trait AvroGeneratorOps {
         }
 
       case Schema.Type.STRING =>
-        val charSequence = Gen.oneOf(Gen.oneOf(" ", "", "foo "), utf8Gen)
+        val str = avroStringGen(schema)
         conversion match {
-          case Some(c) =>
-            charSequence.map(cs => c.fromCharSequence(cs, schema, schema.getLogicalType))
-          case None => charSequence
+          case Some(c) => str.map(cs => c.fromCharSequence(cs, schema, schema.getLogicalType))
+          case None    => str
         }
 
       case Schema.Type.BYTES =>

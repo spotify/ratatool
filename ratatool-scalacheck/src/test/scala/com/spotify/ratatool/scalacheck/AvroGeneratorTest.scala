@@ -19,6 +19,7 @@ package com.spotify.ratatool.scalacheck
 
 import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
 import org.apache.avro.generic.GenericData
+import org.apache.avro.util.Utf8
 import org.apache.avro.{Conversions, LogicalTypes, SchemaBuilder}
 import org.scalacheck._
 import org.scalatest.flatspec.AnyFlatSpec
@@ -81,6 +82,41 @@ class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropert
     val gen = avroOf(schema)
     forAll(gen) { r =>
       r.get("cost") shouldBe a[java.math.BigDecimal]
+    }
+  }
+
+  it should "respect string type" in {
+    // format: off
+    val schema = SchemaBuilder
+      .builder()
+      .record("TestStringType")
+      .fields()
+      .name("defaultStringField").`type`().stringType().noDefault()
+      .name("javaStringField").`type`().stringBuilder().prop(GenericData.STRING_PROP, "String").endString().noDefault()
+      .name("charSequenceField").`type`().stringBuilder().prop(GenericData.STRING_PROP, "CharSequence").endString().noDefault()
+      .name("utf8Field").`type`().stringBuilder().prop(GenericData.STRING_PROP, "CharSequence").endString().noDefault()
+      .name("mapDefaultKeyField").`type`().map().values().longType().noDefault()
+      .name("mapJavaStringKeyField").`type`().map().prop(GenericData.STRING_PROP, "String").values().longType().noDefault()
+      .endRecord()
+    // format: on
+
+    val gen = avroOf(schema)
+
+    forAll(gen) { r =>
+      r.get("defaultStringField") shouldBe an[Utf8]
+      r.get("javaStringField") shouldBe a[String]
+      r.get("charSequenceField") shouldBe an[Utf8]
+      r.get("utf8Field") shouldBe an[Utf8]
+
+      {
+        val m = r.get("mapDefaultKeyField").asInstanceOf[java.util.Map[_, _]]
+        if (!m.isEmpty) m.keySet().iterator().next() shouldBe an[Utf8]
+      }
+
+      {
+        val m = r.get("mapJavaStringKeyField").asInstanceOf[java.util.Map[_, _]]
+        if (!m.isEmpty) m.keySet().iterator().next() shouldBe a[String]
+      }
     }
   }
 }
