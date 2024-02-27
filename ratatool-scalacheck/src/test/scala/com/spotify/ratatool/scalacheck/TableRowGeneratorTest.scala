@@ -17,63 +17,66 @@
 
 package com.spotify.ratatool.scalacheck
 
-import com.google.api.services.bigquery.model.TableRow
 import com.spotify.ratatool.Schemas
-import org.scalacheck.{Arbitrary, Gen, Properties}
-import org.scalacheck.Prop.{all, forAll, propBoolean}
+import org.scalacheck.{Arbitrary, Gen}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
-object TableRowGeneratorTest extends Properties("TableRowGenerator") {
-  property("round trip") = forAll(tableRowOf(Schemas.tableSchema)) { m =>
-    m.setF(m.getF) == m
-  }
+class TableRowGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
   val n = "nullable_fields"
   val r = "required_fields"
-  val richGen = tableRowOf(Schemas.tableSchema)
-    .amend(Gen.choose(10L, 20L))(_.getRecord(n).set("int_field"))
-    .amend(Gen.choose(10.0, 20.0))(_.getRecord(n).set("float_field"))
-    .amend(Gen.const(true))(_.getRecord(n).set("boolean_field"))
-    .amend(Gen.const("hello"))(
-      _.getRecord(n).set("string_field"),
-      m => s => m.getRecord(n).set("upper_string_field")(s.asInstanceOf[String].toUpperCase)
-    )
 
-  val richTupGen = (tableRowOf(Schemas.tableSchema), tableRowOf(Schemas.tableSchema)).tupled
-    .amend2(Gen.choose(10L, 20L))(
-      _.getRecord(r).set("int_field"),
-      a => a.getRecord(r).set("int_field")
-    )
-    .amend2(Arbitrary.arbString.arbitrary)(
-      _.getRecord(r).set("string_field"),
-      a => a.getRecord(r).set("string_field")
-    )
-    .amend2(Arbitrary.arbBool.arbitrary)(
-      _.getRecord(r).set("boolean_field"),
-      _.getRecord(r).set("boolean_field")
-    )
-
-  property("support RichTableRowGen") = forAll(richGen) { r =>
-    val fields = r.get(n).asInstanceOf[java.util.LinkedHashMap[String, Any]]
-    val i = fields.get("int_field").asInstanceOf[Long]
-    val f = fields.get("float_field").asInstanceOf[Double]
-    val b = fields.get("boolean_field").asInstanceOf[Boolean]
-    val s = fields.get("string_field").asInstanceOf[String]
-    val upper = fields.get("upper_string_field").asInstanceOf[String]
-    all(
-      "Int" |: i >= 10L && i <= 20L,
-      "Float" |: f >= 10.0 && f <= 20.0,
-      "Boolean" |: b == true,
-      "String" |: s == "hello",
-      "String" |: upper == "HELLO"
-    )
+  "TableRowGenerator" should "round trip" in {
+    forAll(tableRowOf(Schemas.tableSchema)) { m =>
+      m.setF(m.getF) shouldBe m
+    }
   }
 
-  property("support RichTableRowTupGen") = forAll(richTupGen) { case (a, b) =>
-    val ar = a.get(r).asInstanceOf[java.util.LinkedHashMap[String, Any]]
-    val br = b.get(r).asInstanceOf[java.util.LinkedHashMap[String, Any]]
-    (a.get("int_field").asInstanceOf[Long] == b.get("int_field").asInstanceOf[Long]
-    && a.get("string_field").asInstanceOf[String] == b.get("string_field").asInstanceOf[String] &&
-    a.get("boolean_field").asInstanceOf[Boolean] == b.get("boolean_field").asInstanceOf[Boolean])
+  it should "support RichTableRowGen" in {
+    val richGen = tableRowOf(Schemas.tableSchema)
+      .amend(Gen.choose(10L, 20L))(_.getRecord(n).set("int_field"))
+      .amend(Gen.choose(10.0, 20.0))(_.getRecord(n).set("float_field"))
+      .amend(Gen.const(true))(_.getRecord(n).set("boolean_field"))
+      .amend(Gen.const("hello"))(
+        _.getRecord(n).set("string_field"),
+        m => s => m.getRecord(n).set("upper_string_field")(s.asInstanceOf[String].toUpperCase)
+      )
+
+    forAll(richGen) { r =>
+      val fields = r.get(n).asInstanceOf[java.util.LinkedHashMap[String, Any]]
+      fields.get("int_field").asInstanceOf[Long] should (be >= 10L and be <= 20L)
+      fields.get("float_field").asInstanceOf[Double] should (be >= 10.0 and be <= 20.0)
+      fields.get("boolean_field").asInstanceOf[Boolean] shouldBe true
+      fields.get("string_field").asInstanceOf[String] shouldBe "hello"
+      fields.get("upper_string_field").asInstanceOf[String] shouldBe "HELLO"
+    }
+  }
+
+  it should "support RichTableRowTupGen" in {
+    val richTupGen = (tableRowOf(Schemas.tableSchema), tableRowOf(Schemas.tableSchema)).tupled
+      .amend2(Gen.choose(10L, 20L))(
+        _.getRecord(r).set("int_field"),
+        a => a.getRecord(r).set("int_field")
+      )
+      .amend2(Arbitrary.arbString.arbitrary)(
+        _.getRecord(r).set("string_field"),
+        a => a.getRecord(r).set("string_field")
+      )
+      .amend2(Arbitrary.arbBool.arbitrary)(
+        _.getRecord(r).set("boolean_field"),
+        _.getRecord(r).set("boolean_field")
+      )
+
+    forAll(richTupGen) { case (a, b) =>
+      val ar = a.get(r).asInstanceOf[java.util.LinkedHashMap[String, Any]]
+      val br = b.get(r).asInstanceOf[java.util.LinkedHashMap[String, Any]]
+
+      ar.get("int_field") shouldBe br.get("int_field")
+      ar.get("string_field") shouldBe br.get("string_field")
+      ar.get("boolean_field") shouldBe br.get("boolean_field")
+    }
   }
 
 }

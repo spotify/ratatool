@@ -18,51 +18,47 @@
 package com.spotify.ratatool.scalacheck
 
 import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
-import org.scalacheck.Prop.{all, forAll, propBoolean}
 import org.scalacheck._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-object AvroGeneratorTest extends Properties("AvroGenerator") {
+class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropertyChecks {
 
   val genTestRecord = specificRecordOf[TestRecord]
   val genRequiredNestedRecord = specificRecordOf[RequiredNestedRecord]
 
-  val genRich = genTestRecord
-    .amend(Gen.choose(10, 20))(_.getNullableFields.setIntField)
-    .amend(Gen.choose(10L, 20L))(_.getNullableFields.setLongField)
-    .amend(Gen.choose(10.0f, 20.0f))(_.getNullableFields.setFloatField)
-    .amend(Gen.choose(10.0, 20.0))(_.getNullableFields.setDoubleField)
-    .amend(Gen.const(true))(_.getNullableFields.setBooleanField)
-    .amend(Gen.const("hello"))(
-      _.getNullableFields.setStringField,
-      m => s => m.getNullableFields.setUpperStringField(s.toUpperCase)
-    )
-    .amend(Gen.const(BigDecimal("5.000000001").bigDecimal))(
-      _.getRequiredFields.setLogicalDecimalField
-    )
+  "AvroGenerator" should "support RichAvroGen" in {
+    val genRich = genTestRecord
+      .amend(Gen.choose(10, 20))(_.getNullableFields.setIntField)
+      .amend(Gen.choose(10L, 20L))(_.getNullableFields.setLongField)
+      .amend(Gen.choose(10.0f, 20.0f))(_.getNullableFields.setFloatField)
+      .amend(Gen.choose(10.0, 20.0))(_.getNullableFields.setDoubleField)
+      .amend(Gen.const(true))(_.getNullableFields.setBooleanField)
+      .amend(Gen.const("hello"))(
+        _.getNullableFields.setStringField,
+        m => s => m.getNullableFields.setUpperStringField(s.toUpperCase)
+      )
+      .amend(Gen.const(BigDecimal("5.000000001").bigDecimal))(
+        _.getRequiredFields.setLogicalDecimalField
+      )
 
-  val genRichTup = (genTestRecord, genTestRecord).tupled
-    .amend2(genRequiredNestedRecord)(_.setRequiredFields, _.setRequiredFields)
-
-  property("support RichAvroGen") = forAll(genRich) { r =>
-    // format: off
-    all(
-      "Int"        |: r.getNullableFields.getIntField >= 10 && r.getNullableFields.getIntField <= 20,
-      "Long"       |: r.getNullableFields.getLongField >= 10L && r.getNullableFields.getLongField <= 20L,
-      "Float"      |: r.getNullableFields.getFloatField >= 10.0f && r.getNullableFields.getFloatField <= 20.0f,
-      "Double"     |: r.getNullableFields.getDoubleField >= 10.0 && r.getNullableFields.getDoubleField <= 20.0,
-      "Boolean"    |: r.getNullableFields.getBooleanField == true,
-      "String"     |: r.getNullableFields.getStringField == "hello",
-      "String"     |: r.getNullableFields.getUpperStringField == "HELLO",
-      "BigDecimal" |: r.getRequiredFields.getLogicalDecimalField == BigDecimal("5.000000001").bigDecimal
-    )
-    // format: on
+    forAll(genRich) { r =>
+      r.getNullableFields.getIntField.toInt should (be >= 10 and be <= 20)
+      r.getNullableFields.getLongField.toLong should (be >= 10L and be <= 20L)
+      r.getNullableFields.getDoubleField.toDouble should (be >= 10.0 and be <= 20.0)
+      r.getNullableFields.getBooleanField shouldBe true
+      r.getNullableFields.getUpperStringField shouldBe "HELLO"
+      r.getRequiredFields.getLogicalDecimalField shouldBe BigDecimal("5.000000001").bigDecimal
+    }
   }
 
-  property("support RichAvroTupGen") = forAll(genRichTup) { case (a, b) =>
-    (a.getRequiredFields.getBooleanField == b.getRequiredFields.getBooleanField
-    && a.getRequiredFields.getIntField == b.getRequiredFields.getIntField
-    && a.getRequiredFields.getStringField.toString == b.getRequiredFields.getStringField.toString
-    && a.getRequiredFields.getLongField == b.getRequiredFields.getLongField)
-  }
+  it should "support RichAvroTupGen" in {
+    val genRichTup = (genTestRecord, genTestRecord).tupled
+      .amend2(genRequiredNestedRecord)(_.setRequiredFields, _.setRequiredFields)
 
+    forAll(genRichTup) { case (a, b) =>
+      a.getRequiredFields shouldBe b.getRequiredFields
+    }
+  }
 }
