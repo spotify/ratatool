@@ -83,4 +83,14 @@ class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropert
       r.get("cost") shouldBe a[java.math.BigDecimal]
     }
   }
+
+
+  it should "Support Avro types with String getters and setters" in {
+    val gen = AvroGeneratorOps.avroOf[TestStringTypedRecord]
+      .amend(Gen.alphaNumStr)(_.setStringField)
+      .sample.get
+
+    gen.getStringField shouldBe a[String]
+    gen.getNullableStringField shouldBe a[String]
+  }
 }
