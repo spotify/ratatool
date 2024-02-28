@@ -155,11 +155,10 @@ object BigSampler extends Command {
 
   def singleInput(argv: Array[String]): ClosedTap[_] = {
     val (sc, args) = ContextAndArgs(argv)
-    val (opts, _) = ScioContext.parseArguments[PipelineOptions](argv)
     // Determines how large our heap should be for topByKey
     val sizePerKey =
       if (
-        Try(opts.asInstanceOf[DataflowPipelineWorkerPoolOptions].getWorkerMachineType)
+        Try(sc.optionsAs[DataflowPipelineWorkerPoolOptions].getWorkerMachineType)
           .map(_.split("-").last.toInt)
           .getOrElse(4) > 8
       ) {
@@ -256,7 +255,7 @@ object BigSampler extends Command {
         s"Input is a URI: `$input`, output should be a URI too, but instead it's `$output`."
       )
       // Prompts FileSystems to load service classes, otherwise fetching schema from non-local fails
-      FileSystems.setDefaultPipelineOptions(opts)
+      FileSystems.setDefaultPipelineOptions(sc.options)
       val fileNames = getMetadata(input).map(_.resourceId().getFilename)
 
       input match {

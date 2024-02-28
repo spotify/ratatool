@@ -186,11 +186,9 @@ lazy val ratatoolSampling = project
       "com.spotify" %% "scio-avro" % scioVersion,
       "com.spotify" %% "scio-parquet" % scioVersion,
       "com.spotify" %% "scio-google-cloud-platform" % scioVersion,
-      "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
-      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
-      "org.apache.beam" % "beam-vendor-guava-32_1_2-jre" % beamVendorVersion,
       "com.twitter" %% "algebird-core" % algebirdVersion,
       "joda-time" % "joda-time" % jodaTimeVersion,
+      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion % Provided,
       "com.spotify" %% "scio-test" % scioVersion % Test,
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
       "org.scalatestplus" %% "scalacheck-1-17" % s"$scalaTestVersion.0" % Test
@@ -211,13 +209,11 @@ lazy val ratatoolDiffy = project
     libraryDependencies ++= Seq(
       "com.spotify" %% "scio-core" % scioVersion,
       "com.spotify" %% "scio-parquet" % scioVersion,
-      "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
-      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
-      "org.apache.beam" % "beam-vendor-guava-32_1_2-jre" % beamVendorVersion,
       "com.twitter" %% "algebird-core" % algebirdVersion,
       "joda-time" % "joda-time" % jodaTimeVersion,
       "com.spotify" %% "scio-test" % scioVersion % Test,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % Test
+      "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
+      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion % Test
     ),
     Test / parallelExecution := false,
     libraryDependencies ++= {
@@ -261,6 +257,8 @@ lazy val ratatoolCli = project
     name := "ratatool-cli",
     libraryDependencies ++= Seq(
       "com.github.scopt" %% "scopt" % scoptVersion,
+      "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
+      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test
     )
   )
@@ -281,9 +279,6 @@ lazy val ratatoolScalacheck = project
       "org.apache.avro" % "avro" % avroVersion,
       "joda-time" % "joda-time" % jodaTimeVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
-      "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
-      "org.apache.beam" % "beam-sdks-java-extensions-avro" % beamVersion,
-      "org.apache.beam" % "beam-vendor-guava-32_1_2-jre" % beamVendorVersion,
       "com.lihaoyi" %% "sourcecode" % sourcecodeVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
@@ -300,7 +295,6 @@ lazy val ratatoolExamples = project
     name := "ratatool-examples",
     libraryDependencies ++= Seq(
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
-      "org.apache.beam" % "beam-vendor-guava-32_1_2-jre" % beamVendorVersion,
       "com.spotify" %% "scio-test" % scioVersion % Test,
       "org.scalatestplus" %% "scalacheck-1-17" % s"$scalaTestVersion.0" % Test
     )
