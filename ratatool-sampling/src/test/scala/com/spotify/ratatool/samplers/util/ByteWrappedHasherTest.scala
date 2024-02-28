@@ -23,24 +23,27 @@ import org.scalacheck.Prop.forAll
 import org.scalacheck.Properties
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
-object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
+class ByteWrappedHasherTest extends AnyFlatSpec with Matchers with ScalaCheckDrivenPropertyChecks {
   private val testSeed = Some(42)
   private def newHasher() = BigSampler.hashFun(seed = testSeed)
 
-  property("wrapped hasher produces the same hash as original hasher for ints") = forAll { i: Int =>
-    val hasher = newHasher
-    val wrappedHasher =
-      ByteHasher.wrap(newHasher, RawEncoding, BigSampler.utf8Charset)
+  "ByteWrappedHasher" should "produce the same hash as original hasher for ints" in {
+    forAll { i: Int =>
+      val hasher = newHasher
+      val wrappedHasher =
+        ByteHasher.wrap(newHasher, RawEncoding, BigSampler.utf8Charset)
 
-    hasher.putInt(i)
-    wrappedHasher.putInt(i)
+      hasher.putInt(i)
+      wrappedHasher.putInt(i)
 
-    hasher.hash == wrappedHasher.hash
+      hasher.hash shouldBe wrappedHasher.hash
+    }
   }
 
-  property("wrapped hasher produces the same hash as original hasher for shorts") = forAll {
-    s: Short =>
+  it should "produce the same hash as original hasher for shorts" in {
+    forAll { s: Short =>
       val hasher = newHasher
       val wrappedHasher =
         ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
@@ -48,11 +51,12 @@ object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
       hasher.putShort(s)
       wrappedHasher.putShort(s)
 
-      hasher.hash == wrappedHasher.hash
+      hasher.hash shouldBe wrappedHasher.hash
+    }
   }
 
-  property("wrapped hasher produces the same hash as original hasher for longs") = forAll {
-    l: Long =>
+  it should "produce the same hash as original hasher for longs" in {
+    forAll { l: Long =>
       val hasher = newHasher
       val wrappedHasher =
         ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
@@ -60,11 +64,12 @@ object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
       hasher.putLong(l)
       wrappedHasher.putLong(l)
 
-      hasher.hash == wrappedHasher.hash
+      hasher.hash shouldBe wrappedHasher.hash
+    }
   }
 
-  property("wrapped hasher produces the same hash as original hasher for floats") = forAll {
-    f: Float =>
+  it should "produce the same hash as original hasher for floats" in {
+    forAll { f: Float =>
       val hasher = newHasher
       val wrappedHasher =
         ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
@@ -72,11 +77,12 @@ object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
       hasher.putFloat(f)
       wrappedHasher.putFloat(f)
 
-      hasher.hash == wrappedHasher.hash
+      hasher.hash shouldBe wrappedHasher.hash
+    }
   }
 
-  property("wrapped hasher produces the same hash as original hasher for doubles") = forAll {
-    d: Float =>
+  it should "produce the same hash as original hasher for doubles" in {
+    forAll { d: Float =>
       val hasher = newHasher
       val wrappedHasher =
         ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
@@ -84,11 +90,12 @@ object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
       hasher.putDouble(d)
       wrappedHasher.putDouble(d)
 
-      hasher.hash == wrappedHasher.hash
+      hasher.hash shouldBe wrappedHasher.hash
+    }
   }
 
-  property("wrapped hasher produces the same hash as original hasher for booleans") = forAll {
-    b: Boolean =>
+  it should "produce the same hash as original hasher for booleans" in {
+    forAll { b: Boolean =>
       val hasher = newHasher
       val wrappedHasher =
         ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
@@ -96,11 +103,12 @@ object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
       hasher.putBoolean(b)
       wrappedHasher.putBoolean(b)
 
-      hasher.hash == wrappedHasher.hash
+      hasher.hash shouldBe wrappedHasher.hash
+    }
   }
 
-  property("wrapped hasher produces the same hash as original hasher for chars") = forAll {
-    c: Char =>
+  it should "produce the same hash as original hasher for chars" in {
+    forAll { c: Char =>
       val hasher = newHasher
       val wrappedHasher =
         ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
@@ -108,11 +116,12 @@ object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
       hasher.putChar(c)
       wrappedHasher.putChar(c)
 
-      hasher.hash == wrappedHasher.hash
+      hasher.hash shouldBe wrappedHasher.hash
+    }
   }
 
-  property("wrapped hasher produces the same hash as original hasher for char sequences") = forAll {
-    s: String =>
+  it should "produce the same hash as original hasher for char sequences" in {
+    forAll { s: String =>
       val hasher = newHasher
       val wrappedHasher =
         ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
@@ -120,11 +129,12 @@ object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
       hasher.putUnencodedChars(s)
       wrappedHasher.putUnencodedChars(s)
 
-      hasher.hash == wrappedHasher.hash
+      hasher.hash shouldBe wrappedHasher.hash
+    }
   }
 
-  property("wrapped hasher produces the same hash as original hasher for strings") = forAll {
-    s: String =>
+  it should "produce the same hash as original hasher for strings" in {
+    forAll { s: String =>
       val hasher = newHasher
       val wrappedHasher =
         ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
@@ -132,7 +142,8 @@ object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
       hasher.putString(s, BigSampler.utf8Charset)
       wrappedHasher.putString(s, BigSampler.utf8Charset)
 
-      hasher.hash == wrappedHasher.hash
+      hasher.hash shouldBe wrappedHasher.hash
+    }
   }
 
   object StringFunnel extends Funnel[String] {
@@ -140,8 +151,8 @@ object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
       into.putString(from, BigSampler.utf8Charset)
   }
 
-  property("wrapped hasher produces the same hash as original hasher for objects") = forAll {
-    s: String =>
+  it should "produce the same hash as original hasher for objects" in {
+    forAll { s: String =>
       val hasher = newHasher
       val wrappedHasher =
         ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
@@ -149,40 +160,38 @@ object ByteWrappedHasherTest extends Properties("ByteWrappedHasher") {
       hasher.putObject(s, StringFunnel)
       wrappedHasher.putObject(s, StringFunnel)
 
-      hasher.hash == wrappedHasher.hash
+      hasher.hash shouldBe wrappedHasher.hash
+    }
   }
 
-  property("wrapped hex hasher correctly encodes bytes as hex") = forAll { ba: Array[Byte] =>
-    val hasher1 =
-      ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
-    val hasher2 =
-      ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
+  it should "correctly encodes bytes as hex" in {
+    forAll { ba: Array[Byte] =>
+      val hasher1 =
+        ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
+      val hasher2 =
+        ByteHasher.wrap(newHasher, HexEncoding, BigSampler.utf8Charset)
 
-    val s = BaseEncoding.base16().lowerCase.encode(ba)
+      val s = BaseEncoding.base16().lowerCase.encode(ba)
 
-    hasher1.putBytes(ba)
-    hasher2.putString(s, BigSampler.utf8Charset)
-    assert(hasher1.hash == hasher2.hash)
-
-    if (ba.length >= 1) {
-      hasher1.putBytes(ba, 0, 1)
-      hasher2.putString(s.slice(0, 2), BigSampler.utf8Charset)
+      hasher1.putBytes(ba)
+      hasher2.putString(s, BigSampler.utf8Charset)
       assert(hasher1.hash == hasher2.hash)
 
-      hasher1.putByte(ba(0))
-      hasher2.putString(s.slice(0, 2), BigSampler.utf8Charset)
+      if (ba.length >= 1) {
+        hasher1.putBytes(ba, 0, 1)
+        hasher2.putString(s.slice(0, 2), BigSampler.utf8Charset)
+        assert(hasher1.hash == hasher2.hash)
+
+        hasher1.putByte(ba(0))
+        hasher2.putString(s.slice(0, 2), BigSampler.utf8Charset)
+      }
+
+      hasher1.hash shouldBe hasher2.hash
     }
-
-    hasher1.hash == hasher2.hash
   }
-}
 
-class ByteHasherEqualsTest extends AnyFlatSpec with Matchers {
-  private val testSeed = Some(42)
-  private def newHasher() = BigSampler.hashFun(seed = testSeed)
-
-  "WrappedByteHasher" should "not alter the hasher using the raw encoding" in {
-    val hasher = newHasher
+  it should "not alter the hasher using the raw encoding" in {
+    val hasher = newHasher()
     val wrappedHasher = ByteHasher.wrap(hasher, RawEncoding, BigSampler.utf8Charset)
     assert(hasher.equals(wrappedHasher))
   }

@@ -17,52 +17,66 @@
 
 package com.spotify.ratatool.examples
 
-import java.util.UUID
-
 import com.spotify.ratatool.avro.specific.{EnumField, ExampleRecord}
 import com.spotify.ratatool.examples.scalacheck.ExampleAvroGen
-import org.scalacheck.{Gen, Properties}
-import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
+import org.scalacheck.Gen
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
+import java.util.UUID
 import scala.jdk.CollectionConverters._
 
-object ExampleAvroGenTest extends Properties("ExampleAvroGenerator") {
+class ExampleAvroGenTest extends AnyFlatSpec with Matchers with ScalaCheckDrivenPropertyChecks {
   val gen: Gen[ExampleRecord] = ExampleAvroGen.exampleRecordGen
 
-  property("round trips UUID") = forAll(gen) { m =>
-    UUID.fromString(m.getRecordId.toString).toString ?= m.getRecordId.toString
+  "ExampleAvroGenerator" should "round trips UUID" in {
+    forAll(gen) { m =>
+      UUID.fromString(m.getRecordId.toString).toString shouldBe m.getRecordId.toString
+    }
   }
 
-  property("generates valid dependent int") = forAll(gen) { m =>
-    (m.getIndependentIntField == 0
-      && m.getDependentIntField == Int.MaxValue) :| "Max if indep is 0" ||
-    (m.getIndependentIntField != 0
-      && m.getDependentIntField == m.getIndependentIntField / 2) :| "Half when indep is not 0"
+  it should "generates valid dependent int" in {
+    forAll(gen) { m =>
+      if (m.getIndependentIntField == 0) {
+        m.getDependentIntField shouldBe Int.MaxValue
+      } else {
+        m.getDependentIntField shouldBe (m.getIndependentIntField / 2)
+      }
+    }
   }
 
-  property("generates valid dependent enum") = forAll(gen) { m =>
-    (m.getIndependentStringField.toString.startsWith("Exception") &&
-      m.getDependentEnumField == EnumField.Failure) :| "Is Failure on Exception" ||
-    (!m.getIndependentStringField.toString.startsWith("Exception") &&
-      m.getDependentEnumField == EnumField.Success) :| "Is Success when non-Exception"
+  it should "generates valid dependent enum" in {
+    forAll(gen) { m =>
+      if (m.getIndependentStringField.toString.startsWith("Exception")) {
+        m.getDependentEnumField shouldBe EnumField.Failure
+      } else {
+        m.getDependentEnumField shouldBe EnumField.Success
+      }
+    }
   }
 
-  property("double field within bounds") = forAll(gen) { m =>
-    m.getBoundedDoubleField <= 1.0 && m.getBoundedDoubleField >= -1.0
+  it should "generate double field within bounds" in {
+    forAll(gen) { m =>
+      m.getBoundedDoubleField.toDouble should (be <= 1.0 and be >= -1.0)
+    }
   }
 
-  property("map field size within bounds") = forAll(gen) { m =>
-    val size = m.getNestedRecordField.getMapField.asScala.size
-    size <= 5 && size >= 0
+  it should "generate map field size within bounds" in {
+    forAll(gen) { m =>
+      m.getNestedRecordField.getMapField.asScala.size should (be <= 5 and be >= 0)
+    }
   }
 
-  property("the record id is the same when using amend2 generators") =
+  it should "generate same record id using amend2 generators" in {
     forAll(ExampleAvroGen.exampleRecordAmend2Gen) { case (gen1, gen2) =>
-      gen1.getRecordId == gen2.getRecordId
+      gen1.getRecordId shouldBe gen2.getRecordId
     }
+  }
 
-  property("the record id is the same when using amend2 for correlated fields") =
+  it should "generate same record id when using amend2 for correlated fields" in {
     forAll(ExampleAvroGen.correlatedRecordGen) { correlatedGen =>
-      correlatedGen.getRecordId == correlatedGen.getNestedRecordField.getParentRecordId
+      correlatedGen.getRecordId shouldBe correlatedGen.getNestedRecordField.getParentRecordId
     }
+  }
 }
