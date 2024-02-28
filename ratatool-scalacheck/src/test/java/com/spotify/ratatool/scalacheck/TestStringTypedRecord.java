@@ -1,3 +1,6 @@
+/**
+ * Generated ad-hoc using sbt-avro `avroStringType := String` setting.
+ */
 package com.spotify.ratatool.scalacheck;
 
 import org.apache.avro.specific.SpecificData;
@@ -8,8 +11,8 @@ import org.apache.avro.message.SchemaStore;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class TestStringTypedRecord extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-    private static final long serialVersionUID = -613600185212439574L;
-    public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"TestStringTypedRecord\",\"namespace\":\"com.spotify.ratatool.scalacheck\",\"doc\":\"Record for testing\",\"fields\":[{\"name\":\"string_field\",\"type\":{\"type\":\"string\",\"avro.java.string\":\"String\"}},{\"name\":\"nullable_string_field\",\"type\":[\"null\",{\"type\":\"string\",\"avro.java.string\":\"String\"}]}]}");
+    private static final long serialVersionUID = 1773563257129780214L;
+    public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"TestStringTypedRecord\",\"namespace\":\"com.spotify.ratatool.scalacheck\",\"fields\":[{\"name\":\"string_field\",\"type\":{\"type\":\"string\",\"avro.java.string\":\"String\"}},{\"name\":\"nullable_string_field\",\"type\":{\"type\":\"string\",\"avro.java.string\":\"String\"}},{\"name\":\"array_field\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"avro.java.string\":\"String\"}}},{\"name\":\"map_field\",\"type\":[{\"type\":\"map\",\"values\":{\"type\":\"string\",\"avro.java.string\":\"String\"},\"avro.java.string\":\"String\"}]}]}");
     public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
 
     private static SpecificData MODEL$ = new SpecificData();
@@ -48,6 +51,8 @@ public class TestStringTypedRecord extends org.apache.avro.specific.SpecificReco
 
     public java.lang.String string_field;
     public java.lang.String nullable_string_field;
+    public java.util.List<java.lang.String> array_field;
+    public java.lang.Object map_field;
 
     /**
      * Default constructor.  Note that this does not initialize fields
@@ -60,10 +65,14 @@ public class TestStringTypedRecord extends org.apache.avro.specific.SpecificReco
      * All-args constructor.
      * @param string_field The new value for string_field
      * @param nullable_string_field The new value for nullable_string_field
+     * @param array_field The new value for array_field
+     * @param map_field The new value for map_field
      */
-    public TestStringTypedRecord(java.lang.String string_field, java.lang.String nullable_string_field) {
+    public TestStringTypedRecord(java.lang.String string_field, java.lang.String nullable_string_field, java.util.List<java.lang.String> array_field, java.lang.Object map_field) {
         this.string_field = string_field;
         this.nullable_string_field = nullable_string_field;
+        this.array_field = array_field;
+        this.map_field = map_field;
     }
 
     public org.apache.avro.Schema getSchema() { return SCHEMA$; }
@@ -72,6 +81,8 @@ public class TestStringTypedRecord extends org.apache.avro.specific.SpecificReco
         switch (field$) {
             case 0: return string_field;
             case 1: return nullable_string_field;
+            case 2: return array_field;
+            case 3: return map_field;
             default: throw new org.apache.avro.AvroRuntimeException("Bad index");
         }
     }
@@ -82,6 +93,8 @@ public class TestStringTypedRecord extends org.apache.avro.specific.SpecificReco
         switch (field$) {
             case 0: string_field = (java.lang.String)value$; break;
             case 1: nullable_string_field = (java.lang.String)value$; break;
+            case 2: array_field = (java.util.List<java.lang.String>)value$; break;
+            case 3: map_field = (java.lang.Object)value$; break;
             default: throw new org.apache.avro.AvroRuntimeException("Bad index");
         }
     }
@@ -119,6 +132,38 @@ public class TestStringTypedRecord extends org.apache.avro.specific.SpecificReco
     }
 
     /**
+     * Gets the value of the 'array_field' field.
+     * @return The value of the 'array_field' field.
+     */
+    public java.util.List<java.lang.String> getArrayField() {
+        return array_field;
+    }
+
+    /**
+     * Sets the value of the 'array_field' field.
+     * @param value the value to set.
+     */
+    public void setArrayField(java.util.List<java.lang.String> value) {
+        this.array_field = value;
+    }
+
+    /**
+     * Gets the value of the 'map_field' field.
+     * @return The value of the 'map_field' field.
+     */
+    public java.lang.Object getMapField() {
+        return map_field;
+    }
+
+    /**
+     * Sets the value of the 'map_field' field.
+     * @param value the value to set.
+     */
+    public void setMapField(java.lang.Object value) {
+        this.map_field = value;
+    }
+
+    /**
      * Creates a new TestStringTypedRecord RecordBuilder.
      * @return A new TestStringTypedRecord RecordBuilder
      */
@@ -152,6 +197,8 @@ public class TestStringTypedRecord extends org.apache.avro.specific.SpecificReco
 
         private java.lang.String string_field;
         private java.lang.String nullable_string_field;
+        private java.util.List<java.lang.String> array_field;
+        private java.lang.Object map_field;
 
         /** Creates a new Builder */
         private Builder() {
@@ -172,6 +219,14 @@ public class TestStringTypedRecord extends org.apache.avro.specific.SpecificReco
                 this.nullable_string_field = data().deepCopy(fields()[1].schema(), other.nullable_string_field);
                 fieldSetFlags()[1] = true;
             }
+            if (isValidValue(fields()[2], other.array_field)) {
+                this.array_field = data().deepCopy(fields()[2].schema(), other.array_field);
+                fieldSetFlags()[2] = true;
+            }
+            if (isValidValue(fields()[3], other.map_field)) {
+                this.map_field = data().deepCopy(fields()[3].schema(), other.map_field);
+                fieldSetFlags()[3] = true;
+            }
         }
 
         /**
@@ -187,6 +242,14 @@ public class TestStringTypedRecord extends org.apache.avro.specific.SpecificReco
             if (isValidValue(fields()[1], other.nullable_string_field)) {
                 this.nullable_string_field = data().deepCopy(fields()[1].schema(), other.nullable_string_field);
                 fieldSetFlags()[1] = true;
+            }
+            if (isValidValue(fields()[2], other.array_field)) {
+                this.array_field = data().deepCopy(fields()[2].schema(), other.array_field);
+                fieldSetFlags()[2] = true;
+            }
+            if (isValidValue(fields()[3], other.map_field)) {
+                this.map_field = data().deepCopy(fields()[3].schema(), other.map_field);
+                fieldSetFlags()[3] = true;
             }
         }
 
@@ -268,6 +331,84 @@ public class TestStringTypedRecord extends org.apache.avro.specific.SpecificReco
             return this;
         }
 
+        /**
+         * Gets the value of the 'array_field' field.
+         * @return The value.
+         */
+        public java.util.List<java.lang.String> getArrayField() {
+            return array_field;
+        }
+
+        /**
+         * Sets the value of the 'array_field' field.
+         * @param value The value of 'array_field'.
+         * @return This builder.
+         */
+        public com.spotify.ratatool.scalacheck.TestStringTypedRecord.Builder setArrayField(java.util.List<java.lang.String> value) {
+            validate(fields()[2], value);
+            this.array_field = value;
+            fieldSetFlags()[2] = true;
+            return this;
+        }
+
+        /**
+         * Checks whether the 'array_field' field has been set.
+         * @return True if the 'array_field' field has been set, false otherwise.
+         */
+        public boolean hasArrayField() {
+            return fieldSetFlags()[2];
+        }
+
+
+        /**
+         * Clears the value of the 'array_field' field.
+         * @return This builder.
+         */
+        public com.spotify.ratatool.scalacheck.TestStringTypedRecord.Builder clearArrayField() {
+            array_field = null;
+            fieldSetFlags()[2] = false;
+            return this;
+        }
+
+        /**
+         * Gets the value of the 'map_field' field.
+         * @return The value.
+         */
+        public java.lang.Object getMapField() {
+            return map_field;
+        }
+
+        /**
+         * Sets the value of the 'map_field' field.
+         * @param value The value of 'map_field'.
+         * @return This builder.
+         */
+        public com.spotify.ratatool.scalacheck.TestStringTypedRecord.Builder setMapField(java.lang.Object value) {
+            validate(fields()[3], value);
+            this.map_field = value;
+            fieldSetFlags()[3] = true;
+            return this;
+        }
+
+        /**
+         * Checks whether the 'map_field' field has been set.
+         * @return True if the 'map_field' field has been set, false otherwise.
+         */
+        public boolean hasMapField() {
+            return fieldSetFlags()[3];
+        }
+
+
+        /**
+         * Clears the value of the 'map_field' field.
+         * @return This builder.
+         */
+        public com.spotify.ratatool.scalacheck.TestStringTypedRecord.Builder clearMapField() {
+            map_field = null;
+            fieldSetFlags()[3] = false;
+            return this;
+        }
+
         @Override
         @SuppressWarnings("unchecked")
         public TestStringTypedRecord build() {
@@ -275,6 +416,8 @@ public class TestStringTypedRecord extends org.apache.avro.specific.SpecificReco
                 TestStringTypedRecord record = new TestStringTypedRecord();
                 record.string_field = fieldSetFlags()[0] ? this.string_field : (java.lang.String) defaultValue(fields()[0]);
                 record.nullable_string_field = fieldSetFlags()[1] ? this.nullable_string_field : (java.lang.String) defaultValue(fields()[1]);
+                record.array_field = fieldSetFlags()[2] ? this.array_field : (java.util.List<java.lang.String>) defaultValue(fields()[2]);
+                record.map_field = fieldSetFlags()[3] ? this.map_field : (java.lang.Object) defaultValue(fields()[3]);
                 return record;
             } catch (java.lang.Exception e) {
                 throw new org.apache.avro.AvroRuntimeException(e);

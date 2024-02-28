@@ -78,6 +78,19 @@ trait AvroGeneratorOps {
     cs <- Gen.listOfN(n, Arbitrary.arbChar.arbitrary)
   } yield new Utf8(cs.mkString)
 
+  private def stringGen = for {
+    n <- boundedLengthGen
+    cs <- Gen.listOfN(n, Arbitrary.arbChar.arbitrary)
+  } yield cs.mkString
+
+  private def getStringFieldGen(schema: Schema): Gen[_ <: CharSequence] =
+    Option(schema.getProp(GenericData.STRING_PROP)) match {
+      case Some("String") =>
+        stringGen
+      case _ =>
+        utf8Gen
+    }
+
   private def avroValueOf(schema: Schema)(implicit data: GenericData): Gen[Any] = {
     import scala.jdk.CollectionConverters._
 
@@ -137,7 +150,7 @@ trait AvroGeneratorOps {
       case Schema.Type.MAP =>
         import HashMapBuildable._
         val map = Gen.buildableOf[util.HashMap[CharSequence, Any], (CharSequence, Any)](
-          (utf8Gen, avroValueOf(schema.getValueType)).tupled
+          (getStringFieldGen(schema), avroValueOf(schema.getValueType)).tupled
         )
         conversion match {
           case Some(c) => map.map(m => c.fromMap(m, schema, schema.getLogicalType))
@@ -155,7 +168,8 @@ trait AvroGeneratorOps {
         }
 
       case Schema.Type.STRING =>
-        val charSequence = Gen.oneOf(Gen.oneOf(" ", "", "foo "), utf8Gen)
+        val charSequence = Gen.oneOf(Gen.oneOf(" ", "", "foo "), getStringFieldGen(schema))
+
         conversion match {
           case Some(c) =>
             charSequence.map(cs => c.fromCharSequence(cs, schema, schema.getLogicalType))

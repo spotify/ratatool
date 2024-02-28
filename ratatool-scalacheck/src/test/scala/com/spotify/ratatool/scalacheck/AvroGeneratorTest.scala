@@ -25,6 +25,9 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
+import java.util.{Map => JMap}
+import scala.jdk.CollectionConverters._
+
 class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropertyChecks {
 
   val genTestRecord = specificRecordOf[TestRecord]
@@ -84,13 +87,27 @@ class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropert
     }
   }
 
-
   it should "Support Avro types with String getters and setters" in {
-    val gen = AvroGeneratorOps.avroOf[TestStringTypedRecord]
+    val gen = AvroGeneratorOps
+      .avroOf[TestStringTypedRecord]
       .amend(Gen.alphaNumStr)(_.setStringField)
-      .sample.get
+      .amend[String](Gen.alphaNumStr)(record => str => record.setArrayField(List(str).asJava))
+      .amend[String](Gen.alphaNumStr)(record =>
+        str => record.setMapField(Map(str -> str.reverse).asJava)
+      )
+      .sample
+      .get
 
     gen.getStringField shouldBe a[String]
     gen.getNullableStringField shouldBe a[String]
+    gen.getArrayField.get(0) shouldBe a[String]
+
+    val entry = gen.getMapField
+      .asInstanceOf[JMap[CharSequence, CharSequence]]
+      .entrySet()
+      .iterator()
+      .next()
+    entry.getKey shouldBe a[String]
+    entry.getValue shouldBe a[String]
   }
 }
