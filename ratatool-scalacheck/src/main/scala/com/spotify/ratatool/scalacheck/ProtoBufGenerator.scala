@@ -20,7 +20,7 @@ package com.spotify.ratatool.scalacheck
 import java.io.ByteArrayOutputStream
 import java.lang.reflect.Method
 
-import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.cache.{
+import com.google.common.cache.{
   CacheBuilder,
   CacheLoader,
   LoadingCache

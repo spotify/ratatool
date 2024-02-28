@@ -20,8 +20,8 @@ package com.spotify.ratatool.scalacheck
 import java.nio.ByteBuffer
 import java.util
 import com.google.api.services.bigquery.model.{TableFieldSchema, TableRow, TableSchema}
+import com.google.common.io.BaseEncoding
 import com.spotify.ratatool.BigQueryUtil.getFieldModeWithDefault
-import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
 import org.joda.time._
 import org.joda.time.format.DateTimeFormat
 import org.scalacheck.{Arbitrary, Gen}
