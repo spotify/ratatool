@@ -18,6 +18,8 @@
 package com.spotify.ratatool.scalacheck
 
 import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
+import org.apache.avro.generic.GenericData
+import org.apache.avro.{Conversions, LogicalTypes, SchemaBuilder}
 import org.scalacheck._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -59,6 +61,26 @@ class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropert
 
     forAll(genRichTup) { case (a, b) =>
       a.getRequiredFields shouldBe b.getRequiredFields
+    }
+  }
+
+  it should "support logical type" in {
+    // format: off
+    val decimalType = LogicalTypes.decimal(10, 2).addToSchema(SchemaBuilder.builder().bytesType())
+    val schema = SchemaBuilder
+      .builder()
+      .record("TestLogicalType")
+      .fields()
+      .name("cost").`type`(decimalType).noDefault()
+      .endRecord()
+    // format: on
+
+    // For generic records, logical type conversion must be explicitly enabled
+    GenericData.get().addLogicalTypeConversion(new Conversions.DecimalConversion)
+
+    val gen = avroOf(schema)
+    forAll(gen) { r =>
+      r.get("cost") shouldBe a[java.math.BigDecimal]
     }
   }
 }
