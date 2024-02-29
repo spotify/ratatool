@@ -27,11 +27,10 @@ import com.spotify.ratatool.samplers.util._
 import com.spotify.scio.bigquery.TableRow
 import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.values.SCollection
-import com.spotify.scio.{ContextAndArgs, ScioContext}
+import com.spotify.scio.ContextAndArgs
 import com.spotify.scio.coders.Coder
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
-import org.apache.beam.runners.dataflow.options.DataflowPipelineWorkerPoolOptions
 import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.io.fs.MatchResult.Metadata
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryHelpers
@@ -153,19 +152,33 @@ object BigSampler extends Command {
     FileStorage(path).listFiles
   }
 
+  private def dataflowWorkerMemory(options: PipelineOptions): Option[Int] = Try {
+    val dataflowPipelineWorkerPoolOptions = Class
+      .forName("org.apache.beam.runners.dataflow.options.DataflowPipelineWorkerPoolOptions")
+      .asInstanceOf[Class[PipelineOptions]]
+    val machineType = dataflowPipelineWorkerPoolOptions
+      .getMethod("getWorkerMachineType")
+      .invoke(options.as(dataflowPipelineWorkerPoolOptions))
+      .asInstanceOf[String]
+    val machineTypeParts = machineType.split("-")
+    // approximation. does not work for all machine types families
+    val cpuMemFactor = machineTypeParts(1) match {
+      case "standard" => 4
+      case "highmem"  => 8
+      case "megamem"  => 14
+      case "hypermem" => 20
+      case "ultramem" => 28
+      case "highcpu"  => 2
+      case _          => 1
+    }
+    val machineCpus = machineTypeParts(2).toInt
+    machineCpus * cpuMemFactor
+  }.toOption
+
   def singleInput(argv: Array[String]): ClosedTap[_] = {
     val (sc, args) = ContextAndArgs(argv)
     // Determines how large our heap should be for topByKey
-    val sizePerKey =
-      if (
-        Try(sc.optionsAs[DataflowPipelineWorkerPoolOptions].getWorkerMachineType)
-          .map(_.split("-").last.toInt)
-          .getOrElse(4) > 8
-      ) {
-        1e9.toInt
-      } else {
-        1e6.toInt
-      }
+    val sizePerKey = if (dataflowWorkerMemory(sc.options).exists(_ >= 32)) 1e9.toInt else 1e6.toInt
 
     val (
       samplePct,
