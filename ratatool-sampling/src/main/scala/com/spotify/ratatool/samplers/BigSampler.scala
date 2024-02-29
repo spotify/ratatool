@@ -160,9 +160,9 @@ object BigSampler extends Command {
       .getMethod("getWorkerMachineType")
       .invoke(options.as(dataflowPipelineWorkerPoolOptions))
       .asInstanceOf[String]
-    val machineTypesPart = machineType.split("-")
+    val machineTypeParts = machineType.split("-")
     // approximation. does not work for all machine types families
-    val cpuMemFactor = machineTypesPart(1) match {
+    val cpuMemFactor = machineTypeParts(1) match {
       case "standard" => 4
       case "highmem"  => 8
       case "megamem"  => 14
@@ -171,7 +171,7 @@ object BigSampler extends Command {
       case "highcpu"  => 2
       case _          => 1
     }
-    val machineCpus = machineTypesPart(2).toInt
+    val machineCpus = machineTypeParts(2).toInt
     machineCpus * cpuMemFactor
   }.toOption
 
