@@ -21,10 +21,10 @@ import Keys._
 val algebirdVersion = "0.13.10"
 
 // Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.14.0/build.sbt
-val scioVersion = "0.14.1"
+val scioVersion = "0.14.2"
 
 val avroVersion = avroCompilerVersion // keep in sync with scio
-val beamVersion = "2.53.0" // keep in sync with scio
+val beamVersion = "2.54.0" // keep in sync with scio
 val beamVendorVersion = "0.1" // keep in sync with scio
 val bigqueryVersion = "v2-rev20230812-2.0.0" // keep in sync with scio
 val floggerVersion = "0.8" // keep in sync with scio + beam
