@@ -22,8 +22,8 @@ private[scalacheck] object HashMapBuildable {
 
   import scala.jdk.CollectionConverters._
 
-  implicit val tt: java.util.HashMap[CharSequence, Any] => Traversable[(CharSequence, Any)] =
-    _.asScala
+  implicit def toTraversable[K, V]: java.util.HashMap[K, V] => Traversable[(K, V)] = _.asScala
+
   implicit def buildableHashMap[K, V]: Buildable[(K, V), java.util.HashMap[K, V]] =
     new Buildable[(K, V), java.util.HashMap[K, V]] {
       def builder = new HashMapBuilder[K, V]

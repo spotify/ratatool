@@ -73,14 +73,73 @@ trait AvroGeneratorOps {
    * some ser/de issues with IndexOutOfBounds decoding with CoderUtils & Kryo
    */
   private def boundedLengthGen: Gen[Int] = Gen.chooseNum(0, 39)
-  private def avroStringGen(tpe: Schema): Gen[CharSequence] = {
-    val stringGen = Gen.oneOf(
-      Gen.oneOf(" ", "", "foo"),
-      Arbitrary.arbString.arbitrary
-    )
+
+  private val genString: Gen[String] = Gen.oneOf(
+    Gen.oneOf(" ", "", "foo"),
+    Arbitrary.arbString.arbitrary
+  )
+
+  private val genUri: Gen[java.net.URI] = for {
+    scheme <- Gen.option(Gen.oneOf("http", "https", "ftp"))
+    userInfo <- Gen.option(Gen.alphaNumStr)
+    host <- Gen.oneOf("example.com", "example.org", "example.net")
+    port <- Gen.option(Gen.choose(1, 65535))
+    segments <- Gen.option(Gen.nonEmptyListOf(Gen.alphaNumStr))
+    params <- Gen.option(Gen.nonEmptyListOf(Gen.alphaNumStr))
+    fragment <- Gen.option(Gen.alphaNumStr)
+  } yield {
+    val authority = (userInfo.map(_ + "@") ++ Some(host) ++ port.map(":" + _)).mkString
+    val path = segments.map(_.mkString("/", "/", ""))
+    val query = params.map(_.mkString("&"))
+    new java.net.URI(scheme.orNull, authority, path.orNull, query.orNull, fragment.orNull)
+  }
+
+  private val genUrl: Gen[java.net.URL] = for {
+    scheme <- Gen.oneOf("http", "https", "ftp")
+    userInfo <- Gen.option(Gen.alphaNumStr)
+    host <- Gen.oneOf("example.com", "example.org", "example.net")
+    port <- Gen.option(Gen.choose(1, 65535))
+    segments <- Gen.nonEmptyListOf(Gen.alphaNumStr)
+    params <- Gen.option(Gen.nonEmptyListOf(Gen.alphaNumStr))
+    fragment <- Gen.option(Gen.alphaNumStr)
+  } yield {
+    val authority = (userInfo.map(_ + "@") ++ Some(host) ++ port.map(":" + _)).mkString
+    val path = segments.mkString("/", "/", "")
+    val query = params.map(_.mkString("&"))
+    new java.net.URI(scheme, authority, path, query.orNull, fragment.orNull).toURL
+  }
+
+  private val genFile: Gen[java.io.File] = for {
+    prefix <- Gen.oneOf("", "/", "./", "../")
+    segments <- Gen.nonEmptyListOf(Gen.alphaNumStr)
+    extension <- Gen.option(Gen.stringOfN(3, Gen.alphaNumChar))
+  } yield {
+    val suffix = extension.map("." + _).getOrElse("")
+    new java.io.File(segments.mkString(prefix, "/", suffix))
+  }
+
+  private def genStringable(clazz: Class[_]): Gen[Any] = {
+    if (clazz == classOf[java.math.BigDecimal]) {
+      Gen.choose(BigDecimal(Int.MinValue), BigDecimal(Int.MaxValue)).map(_.bigDecimal)
+    } else if (clazz == classOf[java.math.BigInteger]) {
+      Gen.choose(BigInt(Int.MinValue), BigInt(Int.MaxValue)).map(_.bigInteger)
+    } else if (clazz == classOf[java.net.URI]) {
+      genUri
+    } else if (clazz == classOf[java.net.URL]) {
+      genUrl
+    } else if (clazz == classOf[java.io.File]) {
+      genFile
+    } else {
+      val ctor = clazz.getDeclaredConstructor(classOf[String])
+      ctor.setAccessible(true)
+      genString.map(ctor.newInstance(_))
+    }
+  }
+
+  private def genAvroString(tpe: Schema): Gen[CharSequence] = {
     Option(tpe.getProp(GenericData.STRING_PROP)) match {
-      case Some("String") => stringGen
-      case _              => stringGen.map(new Utf8(_))
+      case Some("String") => genString
+      case _              => genString.map(new Utf8(_))
     }
   }
 
@@ -142,12 +201,19 @@ trait AvroGeneratorOps {
 
       case Schema.Type.MAP =>
         import HashMapBuildable._
-        val map = Gen.buildableOf[util.HashMap[CharSequence, Any], (CharSequence, Any)](
-          (avroStringGen(schema), avroValueOf(schema.getValueType)).tupled
-        )
-        conversion match {
-          case Some(c) => map.map(m => c.fromMap(m, schema, schema.getLogicalType))
-          case None    => map
+        Option(schema.getProp(SpecificData.KEY_CLASS_PROP)) match {
+          case Some(cls) =>
+            Gen.buildableOf[util.HashMap[Any, Any], (Any, Any)](
+              (genStringable(Class.forName(cls)), avroValueOf(schema.getValueType)).tupled
+            )
+          case None =>
+            val map = Gen.buildableOf[util.HashMap[CharSequence, Any], (CharSequence, Any)](
+              (genAvroString(schema), avroValueOf(schema.getValueType)).tupled
+            )
+            conversion match {
+              case Some(c) => map.map(m => c.fromMap(m, schema, schema.getLogicalType))
+              case None    => map
+            }
         }
 
       case Schema.Type.FIXED =>
@@ -161,10 +227,14 @@ trait AvroGeneratorOps {
         }
 
       case Schema.Type.STRING =>
-        val str = avroStringGen(schema)
-        conversion match {
-          case Some(c) => str.map(cs => c.fromCharSequence(cs, schema, schema.getLogicalType))
-          case None    => str
+        Option(schema.getProp(SpecificData.CLASS_PROP)) match {
+          case Some(cls) => genStringable(Class.forName(cls))
+          case None =>
+            val str = genAvroString(schema)
+            conversion match {
+              case Some(c) => str.map(cs => c.fromCharSequence(cs, schema, schema.getLogicalType))
+              case None    => str
+            }
         }
 
       case Schema.Type.BYTES =>
