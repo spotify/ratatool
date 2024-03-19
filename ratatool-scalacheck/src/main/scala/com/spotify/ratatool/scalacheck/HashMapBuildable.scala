@@ -22,7 +22,7 @@ private[scalacheck] object HashMapBuildable {
 
   import scala.jdk.CollectionConverters._
 
-  implicit def toTraversable[K, V]: java.util.HashMap[K, V] => Traversable[(K, V)] = _.asScala
+  implicit def tt[K, V]: java.util.HashMap[K, V] => Traversable[(K, V)] = _.asScala
 
   implicit def buildableHashMap[K, V]: Buildable[(K, V), java.util.HashMap[K, V]] =
     new Buildable[(K, V), java.util.HashMap[K, V]] {
