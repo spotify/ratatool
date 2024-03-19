@@ -19,9 +19,11 @@ package com.spotify.ratatool.scalacheck
 
 import org.apache.avro._
 import org.apache.avro.generic.{GenericData, GenericRecord, IndexedRecord}
+import org.apache.avro.reflect.Stringable
 import org.apache.avro.specific.{SpecificData, SpecificRecord}
 import org.apache.avro.util.Utf8
 import org.scalacheck.{Arbitrary, Gen}
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.nio.ByteBuffer
 import java.util
@@ -31,6 +33,8 @@ import scala.util.Try
 object AvroGeneratorOps extends AvroGeneratorOps
 
 trait AvroGeneratorOps {
+
+  private lazy val logger: Logger = LoggerFactory.getLogger(getClass)
 
   private lazy val avroRuntimeVersion =
     Option(classOf[Schema].getPackage.getImplementationVersion)
@@ -61,12 +65,31 @@ trait AvroGeneratorOps {
     val schema = data.getSchema(cls)
     avroValueOf(schema)(data).asInstanceOf[Gen[A]]
   }
+
+  def specificRecordOf[A <: SpecificRecord: ClassTag](
+    stringableGens: Map[Class[_], Gen[_]]
+  ): Gen[A] = {
+    val cls = implicitly[ClassTag[A]].runtimeClass.asInstanceOf[Class[A]]
+    val data: SpecificData = dataForClass(cls)
+    val schema = data.getSchema(cls)
+    avroValueOf(schema)(data, stringableGens).asInstanceOf[Gen[A]]
+  }
+
   def genericRecordOf(schema: Schema): Gen[GenericRecord] =
     avroValueOf(schema)(GenericData.get()).asInstanceOf[Gen[GenericRecord]]
 
+  def genericRecordOf(schema: Schema, stringableGens: Map[Class[_], Gen[_]]): Gen[GenericRecord] =
+    avroValueOf(schema)(GenericData.get(), stringableGens).asInstanceOf[Gen[GenericRecord]]
+
   /** Aliases for API consistency across formats */
-  def avroOf[A <: SpecificRecord: ClassTag]: Gen[A] = specificRecordOf[A]
-  def avroOf(schema: Schema): Gen[GenericRecord] = genericRecordOf(schema)
+  def avroOf[A <: SpecificRecord: ClassTag]: Gen[A] =
+    specificRecordOf[A]
+  def avroOf[A <: SpecificRecord: ClassTag](stringableGens: Map[Class[_], Gen[_]]): Gen[A] =
+    specificRecordOf[A](stringableGens)
+  def avroOf(schema: Schema): Gen[GenericRecord] =
+    genericRecordOf(schema)
+  def avroOf(schema: Schema, stringableGens: Map[Class[_], Gen[_]]): Gen[GenericRecord] =
+    genericRecordOf(schema, stringableGens)
 
   /**
    * Arbitrary [0-39] range and directly creating Utf-8 chosen to mimic [[RandomData]]. Also avoids
@@ -79,60 +102,28 @@ trait AvroGeneratorOps {
     Arbitrary.arbString.arbitrary
   )
 
-  private val genUri: Gen[java.net.URI] = for {
-    scheme <- Gen.option(Gen.oneOf("http", "https", "ftp"))
-    userInfo <- Gen.option(Gen.alphaNumStr)
-    host <- Gen.oneOf("example.com", "example.org", "example.net")
-    port <- Gen.option(Gen.choose(1, 65535))
-    segments <- Gen.option(Gen.nonEmptyListOf(Gen.alphaNumStr))
-    params <- Gen.option(Gen.nonEmptyListOf(Gen.alphaNumStr))
-    fragment <- Gen.option(Gen.alphaNumStr)
-  } yield {
-    val authority = (userInfo.map(_ + "@") ++ Some(host) ++ port.map(":" + _)).mkString
-    val path = segments.map(_.mkString("/", "/", ""))
-    val query = params.map(_.mkString("&"))
-    new java.net.URI(scheme.orNull, authority, path.orNull, query.orNull, fragment.orNull)
-  }
-
-  private val genUrl: Gen[java.net.URL] = for {
-    scheme <- Gen.oneOf("http", "https", "ftp")
-    userInfo <- Gen.option(Gen.alphaNumStr)
-    host <- Gen.oneOf("example.com", "example.org", "example.net")
-    port <- Gen.option(Gen.choose(1, 65535))
-    segments <- Gen.nonEmptyListOf(Gen.alphaNumStr)
-    params <- Gen.option(Gen.nonEmptyListOf(Gen.alphaNumStr))
-    fragment <- Gen.option(Gen.alphaNumStr)
-  } yield {
-    val authority = (userInfo.map(_ + "@") ++ Some(host) ++ port.map(":" + _)).mkString
-    val path = segments.mkString("/", "/", "")
-    val query = params.map(_.mkString("&"))
-    new java.net.URI(scheme, authority, path, query.orNull, fragment.orNull).toURL
-  }
-
-  private val genFile: Gen[java.io.File] = for {
-    prefix <- Gen.oneOf("", "/", "./", "../")
-    segments <- Gen.nonEmptyListOf(Gen.alphaNumStr)
-    extension <- Gen.option(Gen.stringOfN(3, Gen.alphaNumChar))
-  } yield {
-    val suffix = extension.map("." + _).getOrElse("")
-    new java.io.File(segments.mkString(prefix, "/", suffix))
-  }
-
-  private def genStringable(clazz: Class[_]): Gen[Any] = {
-    if (clazz == classOf[java.math.BigDecimal]) {
-      Gen.choose(BigDecimal(Int.MinValue), BigDecimal(Int.MaxValue)).map(_.bigDecimal)
-    } else if (clazz == classOf[java.math.BigInteger]) {
-      Gen.choose(BigInt(Int.MinValue), BigInt(Int.MaxValue)).map(_.bigInteger)
-    } else if (clazz == classOf[java.net.URI]) {
-      genUri
-    } else if (clazz == classOf[java.net.URL]) {
-      genUrl
-    } else if (clazz == classOf[java.io.File]) {
-      genFile
-    } else {
-      val ctor = clazz.getDeclaredConstructor(classOf[String])
-      ctor.setAccessible(true)
-      genString.map(ctor.newInstance(_))
+  private def genStringable(
+    javaClass: String
+  )(implicit stringableGens: Map[Class[_], Gen[_]]): Gen[Any] = {
+    val clazz = Class.forName(javaClass)
+    stringableGens.get(clazz) match {
+      case Some(gen) => gen
+      case None =>
+        val ctor = clazz.getDeclaredConstructor(classOf[String])
+        ctor.setAccessible(true)
+        genString.map { str =>
+          try {
+            ctor.newInstance(str)
+          } catch {
+            case e: Throwable =>
+              logger.error(
+                "Failed constructing instance of {} from random string. " +
+                  "Consider providing a custom generator in stringableGens",
+                clazz.getName
+              )
+              throw e
+          }
+        }
     }
   }
 
@@ -143,7 +134,10 @@ trait AvroGeneratorOps {
     }
   }
 
-  private def avroValueOf(schema: Schema)(implicit data: GenericData): Gen[Any] = {
+  private def avroValueOf(schema: Schema)(implicit
+    data: GenericData,
+    stringableGens: Map[Class[_], Gen[_]] = Map.empty
+  ): Gen[Any] = {
     import scala.jdk.CollectionConverters._
 
     val conversion = for {
@@ -160,7 +154,7 @@ trait AvroGeneratorOps {
 
         val record = for {
           fields <- Gen.sequence[List[(Int, Any)], (Int, Any)](schema.getFields.asScala.map { f =>
-            avroValueOf(f.schema())(recordData).map(v => f.pos() -> v)
+            avroValueOf(f.schema())(recordData, stringableGens).map(v => f.pos() -> v)
           })
         } yield fields.foldLeft(recordData.newRecord(null, schema).asInstanceOf[IndexedRecord]) {
           case (r, (idx, v)) =>
@@ -204,7 +198,7 @@ trait AvroGeneratorOps {
         Option(schema.getProp(SpecificData.KEY_CLASS_PROP)) match {
           case Some(cls) =>
             Gen.buildableOf[util.HashMap[Any, Any], (Any, Any)](
-              (genStringable(Class.forName(cls)), avroValueOf(schema.getValueType)).tupled
+              (genStringable(cls), avroValueOf(schema.getValueType)).tupled
             )
           case None =>
             val map = Gen.buildableOf[util.HashMap[CharSequence, Any], (CharSequence, Any)](
@@ -228,7 +222,7 @@ trait AvroGeneratorOps {
 
       case Schema.Type.STRING =>
         Option(schema.getProp(SpecificData.CLASS_PROP)) match {
-          case Some(cls) => genStringable(Class.forName(cls))
+          case Some(cls) => genStringable(cls)
           case None =>
             val str = genAvroString(schema)
             conversion match {

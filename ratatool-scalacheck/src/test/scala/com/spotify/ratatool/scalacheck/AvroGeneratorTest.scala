@@ -104,18 +104,21 @@ class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropert
       .name("charSequenceField").`type`().stringBuilder().prop(GenericData.STRING_PROP, "CharSequence").endString().noDefault()
       .name("utf8Field").`type`().stringBuilder().prop(GenericData.STRING_PROP, "CharSequence").endString().noDefault()
       .name("stringableBigDecimalField").`type`().stringBuilder().prop(SpecificData.CLASS_PROP, classOf[java.math.BigDecimal].getName).endString().noDefault()
-      .name("stringableBigIntegerField").`type`().stringBuilder().prop(SpecificData.CLASS_PROP, classOf[java.math.BigInteger].getName).endString().noDefault()
-      .name("stringableUriField").`type`().stringBuilder().prop(SpecificData.CLASS_PROP, classOf[java.net.URI].getName).endString().noDefault()
-      .name("stringableUrlField").`type`().stringBuilder().prop(SpecificData.CLASS_PROP, classOf[java.net.URL].getName).endString().noDefault()
-      .name("stringableFileField").`type`().stringBuilder().prop(SpecificData.CLASS_PROP, classOf[java.io.File].getName).endString().noDefault()
-      .name("stringableCustomField").`type`().stringBuilder().prop(SpecificData.CLASS_PROP, classOf[StringableCustom].getName).endString().noDefault()
+      .name("stringableDefaultField").`type`().stringBuilder().prop(SpecificData.CLASS_PROP, classOf[StringableCustom].getName).endString().noDefault()
       .name("mapDefaultKeyField").`type`().map().values().longType().noDefault()
       .name("mapJavaStringKeyField").`type`().map().prop(GenericData.STRING_PROP, "String").values().longType().noDefault()
-      .name("mapCustomKeyField").`type`().map().prop(SpecificData.KEY_CLASS_PROP, classOf[StringableCustom].getName).values().longType().noDefault()
+      .name("mapStringableBigIntegerKeyField").`type`().map().prop(SpecificData.KEY_CLASS_PROP, classOf[java.math.BigInteger].getName).values().longType().noDefault()
+      .name("mapStringableDefaultKeyField").`type`().map().prop(SpecificData.KEY_CLASS_PROP, classOf[StringableCustom].getName).values().longType().noDefault()
       .endRecord()
     // format: on
 
-    val gen = avroOf(schema)
+    val stringableGens = Map[Class[_], Gen[_]](
+      classOf[java.math.BigDecimal] -> Gen.choose(BigDecimal(-1), BigDecimal(1)).map(_.bigDecimal),
+      classOf[java.math.BigInteger] -> Gen
+        .choose(BigInt(0), BigInt(Long.MaxValue))
+        .map(_.bigInteger)
+    )
+    val gen = avroOf(schema, stringableGens)
 
     forAll(gen) { r =>
       r.get("defaultStringField") shouldBe an[Utf8]
@@ -123,11 +126,7 @@ class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropert
       r.get("charSequenceField") shouldBe an[Utf8]
       r.get("utf8Field") shouldBe an[Utf8]
       r.get("stringableBigDecimalField") shouldBe a[java.math.BigDecimal]
-      r.get("stringableBigIntegerField") shouldBe a[java.math.BigInteger]
-      r.get("stringableUriField") shouldBe a[java.net.URI]
-      r.get("stringableUrlField") shouldBe a[java.net.URL]
-      r.get("stringableFileField") shouldBe a[java.io.File]
-      r.get("stringableCustomField") shouldBe a[StringableCustom]
+      r.get("stringableDefaultField") shouldBe a[StringableCustom]
 
       {
         val m = r.get("mapDefaultKeyField").asInstanceOf[java.util.Map[_, _]]
@@ -140,7 +139,12 @@ class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropert
       }
 
       {
-        val m = r.get("mapCustomKeyField").asInstanceOf[java.util.Map[_, _]]
+        val m = r.get("mapStringableBigIntegerKeyField").asInstanceOf[java.util.Map[_, _]]
+        if (!m.isEmpty) m.keySet().iterator().next() shouldBe a[java.math.BigInteger]
+      }
+
+      {
+        val m = r.get("mapStringableDefaultKeyField").asInstanceOf[java.util.Map[_, _]]
         if (!m.isEmpty) m.keySet().iterator().next() shouldBe a[StringableCustom]
       }
     }
