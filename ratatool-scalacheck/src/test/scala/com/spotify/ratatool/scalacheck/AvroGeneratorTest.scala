@@ -18,13 +18,21 @@
 package com.spotify.ratatool.scalacheck
 
 import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
+import com.spotify.ratatool.scalacheck.AvroGeneratorTest.StringableCustom
 import org.apache.avro.generic.GenericData
+import org.apache.avro.specific.SpecificData
 import org.apache.avro.util.Utf8
 import org.apache.avro.{Conversions, LogicalTypes, SchemaBuilder}
 import org.scalacheck._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+
+object AvroGeneratorTest {
+  final case class StringableCustom(value: String) {
+    override def toString: String = value
+  }
+}
 
 class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropertyChecks {
 
@@ -95,18 +103,30 @@ class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropert
       .name("javaStringField").`type`().stringBuilder().prop(GenericData.STRING_PROP, "String").endString().noDefault()
       .name("charSequenceField").`type`().stringBuilder().prop(GenericData.STRING_PROP, "CharSequence").endString().noDefault()
       .name("utf8Field").`type`().stringBuilder().prop(GenericData.STRING_PROP, "CharSequence").endString().noDefault()
+      .name("stringableBigDecimalField").`type`().stringBuilder().prop(SpecificData.CLASS_PROP, classOf[java.math.BigDecimal].getName).endString().noDefault()
+      .name("stringableDefaultField").`type`().stringBuilder().prop(SpecificData.CLASS_PROP, classOf[StringableCustom].getName).endString().noDefault()
       .name("mapDefaultKeyField").`type`().map().values().longType().noDefault()
       .name("mapJavaStringKeyField").`type`().map().prop(GenericData.STRING_PROP, "String").values().longType().noDefault()
+      .name("mapStringableBigIntegerKeyField").`type`().map().prop(SpecificData.KEY_CLASS_PROP, classOf[java.math.BigInteger].getName).values().longType().noDefault()
+      .name("mapStringableDefaultKeyField").`type`().map().prop(SpecificData.KEY_CLASS_PROP, classOf[StringableCustom].getName).values().longType().noDefault()
       .endRecord()
     // format: on
 
-    val gen = avroOf(schema)
+    val stringableGens = Map[Class[_], Gen[_]](
+      classOf[java.math.BigDecimal] -> Gen.choose(BigDecimal(-1), BigDecimal(1)).map(_.bigDecimal),
+      classOf[java.math.BigInteger] -> Gen
+        .choose(BigInt(0), BigInt(Long.MaxValue))
+        .map(_.bigInteger)
+    )
+    val gen = avroOf(schema, stringableGens)
 
     forAll(gen) { r =>
       r.get("defaultStringField") shouldBe an[Utf8]
       r.get("javaStringField") shouldBe a[String]
       r.get("charSequenceField") shouldBe an[Utf8]
       r.get("utf8Field") shouldBe an[Utf8]
+      r.get("stringableBigDecimalField") shouldBe a[java.math.BigDecimal]
+      r.get("stringableDefaultField") shouldBe a[StringableCustom]
 
       {
         val m = r.get("mapDefaultKeyField").asInstanceOf[java.util.Map[_, _]]
@@ -116,6 +136,16 @@ class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropert
       {
         val m = r.get("mapJavaStringKeyField").asInstanceOf[java.util.Map[_, _]]
         if (!m.isEmpty) m.keySet().iterator().next() shouldBe a[String]
+      }
+
+      {
+        val m = r.get("mapStringableBigIntegerKeyField").asInstanceOf[java.util.Map[_, _]]
+        if (!m.isEmpty) m.keySet().iterator().next() shouldBe a[java.math.BigInteger]
+      }
+
+      {
+        val m = r.get("mapStringableDefaultKeyField").asInstanceOf[java.util.Map[_, _]]
+        if (!m.isEmpty) m.keySet().iterator().next() shouldBe a[StringableCustom]
       }
     }
   }
