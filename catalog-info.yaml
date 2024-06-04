@@ -4,4 +4,4 @@ metadata:
   name: ratatool
 spec:
   type: resource
-  owner: blizzard
+  owner: dmx
