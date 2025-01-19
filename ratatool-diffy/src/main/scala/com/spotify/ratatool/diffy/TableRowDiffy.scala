@@ -95,9 +95,8 @@ class TableRowDiffy(
                 Try(inner.get(unorderedFieldKeys(fullName))).toOption.map(k => (k, inner))
               )
               .toMap
-            (l.keySet ++ r.keySet).flatMap(k =>
-              diff(l.get(k), r.get(k), f.getFields.asScala.toList, fullName)
-            )
+            (l.keySet ++ r.keySet)
+              .flatMap(k => diff(l.get(k), r.get(k), f.getFields.asScala.toList, fullName))
           } else {
             val a = x
               .flatMap(r => Option(r.get(name).asInstanceOf[java.util.List[AnyRef]]))
