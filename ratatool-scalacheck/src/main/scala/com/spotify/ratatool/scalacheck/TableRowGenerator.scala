@@ -74,6 +74,7 @@ trait TableRowGeneratorOps {
     def buildRow(r: TableRow, v: List[TableFieldValue]): TableRow = {
       v.foreach { s =>
         s.value match {
+
           /** Workaround for type erasure */
           case List(_: TableFieldValue, _*) =>
             r.set(s.name, s.value.asInstanceOf[List[TableFieldValue]].map(_.value).asJava)
@@ -104,6 +105,7 @@ trait TableRowGeneratorOps {
     ): util.LinkedHashMap[String, Any] = {
       v.foreach { s =>
         s.value match {
+
           /** Workaround for type erasure */
           case List(_: TableFieldValue, _*) =>
             r.put(s.name, s.value.asInstanceOf[List[TableFieldValue]].map(_.value).asJava)
