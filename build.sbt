@@ -31,6 +31,7 @@ val bigqueryVersion = "v2-rev20240919-2.0.0" // keep in sync with scio
 val guavaVersion = "33.1.0-jre" // keep in sync with scio + beam
 val jacksonVersion = "2.15.4" // keep in sync with scio
 val jodaTimeVersion = "2.10.14" // keep in sync with scio
+val magnolifyVersion = "0.7.4" // keep in sync with scio
 val parquetVersion = "1.15.0" // keep in sync with scio
 val protoBufVersion = "3.25.5" // keep in sync with scio
 val scalaTestVersion = "3.2.18"
@@ -219,7 +220,8 @@ lazy val ratatoolDiffy = project
       "joda-time" % "joda-time" % jodaTimeVersion,
       "com.spotify" %% "scio-test" % scioVersion % Test,
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion % Test
+      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion % Test,
+      "com.spotify" %% "magnolify-bigquery" % magnolifyVersion
     ),
     Test / parallelExecution := false,
     libraryDependencies ++= {
