@@ -17,27 +17,28 @@
 
 import sbt._
 import Keys._
+import org.typelevel.scalacoptions.JavaMajorVersion.javaMajorVersion
 
 val algebirdVersion = "0.13.10"
 
-// Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.14.0/build.sbt
-val scioVersion = "0.14.3"
+// Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.14.12/build.sbt
+val scioVersion = "0.14.12"
 
 val avroVersion = avroCompilerVersion // keep in sync with scio
-val beamVersion = "2.54.0" // keep in sync with scio
+val beamVersion = "2.62.0" // keep in sync with scio
 val beamVendorVersion = "0.1" // keep in sync with scio
-val bigqueryVersion = "v2-rev20230812-2.0.0" // keep in sync with scio
-val floggerVersion = "0.8" // keep in sync with scio + beam
-val guavaVersion = "32.1.2-jre" // keep in sync with scio + beam
-val hadoopVersion = "3.2.4" // keep in sync with scio
-val jodaTimeVersion = "2.10.10" // keep in sync with scio
-val parquetVersion = "1.13.1" // keep in sync with scio
-val protoBufVersion = "3.25.1" // keep in sync with scio
+val bigqueryVersion = "v2-rev20240919-2.0.0" // keep in sync with scio
+val guavaVersion = "33.1.0-jre" // keep in sync with scio + beam
+val jacksonVersion = "2.15.4" // keep in sync with scio
+val jodaTimeVersion = "2.10.14" // keep in sync with scio
+val magnolifyVersion = "0.7.4" // keep in sync with scio
+val parquetVersion = "1.15.0" // keep in sync with scio
+val protoBufVersion = "3.25.5" // keep in sync with scio
 val scalaTestVersion = "3.2.18"
 val scalaCheckVersion = "1.18.1"
 val scalaCollectionCompatVersion = "2.13.0"
 val scoptVersion = "4.1.0"
-val shapelessVersion = "2.3.10" // keep in sync with scio
+val shapelessVersion = "2.3.12" // keep in sync with scio
 val sourcecodeVersion = "0.4.2"
 val slf4jVersion = "1.7.30" // keep in sync with scio
 
@@ -49,10 +50,11 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
   name := "ratatool",
   description := "A tool for random data sampling and generation",
-  scalaVersion := "2.12.18",
-  crossScalaVersions := Seq("2.12.18", "2.13.12"),
+  scalaVersion := "2.12.20",
+  crossScalaVersions := Seq(scalaVersion.value, "2.13.16"),
   resolvers ++= Resolver.sonatypeOssRepos("public"),
   resolvers ++= Resolver.sonatypeOssRepos("snapshots"), // @Todo remove when 0.14.0 released
+  javaOptions := JavaOptions.defaults(javaMajorVersion),
   scalacOptions ++= Seq("-target:8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions ++= {
     if (isScala213x.value) {
@@ -70,6 +72,13 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
       )
     }
   },
+  // Hadoop tries to pull in newer Jackson versions than are compatible with Scio/Beam
+  dependencyOverrides ++= Seq(
+    "org.apache.avro" % "avro" % avroVersion,
+    "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
+    "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+    "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion
+  ),
   excludeDependencies += "org.apache.beam" % "beam-sdks-java-io-kafka",
   javacOptions ++= Seq("--release", "8", "-Xlint:unchecked"),
   fork := true
@@ -169,8 +178,6 @@ lazy val ratatoolCommon = project
       "org.apache.avro" % "avro" % avroVersion,
       "com.google.guava" % "guava" % guavaVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Test,
-      "org.apache.avro" % "avro" % avroVersion % Test,
-      "org.apache.avro" % "avro" % avroVersion % Test classifier "tests",
       "org.slf4j" % "slf4j-simple" % slf4jVersion % Test
     )
   )
@@ -213,7 +220,8 @@ lazy val ratatoolDiffy = project
       "joda-time" % "joda-time" % jodaTimeVersion,
       "com.spotify" %% "scio-test" % scioVersion % Test,
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion % Test
+      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion % Test,
+      "com.spotify" %% "magnolify-bigquery" % magnolifyVersion
     ),
     Test / parallelExecution := false,
     libraryDependencies ++= {
