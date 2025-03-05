@@ -22,7 +22,7 @@ import org.typelevel.scalacoptions.JavaMajorVersion.javaMajorVersion
 val algebirdVersion = "0.13.10"
 
 // Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.14.12/build.sbt
-val scioVersion = "0.14.12"
+val scioVersion = "0.14.14"
 
 val avroVersion = avroCompilerVersion // keep in sync with scio
 val beamVersion = "2.62.0" // keep in sync with scio
