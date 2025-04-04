@@ -11,5 +11,5 @@ addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.2")
 
 libraryDependencies ++= Seq(
   "org.apache.avro" % "avro-compiler" % "1.8.2",
-  "org.typelevel" %% "scalac-options" % "0.1.7"
+  "org.typelevel" %% "scalac-options" % "0.1.8"
 )
