@@ -7,16 +7,16 @@ version: 2.1
 executors:
   scala_212:
     docker:
-      - image: cimg/openjdk:11.0
+      - image: cimg/openjdk:17.0
     resource_class: medium+
     environment:
-      SCALA_VERSION: 2.12.18
+      SCALA_VERSION: 2.12.20
   scala_213:
     docker:
-      - image: cimg/openjdk:11.0
+      - image: cimg/openjdk:17.0
     resource_class: medium+
     environment:
-      SCALA_VERSION: 2.13.12
+      SCALA_VERSION: 2.13.16
 
 commands:
   build:

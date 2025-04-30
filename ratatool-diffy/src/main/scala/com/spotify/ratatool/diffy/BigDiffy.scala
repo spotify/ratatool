@@ -27,13 +27,13 @@ import com.spotify.scio._
 import com.spotify.scio.avro._
 import com.spotify.scio.bigquery._
 import com.spotify.scio.bigquery.client.BigQuery
-import com.spotify.scio.bigquery.types.BigQueryType
 import com.spotify.scio.coders.Coder
 import com.spotify.scio.coders.kryo._
 import com.spotify.scio.io.ClosedTap
 import com.spotify.scio.parquet.avro._
 import com.spotify.scio.values.SCollection
 import com.twitter.algebird._
+import magnolify.bigquery._
 import org.apache.avro.{Schema, SchemaCompatibility, SchemaValidatorBuilder}
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecordBase
@@ -401,11 +401,10 @@ object BigDiffy extends Command with Serializable {
     r.setFields(mergeFields(x.getFields.asScala.toList, y.getFields.asScala.toList).asJava)
   }
 
-  @BigQueryType.toTable
   case class KeyStatsBigQuery(key: String, diffType: String, delta: Option[DeltaBigQuery])
   case class DeltaBigQuery(field: String, left: String, right: String, delta: DeltaValueBigQuery)
   case class DeltaValueBigQuery(deltaType: String, deltaValue: Option[Double])
-  @BigQueryType.toTable
+
   case class GlobalStatsBigQuery(
     numTotal: Long,
     numSame: Long,
@@ -413,7 +412,7 @@ object BigDiffy extends Command with Serializable {
     numMissingLhs: Long,
     numMissingRhs: Long
   )
-  @BigQueryType.toTable
+
   case class FieldStatsBigQuery(
     field: String,
     count: Long,
@@ -431,6 +430,10 @@ object BigDiffy extends Command with Serializable {
     skewness: Double,
     kurtosis: Double
   )
+
+  private lazy val KeyStatsType = TableRowType[KeyStatsBigQuery]
+  private lazy val GlobalStatsType = TableRowType[GlobalStatsBigQuery]
+  private lazy val FieldStatsType = TableRowType[FieldStatsBigQuery]
 
   /** saves stats to either GCS as text, or BigQuery */
   def saveStats[T](
@@ -503,7 +506,8 @@ object BigDiffy extends Command with Serializable {
               }
             )
           )
-          .saveAsTypedBigQueryTable(Table.Spec(s"${output}_keys"))
+          .map(KeyStatsType.to)
+          .saveAsBigQueryTable(Table.Spec(s"${output}_keys"), schema = KeyStatsType.schema)
         bigDiffy.fieldStats
           .map(stat =>
             FieldStatsBigQuery(
@@ -525,7 +529,8 @@ object BigDiffy extends Command with Serializable {
               )
             )
           )
-          .saveAsTypedBigQueryTable(Table.Spec(s"${output}_fields"))
+          .map(FieldStatsType.to)
+          .saveAsBigQueryTable(Table.Spec(s"${output}_fields"), schema = FieldStatsType.schema)
         bigDiffy.globalStats
           .map(stat =>
             GlobalStatsBigQuery(
@@ -536,7 +541,8 @@ object BigDiffy extends Command with Serializable {
               stat.numMissingRhs
             )
           )
-          .saveAsTypedBigQueryTable(Table.Spec(s"${output}_global"))
+          .map(GlobalStatsType.to)
+          .saveAsBigQueryTable(Table.Spec(s"${output}_global"), schema = GlobalStatsType.schema)
     }
   }
 
