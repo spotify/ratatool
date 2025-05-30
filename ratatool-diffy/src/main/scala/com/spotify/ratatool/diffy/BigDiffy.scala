@@ -236,21 +236,23 @@ object BigDiffy extends Command with Serializable {
     val accMissingRhs = ScioMetrics.counter[Long]("MISSING_RHS")
 
     (lKeyed ++ rKeyed).groupByKey
-      .map { case (key, values) => // values is a list of tuples: "l" -> record or "r" -> record
-        if (values.size > 2) {
-          throw new RuntimeException(s"""More than two values found for key: $key.
+      .map {
+        case (key, values) => // values is a list of tuples: "l" -> record or "r" -> record
+          if (values.size > 2) {
+            throw new RuntimeException(s"""More than two values found for key: $key.
                | Your key must be unique in both SCollections""".stripMargin)
-        }
+          }
 
-        val valuesMap = values.toMap // L/R -> record
-        if (valuesMap.size == 2) {
-          val deltas: Seq[Delta] = diffy(valuesMap("l"), valuesMap("r"))
-          val diffType = if (deltas.isEmpty) DiffType.SAME else DiffType.DIFFERENT
-          (key, (deltas, diffType))
-        } else {
-          val diffType = if (valuesMap.contains("l")) DiffType.MISSING_RHS else DiffType.MISSING_LHS
-          (key, (Nil, diffType))
-        }
+          val valuesMap = values.toMap // L/R -> record
+          if (valuesMap.size == 2) {
+            val deltas: Seq[Delta] = diffy(valuesMap("l"), valuesMap("r"))
+            val diffType = if (deltas.isEmpty) DiffType.SAME else DiffType.DIFFERENT
+            (key, (deltas, diffType))
+          } else {
+            val diffType =
+              if (valuesMap.contains("l")) DiffType.MISSING_RHS else DiffType.MISSING_LHS
+            (key, (Nil, diffType))
+          }
       }
       .tap {
         case (_, (_, DiffType.SAME))        => accSame.inc()
@@ -280,7 +282,7 @@ object BigDiffy extends Command with Serializable {
           val optD = d.delta match {
             case UnknownDelta                             => None
             case TypedDelta(t, v) if ignoreNan && v.isNaN => None
-            case TypedDelta(t, v) =>
+            case TypedDelta(t, v)                         =>
               Some((t, Min(v), Max(v), Moments.aggregator.prepare(v)))
           }
           // Map of field -> (count, delta statistics)
@@ -557,8 +559,8 @@ object BigDiffy extends Command with Serializable {
     yMap.foreach(kv => names.add(kv._1))
     names.map { n =>
       (xMap.get(n), yMap.get(n)) match {
-        case (Some(f), None) => f
-        case (None, Some(f)) => f
+        case (Some(f), None)      => f
+        case (None, Some(f))      => f
         case (Some(fx), Some(fy)) =>
           val fxMode = getFieldModeWithDefault(fx.getMode)
           val fyMode = getFieldModeWithDefault(fy.getMode)

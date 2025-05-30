@@ -64,7 +64,7 @@ private[samplers] object BigSamplerBigQuery {
           vs.foldLeft(hasher)((hasher, v) => hasher.putBoolean(v.toString.toBoolean))
         case "INTEGER" => vs.foldLeft(hasher)((hasher, v) => hasher.putLong(v.toString.toLong))
         case "FLOAT"   => vs.foldLeft(hasher)((hasher, v) => hasher.putFloat(v.toString.toFloat))
-        case "STRING" =>
+        case "STRING"  =>
           vs.foldLeft(hasher)((hasher, v) => hasher.putString(v.toString, BigSampler.utf8Charset))
         case "BYTES" =>
           vs.foldLeft(hasher)((hasher, v) => hasher.putBytes(v.asInstanceOf[Array[Byte]]))
