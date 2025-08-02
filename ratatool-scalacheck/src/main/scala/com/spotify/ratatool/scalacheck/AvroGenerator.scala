@@ -108,7 +108,7 @@ trait AvroGeneratorOps {
     val clazz = Class.forName(javaClass)
     stringableGens.get(clazz) match {
       case Some(gen) => gen
-      case None =>
+      case None      =>
         val ctor = clazz.getDeclaredConstructor(classOf[String])
         ctor.setAccessible(true)
         genString.map { str =>
@@ -223,7 +223,7 @@ trait AvroGeneratorOps {
       case Schema.Type.STRING =>
         Option(schema.getProp(SpecificData.CLASS_PROP)) match {
           case Some(cls) => genStringable(cls)
-          case None =>
+          case None      =>
             val str = genAvroString(schema)
             conversion match {
               case Some(c) => str.map(cs => c.fromCharSequence(cs, schema, schema.getLogicalType))
