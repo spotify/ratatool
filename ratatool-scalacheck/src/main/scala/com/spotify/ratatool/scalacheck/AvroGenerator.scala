@@ -224,7 +224,16 @@ trait AvroGeneratorOps {
         Option(schema.getProp(SpecificData.CLASS_PROP)) match {
           case Some(cls) => genStringable(cls)
           case None =>
-            val str = genAvroString(schema)
+            val str =
+              if (Option(schema.getLogicalType).exists(_.getName == "uuid")) {
+                val uuid = Gen.uuid.map(_.toString)
+                Option(schema.getProp(GenericData.STRING_PROP)) match {
+                  case Some("String") => uuid
+                  case _              => uuid.map(new Utf8(_))
+                }
+              } else {
+                genAvroString(schema)
+              }
             conversion match {
               case Some(c) => str.map(cs => c.fromCharSequence(cs, schema, schema.getLogicalType))
               case None    => str
