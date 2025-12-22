@@ -149,4 +149,21 @@ class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropert
       }
     }
   }
+
+  it should "support uuid logical type" in {
+    val schema = SchemaBuilder
+      .builder()
+      .record("TestUuidRecord")
+      .fields()
+      .name("uuidField")
+      .`type`(LogicalTypes.uuid().addToSchema(SchemaBuilder.builder().stringType()))
+      .noDefault()
+      .endRecord()
+
+    val gen = avroOf(schema)
+    forAll(gen) { r =>
+      val uuidStr = r.get("uuidField").toString
+      noException should be thrownBy java.util.UUID.fromString(uuidStr)
+    }
+  }
 }
