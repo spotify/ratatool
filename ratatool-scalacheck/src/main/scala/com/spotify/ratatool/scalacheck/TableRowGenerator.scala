@@ -126,16 +126,16 @@ trait TableRowGeneratorOps {
   private def tableFieldValueOf(fieldSchema: TableFieldSchema): Gen[TableFieldValue] = {
     val n = fieldSchema.getName
     def genV(): Gen[TableFieldValue] = fieldSchema.getType match {
-      case "INTEGER" => Arbitrary.arbInt.arbitrary.map(TableFieldValue(n, _))
-      case "FLOAT"   => Arbitrary.arbFloat.arbitrary.map(TableFieldValue(n, _))
-      case "BOOLEAN" => Arbitrary.arbBool.arbitrary.map(TableFieldValue(n, _))
-      case "STRING"  => Arbitrary.arbString.arbitrary.map(TableFieldValue(n, _))
+      case "INTEGER"   => Arbitrary.arbInt.arbitrary.map(TableFieldValue(n, _))
+      case "FLOAT"     => Arbitrary.arbFloat.arbitrary.map(TableFieldValue(n, _))
+      case "BOOLEAN"   => Arbitrary.arbBool.arbitrary.map(TableFieldValue(n, _))
+      case "STRING"    => Arbitrary.arbString.arbitrary.map(TableFieldValue(n, _))
       case "TIMESTAMP" =>
         instantGen.map(i => TableFieldValue(n, timeStampFormatter.print(i) + " UTC"))
       case "DATE"     => instantGen.map(i => TableFieldValue(n, dateFormatter.print(i)))
       case "TIME"     => instantGen.map(i => TableFieldValue(n, timeFormatter.print(i)))
       case "DATETIME" => instantGen.map(i => TableFieldValue(n, dateTimeFormatter.print(i)))
-      case "BYTES" =>
+      case "BYTES"    =>
         Gen
           .listOf(Arbitrary.arbByte.arbitrary)
           .map(i => ByteBuffer.wrap(i.toArray))
