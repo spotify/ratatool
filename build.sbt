@@ -115,9 +115,11 @@ lazy val releaseSettings = Seq(
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   publishMavenStyle := true,
   Test / publishArtifact := false,
-  publishTo := Some(
-    if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging
-  ),
+  publishTo := {
+    val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+    if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
+    else localStaging.value
+  },
   sonatypeProfileName := "com.spotify",
   licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://github.com/spotify/ratatool")),
@@ -130,29 +132,35 @@ lazy val releaseSettings = Seq(
   developers := List(
     // current maintainers
     Developer(
+      id = "idreeskhan",
+      name = "Idrees Khan",
+      email = "me@idreeskhan.com",
+      url = url("https://twitter.com/idreesxkhan")
+    ),
+    Developer(
+      id = "monzalo14",
+      name = "Monica Zamudio",
+      email = "monzalo14@gmail.com",
+      url = url("https://twitter.com/monnzl")
+    ),
+    // past contributors
+    Developer(
       id = "anne-decusatis",
       name = "Anne DeCusatis",
       email = "anned@spotify.com",
       url = url("https://twitter.com/precisememory")
     ),
     Developer(
-      id = "catherinejelder",
-      name = "Catherine Elder",
-      email = "siege@spotify.com",
-      url = url("https://twitter.com/siegeelder")
-    ),
-    Developer(
-      id = "idreeskhan",
-      name = "Idrees Khan",
-      email = "me@idreeskhan.com",
-      url = url("https://twitter.com/idreesxkhan")
-    ),
-    // past contributors
-    Developer(
       id = "sinisa_lyh",
       name = "Neville Li",
       email = "neville.lyh@gmail.com",
       url = url("https://twitter.com/sinisa_lyh")
+    ),
+    Developer(
+      id = "catherinejelder",
+      name = "Catherine Elder",
+      email = "siege@spotify.com",
+      url = url("https://twitter.com/siegeelder")
     ),
     Developer(
       id = "ravwojdyla",
