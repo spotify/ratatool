@@ -26,20 +26,20 @@ val algebirdVersion = "0.13.10"
 val scioVersion = "0.14.16"
 
 val avroVersion = avroCompilerVersion // keep in sync with scio
-val beamVersion = "2.62.0" // keep in sync with scio
+val beamVersion = "2.64.0" // keep in sync with scio
 val beamVendorVersion = "0.1" // keep in sync with scio
-val bigqueryVersion = "v2-rev20240919-2.0.0" // keep in sync with scio
+val bigqueryVersion = "v2-rev20250206-2.0.0" // keep in sync with scio
 val guavaVersion = "33.1.0-jre" // keep in sync with scio + beam
-val jacksonVersion = "2.19.0" // keep in sync with scio
+val jacksonVersion = "2.15.4" // keep in sync with scio
 val jodaTimeVersion = "2.10.14" // keep in sync with scio
 val magnolifyVersion = "0.7.4" // keep in sync with scio
-val parquetVersion = "1.15.0" // keep in sync with scio
+val parquetVersion = "1.15.1" // keep in sync with scio
 val protoBufVersion = "3.25.5" // keep in sync with scio
 val scalaTestVersion = "3.2.18"
 val scalaCheckVersion = "1.18.1"
 val scalaCollectionCompatVersion = "2.13.0"
 val scoptVersion = "4.1.0"
-val shapelessVersion = "2.3.12" // keep in sync with scio
+val shapelessVersion = "2.3.13" // keep in sync with scio
 val sourcecodeVersion = "0.4.2"
 val slf4jVersion = "1.7.36" // keep in sync with scio
 
