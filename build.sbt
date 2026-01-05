@@ -18,6 +18,7 @@
 import sbt._
 import Keys._
 import org.typelevel.scalacoptions.JavaMajorVersion.javaMajorVersion
+import xerial.sbt.Sonatype.autoImport._
 
 val algebirdVersion = "0.13.10"
 
@@ -56,6 +57,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   resolvers ++= Resolver.sonatypeOssRepos("snapshots"), // @Todo remove when 0.14.0 released
   javaOptions := JavaOptions.defaults(javaMajorVersion),
   scalacOptions ++= Seq("-target:8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
+  test in Test := {},
   scalacOptions ++= {
     if (isScala213x.value) {
       Seq("-Ymacro-annotations", "-Ywarn-unused")
@@ -117,8 +119,9 @@ lazy val releaseSettings = Seq(
   Test / publishArtifact := false,
   publishTo := {
     val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+    val staging = Some(Resolver.file("local-staging", baseDirectory.value / "target" / "sonatype-staging" / version.value))
     if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
-    else localStaging.value
+    else staging
   },
   sonatypeProfileName := "com.spotify",
   licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
