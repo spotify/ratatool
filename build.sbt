@@ -22,7 +22,7 @@ import xerial.sbt.Sonatype.autoImport._
 
 val algebirdVersion = "0.13.10"
 
-// Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.14.12/build.sbt
+// Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.14.16/build.sbt
 val scioVersion = "0.14.16"
 
 val avroVersion = avroCompilerVersion // keep in sync with scio
@@ -41,7 +41,7 @@ val scalaCollectionCompatVersion = "2.13.0"
 val scoptVersion = "4.1.0"
 val shapelessVersion = "2.3.12" // keep in sync with scio
 val sourcecodeVersion = "0.4.2"
-val slf4jVersion = "1.7.30" // keep in sync with scio
+val slf4jVersion = "1.7.36" // keep in sync with scio
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
   scalaBinaryVersion.value == "2.13"
