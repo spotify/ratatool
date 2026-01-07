@@ -74,7 +74,7 @@ private[samplers] object BigSamplerProto {
         case JavaType.FLOAT   => hasher.putFloat(v.asInstanceOf[Float])
         case JavaType.DOUBLE  => hasher.putDouble(v.asInstanceOf[Double])
         case JavaType.BOOLEAN => hasher.putBoolean(v.asInstanceOf[Boolean])
-        case JavaType.STRING =>
+        case JavaType.STRING  =>
           hasher.putString(v.asInstanceOf[CharSequence], BigSampler.utf8Charset)
         case JavaType.BYTE_STRING => hasher.putBytes(v.asInstanceOf[ByteString].toByteArray)
         case JavaType.ENUM => hasher.putString(v.asInstanceOf[Enum[_]].name, BigSampler.utf8Charset)
