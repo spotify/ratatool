@@ -10,7 +10,7 @@ executors:
       - image: cimg/openjdk:17.0
     resource_class: medium+
     environment:
-      SCALA_VERSION: 2.12.20
+      SCALA_VERSION: 2.12.21
   scala_213:
     docker:
       - image: cimg/openjdk:17.0
