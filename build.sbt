@@ -86,6 +86,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
 )
 
 ThisBuild / PB.protocVersion := protoBufVersion
+ThisBuild / sonatypeCredentialHost := "central.sonatype.com"
 
 lazy val protoBufSettings = Seq(
   libraryDependencies ++= Seq(
@@ -117,8 +118,8 @@ lazy val releaseSettings = Seq(
   publishMavenStyle := true,
   Test / publishArtifact := false,
   publishTo := {
-    val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
-    val staging = Some(Resolver.file("local-staging", baseDirectory.value / "target" / "sonatype-staging" / version.value))
+     val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+    val staging = Some(Resolver.file("local-staging", (ThisBuild / baseDirectory).value / "target" / "sonatype-staging" / version.value))
     if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
     else staging
   },
