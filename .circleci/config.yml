@@ -16,7 +16,7 @@ executors:
       - image: cimg/openjdk:17.0
     resource_class: medium+
     environment:
-      SCALA_VERSION: 2.13.16
+      SCALA_VERSION: 2.13.18
 
 commands:
   build:
