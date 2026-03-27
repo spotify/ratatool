@@ -35,7 +35,7 @@ val jodaTimeVersion = "2.10.14" // keep in sync with scio
 val magnolifyVersion = "0.7.4" // keep in sync with scio
 val parquetVersion = "1.15.0" // keep in sync with scio
 val protoBufVersion = "3.25.5" // keep in sync with scio
-val scalaTestVersion = "3.2.18"
+val scalaTestVersion = "3.2.20"
 val scalaCheckVersion = "1.18.1"
 val scalaCollectionCompatVersion = "2.13.0"
 val scoptVersion = "4.1.0"
@@ -118,8 +118,13 @@ lazy val releaseSettings = Seq(
   publishMavenStyle := true,
   Test / publishArtifact := false,
   publishTo := {
-     val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
-    val staging = Some(Resolver.file("local-staging", (ThisBuild / baseDirectory).value / "target" / "sonatype-staging" / version.value))
+    val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+    val staging = Some(
+      Resolver.file(
+        "local-staging",
+        (ThisBuild / baseDirectory).value / "target" / "sonatype-staging" / version.value
+      )
+    )
     if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
     else staging
   },
