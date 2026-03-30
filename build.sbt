@@ -40,7 +40,7 @@ val scalaCheckVersion = "1.19.0"
 val scalaCollectionCompatVersion = "2.13.0"
 val scoptVersion = "4.1.0"
 val shapelessVersion = "2.3.13" // keep in sync with scio
-val sourcecodeVersion = "0.4.2"
+val sourcecodeVersion = "0.4.4"
 val slf4jVersion = "2.0.16" // keep in sync with scio
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
