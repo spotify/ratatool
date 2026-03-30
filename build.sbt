@@ -22,26 +22,26 @@ import xerial.sbt.Sonatype.autoImport._
 
 val algebirdVersion = "0.13.10"
 
-// Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.14.12/build.sbt
-val scioVersion = "0.14.16"
+// Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.15.4/build.sbt
+val scioVersion = "0.15.4"
 
 val avroVersion = avroCompilerVersion // keep in sync with scio
-val beamVersion = "2.62.0" // keep in sync with scio
+val beamVersion = "2.71.0" // keep in sync with scio
 val beamVendorVersion = "0.1" // keep in sync with scio
-val bigqueryVersion = "v2-rev20240919-2.0.0" // keep in sync with scio
+val bigqueryVersion = "v2-rev20251012-2.0.0" // keep in sync with scio
 val guavaVersion = "33.1.0-jre" // keep in sync with scio + beam
-val jacksonVersion = "2.19.0" // keep in sync with scio
-val jodaTimeVersion = "2.10.14" // keep in sync with scio
-val magnolifyVersion = "0.7.4" // keep in sync with scio
-val parquetVersion = "1.15.0" // keep in sync with scio
-val protoBufVersion = "3.25.5" // keep in sync with scio
-val scalaTestVersion = "3.2.18"
-val scalaCheckVersion = "1.18.1"
+val jacksonVersion = "2.15.4" // keep in sync with scio
+val jodaTimeVersion = "2.14.0" // keep in sync with scio
+val magnolifyVersion = "0.9.4" // keep in sync with scio
+val parquetVersion = "1.17.0" // keep in sync with scio
+val protoBufVersion = "4.33.0" // keep in sync with scio
+val scalaTestVersion = "3.2.20"
+val scalaCheckVersion = "1.19.0"
 val scalaCollectionCompatVersion = "2.13.0"
 val scoptVersion = "4.1.0"
-val shapelessVersion = "2.3.12" // keep in sync with scio
-val sourcecodeVersion = "0.4.2"
-val slf4jVersion = "1.7.30" // keep in sync with scio
+val shapelessVersion = "2.3.13" // keep in sync with scio
+val sourcecodeVersion = "0.4.4"
+val slf4jVersion = "2.0.16" // keep in sync with scio
 
 def isScala213x: Def.Initialize[Boolean] = Def.setting {
   scalaBinaryVersion.value == "2.13"
@@ -51,10 +51,8 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   organization := "com.spotify",
   name := "ratatool",
   description := "A tool for random data sampling and generation",
-  scalaVersion := "2.12.20",
-  crossScalaVersions := Seq(scalaVersion.value, "2.13.16"),
-  resolvers ++= Resolver.sonatypeOssRepos("public"),
-  resolvers ++= Resolver.sonatypeOssRepos("snapshots"), // @Todo remove when 0.14.0 released
+  scalaVersion := "2.12.21",
+  crossScalaVersions := Seq(scalaVersion.value, "2.13.18"),
   javaOptions := JavaOptions.defaults(javaMajorVersion),
   scalacOptions ++= Seq("-target:8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions ++= {
@@ -209,7 +207,7 @@ lazy val ratatoolSampling = project
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion % Provided,
       "com.spotify" %% "scio-test" % scioVersion % Test,
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-      "org.scalatestplus" %% "scalacheck-1-17" % s"$scalaTestVersion.0" % Test
+      "org.scalatestplus" %% "scalacheck-1-19" % s"$scalaTestVersion.0" % Test
     ),
     Test / parallelExecution := false
   )
@@ -301,7 +299,7 @@ lazy val ratatoolScalacheck = project
       "com.lihaoyi" %% "sourcecode" % sourcecodeVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-      "org.scalatestplus" %% "scalacheck-1-17" % s"$scalaTestVersion.0" % Test
+      "org.scalatestplus" %% "scalacheck-1-19" % s"$scalaTestVersion.0" % Test
     )
   )
   .dependsOn(ratatoolCommon % "compile->compile;test->test")
@@ -315,7 +313,7 @@ lazy val ratatoolExamples = project
     libraryDependencies ++= Seq(
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
       "com.spotify" %% "scio-test" % scioVersion % Test,
-      "org.scalatestplus" %% "scalacheck-1-17" % s"$scalaTestVersion.0" % Test
+      "org.scalatestplus" %% "scalacheck-1-19" % s"$scalaTestVersion.0" % Test
     )
   )
   .dependsOn(
