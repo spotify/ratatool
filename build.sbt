@@ -30,7 +30,7 @@ val beamVersion = "2.71.0" // keep in sync with scio
 val beamVendorVersion = "0.1" // keep in sync with scio
 val bigqueryVersion = "v2-rev20251012-2.0.0" // keep in sync with scio
 val guavaVersion = "33.1.0-jre" // keep in sync with scio + beam
-val jacksonVersion = "2.15.4" // keep in sync with scio
+val jacksonVersion = "2.21.2" // keep in sync with scio
 val jodaTimeVersion = "2.14.0" // keep in sync with scio
 val magnolifyVersion = "0.9.4" // keep in sync with scio
 val parquetVersion = "1.17.0" // keep in sync with scio
@@ -116,8 +116,13 @@ lazy val releaseSettings = Seq(
   publishMavenStyle := true,
   Test / publishArtifact := false,
   publishTo := {
-     val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
-    val staging = Some(Resolver.file("local-staging", (ThisBuild / baseDirectory).value / "target" / "sonatype-staging" / version.value))
+    val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+    val staging = Some(
+      Resolver.file(
+        "local-staging",
+        (ThisBuild / baseDirectory).value / "target" / "sonatype-staging" / version.value
+      )
+    )
     if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
     else staging
   },
