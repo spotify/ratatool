@@ -23,7 +23,7 @@ import xerial.sbt.Sonatype.autoImport._
 val algebirdVersion = "0.13.10"
 
 // Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.15.4/build.sbt
-val scioVersion = "0.15.4"
+val scioVersion = "0.15.6"
 
 val avroVersion = avroCompilerVersion // keep in sync with scio
 val beamVersion = "2.71.0" // keep in sync with scio
@@ -116,8 +116,13 @@ lazy val releaseSettings = Seq(
   publishMavenStyle := true,
   Test / publishArtifact := false,
   publishTo := {
-     val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
-    val staging = Some(Resolver.file("local-staging", (ThisBuild / baseDirectory).value / "target" / "sonatype-staging" / version.value))
+    val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+    val staging = Some(
+      Resolver.file(
+        "local-staging",
+        (ThisBuild / baseDirectory).value / "target" / "sonatype-staging" / version.value
+      )
+    )
     if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
     else staging
   },
