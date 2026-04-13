@@ -165,7 +165,7 @@ private[samplers] object BigSamplerAvro {
     hasher: Hasher
   ): Hasher = {
     fieldSchema.getType match {
-      case Type.ENUM => hashEnum(fieldName, fieldSchema, fieldValue, hasher)
+      case Type.ENUM   => hashEnum(fieldName, fieldSchema, fieldValue, hasher)
       case Type.STRING =>
         hasher.putString(fieldValue.asInstanceOf[CharSequence], BigSampler.utf8Charset)
       case Type.BYTES => hashBytes(fieldName, fieldSchema, fieldValue, hasher)
@@ -177,7 +177,7 @@ private[samplers] object BigSamplerAvro {
       case Type.BOOLEAN => hasher.putBoolean(fieldValue.asInstanceOf[Boolean])
       case Type.FIXED   => hashBytes(fieldName, fieldSchema, fieldValue, hasher)
       case Type.NULL    => hasher // Ignore nulls
-      case t =>
+      case t            =>
         throw new UnsupportedOperationException(
           s"Type `${fieldSchema.getType}` of `${fieldName}` is not supported as sampling key!"
         )
@@ -194,7 +194,7 @@ private[samplers] object BigSamplerAvro {
     fieldValue match {
       case sv: Enum[_]                => hasher.putString(sv.name, BigSampler.utf8Charset)
       case gv: GenericData.EnumSymbol => hasher.putString(gv.toString, BigSampler.utf8Charset)
-      case _ =>
+      case _                          =>
         throw new UnsupportedOperationException(
           s"Internal type of `${fieldName}` not consistent with `${fieldSchema.getType}`!"
         )
@@ -212,7 +212,7 @@ private[samplers] object BigSamplerAvro {
       case sv: Array[Byte]  => hasher.putBytes(sv)
       case gv: ByteBuffer   => hasher.putBytes(gv.array())
       case fv: GenericFixed => hasher.putBytes(fv.bytes())
-      case _ =>
+      case _                =>
         throw new UnsupportedOperationException(
           s"Internal type of `${fieldName}` not consistent with `${fieldSchema.getType}`!"
         )
