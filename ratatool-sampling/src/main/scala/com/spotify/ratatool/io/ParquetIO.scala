@@ -62,10 +62,12 @@ object ParquetIO {
         .checkReaderWriterCompatibility(s1, s2)
         .getType == SchemaCompatibilityType.COMPATIBLE
 
-    if (isReadCompatible(schemaLhs, schemaRhs)) {
+    if (schemaLhs == schemaRhs) {
       schemaLhs
+    } else if (isReadCompatible(schemaLhs, schemaRhs)) {
+      makeNullableForMissingFields(schemaLhs, schemaRhs)
     } else if (isReadCompatible(schemaRhs, schemaLhs)) {
-      schemaRhs
+      makeNullableForMissingFields(schemaRhs, schemaLhs)
     } else {
       throw new IllegalStateException(
         s"input $path1 had an incompatible schema to input " +
@@ -73,6 +75,51 @@ object ParquetIO {
       )
     }
   }
+
+  // When the reader schema has fields not present in the writer schema, parquet may fill
+  // null for those fields regardless of Avro nullability. This wraps such fields in a
+  // union with null so the Avro coder can serialize them without NPE, while preserving
+  // the original default value (e.g. [] for arrays) as the primary type in the union.
+  private[ratatool] def makeNullableForMissingFields(
+    readerSchema: Schema,
+    writerSchema: Schema
+  ): Schema = {
+    val writerFieldNames = writerSchema.getFields.asScala.map(_.name()).toSet
+    val hasFieldsToFix = readerSchema.getFields.asScala.exists { field =>
+      !writerFieldNames.contains(field.name()) && !isNullableSchema(field.schema())
+    }
+
+    if (!hasFieldsToFix) return readerSchema
+
+    val newFields = readerSchema.getFields.asScala.map { field =>
+      if (!writerFieldNames.contains(field.name()) && !isNullableSchema(field.schema())) {
+        // Original type first so the existing default value stays valid;
+        // null second so the coder tolerates nulls from the parquet reader.
+        val nullableType =
+          Schema.createUnion(field.schema(), Schema.create(Schema.Type.NULL))
+        new Schema.Field(
+          field.name(),
+          nullableType,
+          field.doc(),
+          field.defaultVal()
+        )
+      } else {
+        new Schema.Field(field.name(), field.schema(), field.doc(), field.defaultVal())
+      }
+    }
+
+    Schema.createRecord(
+      readerSchema.getName,
+      readerSchema.getDoc,
+      readerSchema.getNamespace,
+      readerSchema.isError,
+      newFields.asJava
+    )
+  }
+
+  private def isNullableSchema(schema: Schema): Boolean =
+    schema.getType == Schema.Type.UNION &&
+      schema.getTypes.asScala.exists(_.getType == Schema.Type.NULL)
 
   private[ratatool] def genericRecordReadConfig(schema: Schema, path: String): Configuration = {
     val job = Job.getInstance(new Configuration())
