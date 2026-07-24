@@ -62,38 +62,40 @@ object ParquetIO {
         .checkReaderWriterCompatibility(s1, s2)
         .getType == SchemaCompatibilityType.COMPATIBLE
 
-    if (schemaLhs == schemaRhs) {
+    val compatSchema = if (schemaLhs == schemaRhs) {
       schemaLhs
     } else if (isReadCompatible(schemaLhs, schemaRhs)) {
-      makeNullableForMissingFields(schemaLhs, schemaRhs)
+      schemaLhs
     } else if (isReadCompatible(schemaRhs, schemaLhs)) {
-      makeNullableForMissingFields(schemaRhs, schemaLhs)
+      schemaRhs
     } else {
       throw new IllegalStateException(
         s"input $path1 had an incompatible schema to input " +
           s"$path2: $schemaLhs not compatible with $schemaRhs"
       )
     }
+
+    makeCollectionFieldsNullable(compatSchema)
   }
 
-  // When the reader schema has fields not present in the writer schema, parquet may fill
-  // null for those fields regardless of Avro nullability. This wraps such fields in a
-  // union with null so the Avro coder can serialize them without NPE, while preserving
-  // the original default value (e.g. [] for arrays) as the primary type in the union.
-  private[ratatool] def makeNullableForMissingFields(
-    readerSchema: Schema,
-    writerSchema: Schema
-  ): Schema = {
-    val writerFieldNames = writerSchema.getFields.asScala.map(_.name()).toSet
-    val hasFieldsToFix = readerSchema.getFields.asScala.exists { field =>
-      !writerFieldNames.contains(field.name()) && !isNullableSchema(field.schema())
+  // Parquet can produce null values for non-nullable array/map fields (e.g. when
+  // reading with a schema that has more fields than the file, or when the underlying
+  // data simply contains nulls). Avro's GenericDatumWriter.getArraySize calls
+  // ((Collection) array).size() with no null guard, causing an NPE. This wraps all
+  // non-nullable collection fields in a union with null so the coder tolerates it.
+  private[ratatool] def makeCollectionFieldsNullable(schema: Schema): Schema = {
+    val collectionTypes = Set(Schema.Type.ARRAY, Schema.Type.MAP)
+    val hasFieldsToFix = schema.getFields.asScala.exists { field =>
+      collectionTypes.contains(field.schema().getType) ||
+      (field.schema().getType == Schema.Type.RECORD)
     }
 
-    if (!hasFieldsToFix) return readerSchema
+    if (!hasFieldsToFix) return schema
 
-    val newFields = readerSchema.getFields.asScala.map { field =>
-      if (!writerFieldNames.contains(field.name()) && !isNullableSchema(field.schema())) {
-        // Original type first so the existing default value stays valid;
+    val newFields = schema.getFields.asScala.map { field =>
+      val fieldType = field.schema().getType
+      if (collectionTypes.contains(fieldType) && !isNullableSchema(field.schema())) {
+        // Original type first so any existing default value stays valid;
         // null second so the coder tolerates nulls from the parquet reader.
         val nullableType =
           Schema.createUnion(field.schema(), Schema.create(Schema.Type.NULL))
@@ -103,16 +105,19 @@ object ParquetIO {
           field.doc(),
           field.defaultVal()
         )
+      } else if (fieldType == Schema.Type.RECORD) {
+        val nested = makeCollectionFieldsNullable(field.schema())
+        new Schema.Field(field.name(), nested, field.doc(), field.defaultVal())
       } else {
         new Schema.Field(field.name(), field.schema(), field.doc(), field.defaultVal())
       }
     }
 
     Schema.createRecord(
-      readerSchema.getName,
-      readerSchema.getDoc,
-      readerSchema.getNamespace,
-      readerSchema.isError,
+      schema.getName,
+      schema.getDoc,
+      schema.getNamespace,
+      schema.isError,
       newFields.asJava
     )
   }

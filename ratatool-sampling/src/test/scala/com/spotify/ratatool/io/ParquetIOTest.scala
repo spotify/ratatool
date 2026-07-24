@@ -65,8 +65,8 @@ class ParquetIOTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     ) shouldEqual ParquetTestData.avroSchema
   }
 
-  it should "make non-nullable fields nullable when missing from writer schema" in {
-    val readerSchema = new Schema.Parser().parse(
+  it should "make non-nullable array and map fields nullable" in {
+    val schema = new Schema.Parser().parse(
       """|{"type":"record","name":"TestRecord","namespace":"com.spotify.ratatool.io",
        |"fields":[
        |{"name":"id","type":"int"},
@@ -74,12 +74,8 @@ class ParquetIOTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
        |{"name":"meta","type":{"type":"map","values":"string"},"default":{}}
        |]}""".stripMargin
     )
-    val writerSchema = new Schema.Parser().parse(
-      """|{"type":"record","name":"TestRecord","namespace":"com.spotify.ratatool.io",
-       |"fields":[{"name":"id","type":"int"}]}""".stripMargin
-    )
 
-    val result = ParquetIO.makeNullableForMissingFields(readerSchema, writerSchema)
+    val result = ParquetIO.makeCollectionFieldsNullable(schema)
 
     result.getField("id").schema().getType shouldBe Schema.Type.INT
 
@@ -96,33 +92,29 @@ class ParquetIOTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     metaField.hasDefaultValue shouldBe true
   }
 
-  it should "preserve already-nullable fields in makeNullableForMissingFields" in {
-    val readerSchema = new Schema.Parser().parse(
+  it should "preserve already-nullable fields in makeCollectionFieldsNullable" in {
+    val schema = new Schema.Parser().parse(
       """|{"type":"record","name":"TestRecord","namespace":"com.spotify.ratatool.io",
        |"fields":[
        |{"name":"id","type":"int"},
        |{"name":"label","type":["null","string"],"default":null}
        |]}""".stripMargin
     )
-    val writerSchema = new Schema.Parser().parse(
-      """|{"type":"record","name":"TestRecord","namespace":"com.spotify.ratatool.io",
-       |"fields":[{"name":"id","type":"int"}]}""".stripMargin
-    )
 
-    val result = ParquetIO.makeNullableForMissingFields(readerSchema, writerSchema)
+    val result = ParquetIO.makeCollectionFieldsNullable(schema)
 
     val labelField = result.getField("label")
     labelField.schema().getType shouldBe Schema.Type.UNION
     labelField.schema().getTypes should have size 2
   }
 
-  it should "return original schema when all fields exist in both schemas" in {
+  it should "return original schema when no collection fields exist" in {
     val schema = new Schema.Parser().parse(
       """|{"type":"record","name":"TestRecord","namespace":"com.spotify.ratatool.io",
        |"fields":[{"name":"id","type":"int"},{"name":"name","type":"string"}]}""".stripMargin
     )
 
-    ParquetIO.makeNullableForMissingFields(schema, schema) shouldBe schema
+    ParquetIO.makeCollectionFieldsNullable(schema) shouldBe schema
   }
 
   it should "write parquet-avro as GenericRecords to file" in {
