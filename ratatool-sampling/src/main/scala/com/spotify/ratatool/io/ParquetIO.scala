@@ -62,7 +62,9 @@ object ParquetIO {
         .checkReaderWriterCompatibility(s1, s2)
         .getType == SchemaCompatibilityType.COMPATIBLE
 
-    if (isReadCompatible(schemaLhs, schemaRhs)) {
+    val compatSchema = if (schemaLhs == schemaRhs) {
+      schemaLhs
+    } else if (isReadCompatible(schemaLhs, schemaRhs)) {
       schemaLhs
     } else if (isReadCompatible(schemaRhs, schemaLhs)) {
       schemaRhs
@@ -72,7 +74,57 @@ object ParquetIO {
           s"$path2: $schemaLhs not compatible with $schemaRhs"
       )
     }
+
+    makeCollectionFieldsNullable(compatSchema)
   }
+
+  // Parquet can produce null values for non-nullable array/map fields (e.g. when
+  // reading with a schema that has more fields than the file, or when the underlying
+  // data simply contains nulls). Avro's GenericDatumWriter.getArraySize calls
+  // ((Collection) array).size() with no null guard, causing an NPE. This wraps all
+  // non-nullable collection fields in a union with null so the coder tolerates it.
+  private[ratatool] def makeCollectionFieldsNullable(schema: Schema): Schema = {
+    val collectionTypes = Set(Schema.Type.ARRAY, Schema.Type.MAP)
+    val hasFieldsToFix = schema.getFields.asScala.exists { field =>
+      collectionTypes.contains(field.schema().getType) ||
+      (field.schema().getType == Schema.Type.RECORD)
+    }
+
+    if (!hasFieldsToFix) return schema
+
+    val newFields = schema.getFields.asScala.map { field =>
+      val fieldType = field.schema().getType
+      if (collectionTypes.contains(fieldType) && !isNullableSchema(field.schema())) {
+        // Original type first so any existing default value stays valid;
+        // null second so the coder tolerates nulls from the parquet reader.
+        val nullableType =
+          Schema.createUnion(field.schema(), Schema.create(Schema.Type.NULL))
+        new Schema.Field(
+          field.name(),
+          nullableType,
+          field.doc(),
+          field.defaultVal()
+        )
+      } else if (fieldType == Schema.Type.RECORD) {
+        val nested = makeCollectionFieldsNullable(field.schema())
+        new Schema.Field(field.name(), nested, field.doc(), field.defaultVal())
+      } else {
+        new Schema.Field(field.name(), field.schema(), field.doc(), field.defaultVal())
+      }
+    }
+
+    Schema.createRecord(
+      schema.getName,
+      schema.getDoc,
+      schema.getNamespace,
+      schema.isError,
+      newFields.asJava
+    )
+  }
+
+  private def isNullableSchema(schema: Schema): Boolean =
+    schema.getType == Schema.Type.UNION &&
+      schema.getTypes.asScala.exists(_.getType == Schema.Type.NULL)
 
   private[ratatool] def genericRecordReadConfig(schema: Schema, path: String): Configuration = {
     val job = Job.getInstance(new Configuration())

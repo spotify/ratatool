@@ -445,6 +445,75 @@ class BigDiffyTest extends PipelineSpec {
     sc.run()
   }
 
+  it should "handle Parquet schema evolution with required array field" in {
+    val schemaBase = new Schema.Parser().parse(
+      """|{"type":"record",
+       |"name":"ParquetRecord",
+       |"namespace":"com.spotify.ratatool.diffy",
+       |"fields":[{"name":"id","type":"int"}]}
+       """.stripMargin
+    )
+    val schemaWithArray = new Schema.Parser().parse(
+      """|{"type":"record",
+       |"name":"ParquetRecord",
+       |"namespace":"com.spotify.ratatool.diffy",
+       |"fields":[
+       |{"name":"id","type":"int"},
+       |{"name":"tags","type":{"type":"array","items":"string"},"default":[]}]}
+       """.stripMargin
+    )
+
+    def toGenericRecord(schema: Schema, fields: Map[String, _]): GenericRecord = {
+      val gr = new GenericData.Record(schema)
+      fields.foreach { case (k, v) => gr.put(k, v) }
+      gr
+    }
+    val (lhsPath, rhsPath) = (
+      ParquetTestData.createTempDir("lhs-array") + "/out.parquet",
+      ParquetTestData.createTempDir("rhs-array") + "/out.parquet"
+    )
+
+    ParquetIO.writeToFile(
+      (1 to 5).map(i =>
+        toGenericRecord(
+          schemaWithArray,
+          Map("id" -> i, "tags" -> java.util.Collections.singletonList(s"tag$i"))
+        )
+      ),
+      schemaWithArray,
+      lhsPath
+    )
+
+    ParquetIO.writeToFile(
+      (1 to 5).map(i => toGenericRecord(schemaBase, Map("id" -> i))),
+      schemaBase,
+      rhsPath
+    )
+
+    // Schema transformation: tags field should be wrapped in union with null
+    val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhsPath, rhsPath)
+    val tagsField = compatSchema.getField("tags")
+    tagsField should not be null
+    tagsField.schema().getType shouldBe Schema.Type.UNION
+    tagsField.schema().getTypes.asScala.map(_.getType) should contain(Schema.Type.NULL)
+    tagsField.schema().getTypes.asScala.map(_.getType) should contain(Schema.Type.ARRAY)
+    tagsField.hasDefaultValue shouldBe true
+
+    // Simulate what the parquet reader produces for a record missing the tags column:
+    // a GenericRecord with the compatible schema where tags is null.
+    // Without the nullable union fix, encoding this record NPEs in
+    // GenericDatumWriter.getArraySize because it calls ((Collection) null).size().
+    val beamCoder = CoderMaterializer.beamWithDefault(avroGenericRecordCoder(compatSchema))
+    val simulatedRhsRecord = new GenericData.Record(compatSchema)
+    simulatedRhsRecord.put("id", 1)
+    simulatedRhsRecord.put("tags", null)
+
+    val encoded = CoderUtils.encodeToByteArray(beamCoder, simulatedRhsRecord)
+    val decoded = CoderUtils.decodeFromByteArray(beamCoder, encoded)
+    decoded.get("id") shouldBe 1
+    decoded.get("tags") shouldBe null
+  }
+
   "mergeTableSchema" should "merge two schemas" in {
 
     def jl[T](x: T*): java.util.List[T] = List(x: _*).asJava
