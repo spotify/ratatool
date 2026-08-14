@@ -39,6 +39,7 @@ import org.apache.avro.generic.GenericRecord
 import org.apache.avro.specific.SpecificRecordBase
 import org.apache.beam.sdk.io.TextIO
 import org.apache.beam.sdk.options.PipelineOptions
+import org.apache.hadoop.conf.Configuration
 import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.io.BaseEncoding
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -347,14 +348,15 @@ object BigDiffy extends Command with Serializable {
     lhs: String,
     rhs: String,
     keyFn: GenericRecord => MultiKey,
-    diffy: AvroDiffy[GenericRecord]
+    diffy: AvroDiffy[GenericRecord],
+    conf: Configuration = new Configuration()
   ): BigDiffy[GenericRecord] = {
     val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhs, rhs)
     implicit val grCoder: Coder[GenericRecord] = avroGenericRecordCoder(compatSchema)
 
     diff(
-      sc.parquetAvroFile[GenericRecord](lhs, compatSchema).map(identity),
-      sc.parquetAvroFile[GenericRecord](rhs, compatSchema).map(identity),
+      sc.parquetAvroFile[GenericRecord](lhs, compatSchema, conf = conf).map(identity),
+      sc.parquetAvroFile[GenericRecord](rhs, compatSchema, conf = conf).map(identity),
       diffy,
       keyFn
     )
@@ -596,6 +598,8 @@ object BigDiffy extends Command with Serializable {
         |                                   For example --unorderedFieldKey=fieldPath:fieldKey,otherPath:otherKey
         |  [--with-header]                  Output all TSVs with header rows. Defaults to false
         |  [--ignore-nan]                   Ignore NaN values when computing stats for differences
+        |  [--parquetConf=<key=value>]      Hadoop Configuration property for Parquet reads. Repeatable.
+        |                                   For example --parquetConf=parquet.avro.write-old-list-structure=false
         |
         |Since this runs a Scio/Beam pipeline, Dataflow options will have to be provided. At a
         |minimum, the following should be specified:
@@ -781,11 +785,28 @@ object BigDiffy extends Command with Serializable {
         if (rowRestriction.isDefined) {
           throw new IllegalArgumentException("rowRestriction cannot be passed for Parquet inputs")
         }
+        val parquetConfEntries = args.list("parquetConf")
+        parquetConfEntries.foreach { kv =>
+          if (kv.indexOf('=') <= 0) {
+            throw new IllegalArgumentException(
+              s"Invalid --parquetConf entry '$kv', expected key=value"
+            )
+          }
+        }
         val compatSchema = ParquetIO.getCompatibleSchemaForFiles(lhs, rhs)
         val diffy = new AvroDiffy[GenericRecord](ignore, unordered, unorderedKeys)(
           avroGenericRecordCoder(compatSchema)
         )
-        BigDiffy.diffParquet(sc, lhs, rhs, avroKeyFn(keys), diffy)
+        if (parquetConfEntries.isEmpty) {
+          BigDiffy.diffParquet(sc, lhs, rhs, avroKeyFn(keys), diffy)
+        } else {
+          val conf = new Configuration()
+          parquetConfEntries.foreach { kv =>
+            val eqIdx = kv.indexOf('=')
+            conf.set(kv.substring(0, eqIdx), kv.substring(eqIdx + 1))
+          }
+          BigDiffy.diffParquet(sc, lhs, rhs, avroKeyFn(keys), diffy, conf)
+        }
       case "bigquery" =>
         // TODO: handle schema evolution
         val bq = BigQuery.defaultInstance()
