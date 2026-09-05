@@ -52,7 +52,7 @@ val commonSettings = Sonatype.sonatypeSettings ++ releaseSettings ++ Seq(
   name := "ratatool",
   description := "A tool for random data sampling and generation",
   scalaVersion := "2.12.21",
-  crossScalaVersions := Seq(scalaVersion.value, "2.13.18"),
+  crossScalaVersions := Seq(scalaVersion.value, "3.9.0"),
   javaOptions := JavaOptions.defaults(javaMajorVersion),
   scalacOptions ++= Seq("-target:8", "-deprecation", "-feature", "-unchecked", "-Yrangepos"),
   scalacOptions ++= {
@@ -116,8 +116,13 @@ lazy val releaseSettings = Seq(
   publishMavenStyle := true,
   Test / publishArtifact := false,
   publishTo := {
-     val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
-    val staging = Some(Resolver.file("local-staging", (ThisBuild / baseDirectory).value / "target" / "sonatype-staging" / version.value))
+    val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+    val staging = Some(
+      Resolver.file(
+        "local-staging",
+        (ThisBuild / baseDirectory).value / "target" / "sonatype-staging" / version.value
+      )
+    )
     if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
     else staging
   },
