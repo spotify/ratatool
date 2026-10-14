@@ -37,8 +37,8 @@ object Ratatool {
       sys.exit(1)
     } else {
       args.head match {
-        case BigDiffy.command   => BigDiffy.run(args.tail)
-        case BigSampler.command => BigSampler.run(args.tail)
+        case BigDiffy.command            => BigDiffy.run(args.tail)
+        case BigSampler.command          => BigSampler.run(args.tail)
         case DirectSamplerParser.command =>
           val opts = DirectSamplerParser.parse(args.tail)
           if (opts.isEmpty) {
