@@ -32,6 +32,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.File
 import java.nio.file.Files
+import scala.jdk.CollectionConverters._
 
 class ParquetIOTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   private lazy val (typedOut, avroOut) =
@@ -62,6 +63,58 @@ class ParquetIOTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     ParquetIO.getAvroSchemaFromFile(
       typedOut + "/part-*"
     ) shouldEqual ParquetTestData.avroSchema
+  }
+
+  it should "make non-nullable array and map fields nullable" in {
+    val schema = new Schema.Parser().parse(
+      """|{"type":"record","name":"TestRecord","namespace":"com.spotify.ratatool.io",
+       |"fields":[
+       |{"name":"id","type":"int"},
+       |{"name":"tags","type":{"type":"array","items":"string"},"default":[]},
+       |{"name":"meta","type":{"type":"map","values":"string"},"default":{}}
+       |]}""".stripMargin
+    )
+
+    val result = ParquetIO.makeCollectionFieldsNullable(schema)
+
+    result.getField("id").schema().getType shouldBe Schema.Type.INT
+
+    val tagsField = result.getField("tags")
+    tagsField.schema().getType shouldBe Schema.Type.UNION
+    tagsField.schema().getTypes.asScala.map(_.getType) should contain(Schema.Type.NULL)
+    tagsField.schema().getTypes.asScala.map(_.getType) should contain(Schema.Type.ARRAY)
+    tagsField.hasDefaultValue shouldBe true
+
+    val metaField = result.getField("meta")
+    metaField.schema().getType shouldBe Schema.Type.UNION
+    metaField.schema().getTypes.asScala.map(_.getType) should contain(Schema.Type.NULL)
+    metaField.schema().getTypes.asScala.map(_.getType) should contain(Schema.Type.MAP)
+    metaField.hasDefaultValue shouldBe true
+  }
+
+  it should "preserve already-nullable fields in makeCollectionFieldsNullable" in {
+    val schema = new Schema.Parser().parse(
+      """|{"type":"record","name":"TestRecord","namespace":"com.spotify.ratatool.io",
+       |"fields":[
+       |{"name":"id","type":"int"},
+       |{"name":"label","type":["null","string"],"default":null}
+       |]}""".stripMargin
+    )
+
+    val result = ParquetIO.makeCollectionFieldsNullable(schema)
+
+    val labelField = result.getField("label")
+    labelField.schema().getType shouldBe Schema.Type.UNION
+    labelField.schema().getTypes should have size 2
+  }
+
+  it should "return original schema when no collection fields exist" in {
+    val schema = new Schema.Parser().parse(
+      """|{"type":"record","name":"TestRecord","namespace":"com.spotify.ratatool.io",
+       |"fields":[{"name":"id","type":"int"},{"name":"name","type":"string"}]}""".stripMargin
+    )
+
+    ParquetIO.makeCollectionFieldsNullable(schema) shouldBe schema
   }
 
   it should "write parquet-avro as GenericRecords to file" in {
