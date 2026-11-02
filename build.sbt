@@ -36,7 +36,7 @@ val magnolifyVersion = "0.9.8" // keep in sync with scio
 val parquetVersion = "1.17.1" // keep in sync with scio
 val protoBufVersion = "4.33.2" // keep in sync with scio
 val scalaTestVersion = "3.2.20"
-val scalaCheckVersion = "1.19.0"
+val scalaCheckVersion = "1.20.0"
 
 val scalaCollectionCompatVersion = "2.14.0"
 val scoptVersion = "4.2.0"
@@ -214,7 +214,7 @@ lazy val ratatoolSampling = project
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion % Provided,
       "com.spotify" %% "scio-test" % scioVersion % Test,
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-      "org.scalatestplus" %% "scalacheck-1-19" % s"$scalaTestVersion.0" % Test
+      "org.scalatestplus" %% "scalacheck-1-20" % s"$scalaTestVersion.0" % Test
     ),
     Test / parallelExecution := false
   )
@@ -306,7 +306,7 @@ lazy val ratatoolScalacheck = project
       "com.lihaoyi" %% "sourcecode" % sourcecodeVersion,
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion % Provided,
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-      "org.scalatestplus" %% "scalacheck-1-19" % s"$scalaTestVersion.0" % Test
+      "org.scalatestplus" %% "scalacheck-1-20" % s"$scalaTestVersion.0" % Test
     )
   )
   .dependsOn(ratatoolCommon % "compile->compile;test->test")
@@ -320,7 +320,7 @@ lazy val ratatoolExamples = project
     libraryDependencies ++= Seq(
       "com.google.apis" % "google-api-services-bigquery" % bigqueryVersion,
       "com.spotify" %% "scio-test" % scioVersion % Test,
-      "org.scalatestplus" %% "scalacheck-1-19" % s"$scalaTestVersion.0" % Test
+      "org.scalatestplus" %% "scalacheck-1-20" % s"$scalaTestVersion.0" % Test
     )
   )
   .dependsOn(
