@@ -9,7 +9,6 @@ addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.12.2")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.6.2")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.9")
 
-
 libraryDependencies ++= Seq(
   "org.apache.avro" % "avro-compiler" % "1.11.5",
   "org.typelevel" %% "scalac-options" % "0.1.11"
