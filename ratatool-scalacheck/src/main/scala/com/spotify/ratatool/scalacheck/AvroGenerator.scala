@@ -142,7 +142,7 @@ trait AvroGeneratorOps {
 
     val conversion = for {
       logicalType <- Option(schema.getLogicalType)
-      conversion <- Option(data.getConversionFor(logicalType))
+      conversion <- Option(data.getConversionFor[Any](logicalType))
     } yield conversion
 
     schema.getType match {

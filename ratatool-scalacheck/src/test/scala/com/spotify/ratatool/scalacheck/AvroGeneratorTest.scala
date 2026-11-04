@@ -19,6 +19,7 @@ package com.spotify.ratatool.scalacheck
 
 import com.spotify.ratatool.avro.specific.{RequiredNestedRecord, TestRecord}
 import com.spotify.ratatool.scalacheck.AvroGeneratorTest.StringableCustom
+import org.apache.avro.data.TimeConversions
 import org.apache.avro.generic.GenericData
 import org.apache.avro.specific.SpecificData
 import org.apache.avro.util.Utf8
@@ -90,6 +91,25 @@ class AvroGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropert
     val gen = avroOf(schema)
     forAll(gen) { r =>
       r.get("cost") shouldBe a[java.math.BigDecimal]
+    }
+  }
+
+  it should "support timestamp logical type" in {
+    // format: off
+    val timestampType = LogicalTypes.timestampMillis().addToSchema(SchemaBuilder.builder().longType())
+    val schema = SchemaBuilder
+      .builder()
+      .record("TestTimestampLogicalType")
+      .fields()
+      .name("ts").`type`(timestampType).noDefault()
+      .endRecord()
+    // format: on
+
+    GenericData.get().addLogicalTypeConversion(new TimeConversions.TimestampMillisConversion)
+
+    val gen = avroOf(schema)
+    forAll(gen) { r =>
+      r.get("ts") shouldBe a[java.time.Instant]
     }
   }
 
