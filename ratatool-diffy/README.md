@@ -53,7 +53,7 @@ The following options are recommended, but may not be necessary.
    --workerMachineType=<machine-type>        Can be tweaked based on your specific needs, but is not necessary.
    --maxNumWorkers=<num-workers>             Limits the number of workers (machines) used in the job to avoid using up quota.
 
-For more details regarding Dataflow options see here: https://cloud.google.com/dataflow/pipelines/specifying-exec-params
+For more details regarding Dataflow options see here: https://docs.cloud.google.com/dataflow/docs/guides/setting-pipeline-options
 ```
 
 Or from SBT
