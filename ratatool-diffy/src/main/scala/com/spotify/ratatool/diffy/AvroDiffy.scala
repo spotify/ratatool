@@ -167,10 +167,16 @@ class AvroDiffy[T <: IndexedRecord: Coder](
         delta.map(d => Delta(field, Some(x), Some(y), d)).toSeq
 
       case t if isNumericType(t) =>
-        // numeric, convert to Double for equality check
-        val a = numericValue(x)
-        val b = numericValue(y)
-        val delta = if (a == b) None else Some(NumericDelta(numericDelta(a, b)))
+        // Longs are compared exactly, converting to Double would hide differences above 2^53
+        val delta = (x, y) match {
+          case (a: java.lang.Long, b: java.lang.Long) =>
+            if (a == b) None else Some(NumericDelta(numericDelta(a.toDouble, b.toDouble)))
+          case _ =>
+            // other numeric types, convert to Double for equality check
+            val a = numericValue(x)
+            val b = numericValue(y)
+            if (a == b) None else Some(NumericDelta(numericDelta(a, b)))
+        }
         delta.map(d => Delta(field, Some(x), Some(y), d)).toSeq
 
       case _ =>

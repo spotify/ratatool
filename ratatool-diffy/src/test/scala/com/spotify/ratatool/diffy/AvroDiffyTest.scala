@@ -46,6 +46,27 @@ class AvroDiffyTest extends AnyFlatSpec with Matchers {
     d(x, z) should equal(Seq(Delta("long_field", Option(20L), Option(200L), NumericDelta(180.0))))
   }
 
+  it should "detect differences between Longs above 2^53" in {
+    val d = new AvroDiffy[NullableNestedRecord]()
+    val big = 9007199254740992L // 2^53
+
+    val x = NullableNestedRecord.newBuilder().setIntField(10).setLongField(big).build()
+    val y = NullableNestedRecord.newBuilder().setIntField(10).setLongField(big + 1).build()
+
+    d(x, x) should equal(Nil)
+    d(x, y) should equal(Seq(Delta("long_field", Option(big), Option(big + 1), NumericDelta(0.0))))
+  }
+
+  it should "keep Double comparison for non-Long numeric fields" in {
+    val d = new AvroDiffy[NullableNestedRecord]()
+
+    val nan = NullableNestedRecord.newBuilder().setIntField(10).setDoubleField(Double.NaN).build()
+    val nan2 = NullableNestedRecord.newBuilder().setIntField(10).setDoubleField(Double.NaN).build()
+
+    // NaN != NaN under Double comparison, unchanged by the Long handling
+    d(nan, nan2).map(_.field) should equal(Seq("double_field"))
+  }
+
   it should "support nested fields" in {
     val coder = CoderMaterializer.beamWithDefault(Coder[TestRecord])
 
