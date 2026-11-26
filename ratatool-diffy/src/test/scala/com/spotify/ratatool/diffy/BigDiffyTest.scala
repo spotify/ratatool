@@ -34,6 +34,9 @@ import com.spotify.scio.coders.{Coder, CoderMaterializer}
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.beam.sdk.io.gcp.bigquery.TableRowJsonCoder
+import org.apache.hadoop.conf.Configuration
+import org.apache.parquet.avro.AvroParquetWriter
+import com.spotify.scio.parquet.BeamOutputFile
 
 import scala.jdk.CollectionConverters._
 import scala.language.higherKinds
@@ -493,5 +496,79 @@ class BigDiffyTest extends PipelineSpec {
     val actual = mergeTableSchema(schema2, schema1)
 
     assert(actual.getFields.containsAll(expected.getFields))
+  }
+
+  it should "pass Configuration through to parquet reads" in {
+    val schema = new Schema.Parser().parse(
+      """|{"type":"record",
+       |"name":"ParquetRecord",
+       |"namespace":"com.spotify.ratatool.diffy",
+       |"fields":[
+       |{"name":"id","type":"int"},
+       |{"name":"tags","type":{"type":"array","items":"string"}}]}
+       """.stripMargin
+    )
+
+    def toGenericRecord(id: Int, tags: java.util.List[String]): GenericRecord = {
+      val gr = new GenericData.Record(schema)
+      gr.put("id", id)
+      gr.put("tags", tags)
+      gr
+    }
+
+    val (lhsPath, rhsPath) = (
+      ParquetTestData.createTempDir("lhs-conf") + "/out.parquet",
+      ParquetTestData.createTempDir("rhs-conf") + "/out.parquet"
+    )
+
+    val writeConf = new Configuration()
+    writeConf.setBoolean("parquet.avro.write-old-list-structure", false)
+
+    for (path <- Seq(lhsPath, rhsPath)) {
+      val writer = AvroParquetWriter
+        .builder[GenericRecord](BeamOutputFile.of(path))
+        .withConf(writeConf)
+        .withSchema(schema)
+        .build()
+      (1 to 5).foreach { i =>
+        writer.write(toGenericRecord(i, java.util.Arrays.asList(s"tag$i")))
+      }
+      writer.close()
+    }
+
+    val readConf = new Configuration()
+    readConf.setBoolean("parquet.avro.write-old-list-structure", false)
+
+    val sc = ScioContext()
+    implicit val coder = avroGenericRecordCoder(schema)
+
+    val bigDiffy = BigDiffy.diffParquet(
+      sc,
+      lhsPath,
+      rhsPath,
+      avroKeyFn(Seq("id")),
+      new AvroDiffy[GenericRecord](),
+      readConf
+    )
+
+    bigDiffy.globalStats should containSingleValue(GlobalStats(5L, 5L, 0L, 0L, 0L))
+    sc.run()
+  }
+
+  it should "reject malformed --parquetConf entries" in {
+    val exc = intercept[IllegalArgumentException] {
+      BigDiffy.run(
+        Array(
+          "--runner=DirectRunner",
+          "--input-mode=parquet",
+          "--key=id",
+          "--lhs=gs://fake/lhs",
+          "--rhs=gs://fake/rhs",
+          "--output=gs://fake/out",
+          "--parquetConf=no-equals-sign"
+        )
+      )
+    }
+    exc.getMessage should include("expected key=value")
   }
 }
