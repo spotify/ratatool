@@ -60,15 +60,21 @@ jobs:
     steps:
       - build
   diffy_212:
-    executor: scala_212
+    docker:
+      - image: cimg/openjdk:17.0
+    resource_class: large
     environment:
-      TEST_PROJECT=ratatoolDiffy
+      SCALA_VERSION: 2.12.20
+      TEST_PROJECT: ratatoolDiffy
     steps:
       - build
   sampling_212:
-    executor: scala_212
+    docker:
+      - image: cimg/openjdk:17.0
+    resource_class: large
     environment:
-      TEST_PROJECT=ratatoolSampling
+      SCALA_VERSION: 2.12.20
+      TEST_PROJECT: ratatoolSampling
     steps:
       - build
   shapeless_212:
@@ -102,15 +108,21 @@ jobs:
     steps:
       - build
   diffy_213:
-    executor: scala_213
+    docker:
+      - image: cimg/openjdk:17.0
+    resource_class: large
     environment:
-      TEST_PROJECT=ratatoolDiffy
+      SCALA_VERSION: 2.13.16
+      TEST_PROJECT: ratatoolDiffy
     steps:
       - build
   sampling_213:
-    executor: scala_213
+    docker:
+      - image: cimg/openjdk:17.0
+    resource_class: large
     environment:
-      TEST_PROJECT=ratatoolSampling
+      SCALA_VERSION: 2.13.16
+      TEST_PROJECT: ratatoolSampling
     steps:
       - build
   shapeless_213:
