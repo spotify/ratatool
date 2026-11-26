@@ -23,7 +23,7 @@ import xerial.sbt.Sonatype.autoImport._
 val algebirdVersion = "0.13.10"
 
 // Keep in sync with Scio: https://github.com/spotify/scio/blob/v0.15.10/build.sbt
-val scioVersion = "0.15.10"
+val scioVersion = "0.16.1"
 
 val avroVersion = avroCompilerVersion // keep in sync with scio
 val beamVersion = "2.76.0" // keep in sync with scio
